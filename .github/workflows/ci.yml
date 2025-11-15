@@ -58,11 +58,13 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jackpy_test
           TELEGRAM_TOKEN: dummy_token_for_testing
         run: |
-          pytest tests/ -v --cov=bot --cov=models --cov-report=term-missing
+          pytest tests/ -v --cov=bot --cov=models --cov-report=term-missing --cov-report=xml
 
       - name: Upload coverage reports
+        if: success()
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage.xml
           flags: unittests
           name: codecov-jackpy
+        continue-on-error: true
