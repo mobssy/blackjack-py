@@ -9,13 +9,13 @@ class TestThemeManager:
     """ThemeManager 테스트"""
 
     def test_get_classic_theme(self):
-        """클래식 테마 가져오기 테스트"""
+        """클래식 테마 가져오기 테스트 (모던 다크 네온)"""
         theme = ThemeManager.get_theme(ThemeType.CLASSIC)
 
         assert theme is not None
         assert theme.name == "Classic"
-        assert theme.colors.background == (34, 139, 34)
-        assert theme.has_gradient is False
+        assert theme.colors.background == (15, 15, 20)  # 모던 다크로 업데이트됨
+        assert theme.has_gradient is True  # 그라데이션 활성화됨
 
     def test_get_dark_theme(self):
         """다크 테마 가져오기 테스트"""
