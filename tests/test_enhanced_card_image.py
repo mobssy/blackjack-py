@@ -35,15 +35,15 @@ class TestEnhancedCardImageGenerator:
         """카드 경로 변환 테스트"""
         gen = EnhancedCardImageGenerator()
 
-        # AS -> ace_of_spades.png
+        # AS -> A_of_spades.png
         path = gen._get_card_image_path("AS")
         assert path is not None
-        assert "ace_of_spades" in str(path)
+        assert "A_of_spades" in str(path)
 
-        # KH -> king_of_hearts.png
+        # KH -> K_of_hearts.png
         path = gen._get_card_image_path("KH")
         assert path is not None
-        assert "king_of_hearts" in str(path)
+        assert "K_of_hearts" in str(path)
 
     def test_generate_game_image(self):
         """게임 이미지 생성 테스트"""

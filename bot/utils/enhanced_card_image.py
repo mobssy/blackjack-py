@@ -181,9 +181,10 @@ class EnhancedCardImageGenerator:
         Returns:
             카드 이미지 파일 경로 (없으면 None)
         """
-        # 카드 파일명 변환: AS -> ace_of_spades.png
+        # 카드 파일명 변환: AS -> A_of_spades.png
+        # 실제 파일은 A_of_spades.png, K_of_hearts.png 등의 형식 사용
         rank_map = {
-            "A": "ace",
+            "A": "A",
             "2": "2",
             "3": "3",
             "4": "4",
@@ -193,16 +194,16 @@ class EnhancedCardImageGenerator:
             "8": "8",
             "9": "9",
             "T": "10",
-            "J": "jack",
-            "Q": "queen",
-            "K": "king",
+            "J": "J",
+            "Q": "Q",
+            "K": "K",
         }
         suit_map = {"S": "spades", "H": "hearts", "D": "diamonds", "C": "clubs"}
 
         rank = card_str[:-1]
         suit = card_str[-1]
 
-        rank_name = rank_map.get(rank, rank.lower())
+        rank_name = rank_map.get(rank, rank)
         suit_name = suit_map.get(suit, suit.lower())
 
         filename = f"{rank_name}_of_{suit_name}.png"
