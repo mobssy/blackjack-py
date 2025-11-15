@@ -46,12 +46,12 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 bot/ models/ --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 bot/ models/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 bot/ models/ tests/ scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 bot/ models/ tests/ scripts/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Check code formatting with black
         run: |
-          black --check bot/ models/
+          black --check bot/ models/ tests/ scripts/
 
       - name: Run tests with pytest
         env:
