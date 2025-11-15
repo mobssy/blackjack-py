@@ -4,9 +4,9 @@
 name: Deploy
 
 on:
+  # 버전 태그가 푸시될 때만 배포 실행 (예: v1.0.0)
+  # SSH 시크릿이 설정되어 있지 않으면 이 워크플로우는 실행되지 않습니다
   push:
-    branches:
-      - main
     tags:
       - 'v*'
 

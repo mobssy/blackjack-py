@@ -12,18 +12,27 @@ from contextlib import contextmanager
 from typing import Generator
 
 # Database URL from environment variable
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/jackpy"
-)
+# 기본값: SQLite (로컬 개발용)
+# CI/Production: PostgreSQL (환경변수로 오버라이드)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./jackpy.db")
 
 # SQLAlchemy 엔진 생성
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # 연결 유효성 검사
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-)
+# SQLite의 경우 pool 설정 무시
+engine_kwargs = {
+    "echo": os.getenv("SQL_ECHO", "false").lower() == "true",
+}
+
+# PostgreSQL인 경우에만 pool 설정 추가
+if DATABASE_URL.startswith("postgresql"):
+    engine_kwargs.update(
+        {
+            "pool_size": 10,
+            "max_overflow": 20,
+            "pool_pre_ping": True,  # 연결 유효성 검사
+        }
+    )
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 # 세션 팩토리
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
