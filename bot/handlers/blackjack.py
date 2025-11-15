@@ -166,9 +166,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 잔액 확인
@@ -246,9 +244,7 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await update.message.reply_text(
-            "❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요."
-        )
+        await update.message.reply_text("❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
         return
 
     game = game_sessions[user_tg_id]
@@ -296,9 +292,7 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await update.message.reply_text(
-            "❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요."
-        )
+        await update.message.reply_text("❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
         return
 
     game = game_sessions[user_tg_id]
@@ -458,9 +452,7 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         stats = user.stats_json or {}
@@ -490,16 +482,13 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 일일 보상 수령 가능 여부 확인
         if not user.can_claim_daily():
             await update.message.reply_text(
-                "⏰ 일일 보상은 하루에 한 번만 받을 수 있습니다.\n"
-                "내일 다시 시도해주세요!"
+                "⏰ 일일 보상은 하루에 한 번만 받을 수 있습니다.\n" "내일 다시 시도해주세요!"
             )
             return
 
@@ -536,9 +525,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await query.edit_message_caption(
-            caption="❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요."
-        )
+        await query.edit_message_caption(caption="❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
         return
 
     game = game_sessions[user_tg_id]

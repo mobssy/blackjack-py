@@ -19,9 +19,7 @@ VIP_PRICE_365_DAYS = 250.0
 BUSINESS_PRICE_MONTHLY = 300.0
 
 # 입금 계좌 정보 (환경변수에서 로드)
-BANK_ACCOUNT_INFO = os.getenv(
-    "BANK_ACCOUNT_INFO", "신한은행 110-490-935730 \n예금주: 신겸"
-)
+BANK_ACCOUNT_INFO = os.getenv("BANK_ACCOUNT_INFO", "신한은행 110-490-935730 \n예금주: 신겸")
 
 
 async def cmd_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,9 +35,7 @@ async def cmd_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # VIP 상태 확인
@@ -146,9 +142,7 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 승인 요청 생성
@@ -207,8 +201,7 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "❌ 사용법: /confirm_business [입금자명] [금액]\n"
-            "예: /confirm_business 회사명 300"
+            "❌ 사용법: /confirm_business [입금자명] [금액]\n" "예: /confirm_business 회사명 300"
         )
         return
 
@@ -223,9 +216,7 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 승인 요청 생성

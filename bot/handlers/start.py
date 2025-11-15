@@ -257,9 +257,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            "게임 시작\n\n"
-            "/deal [금액] 명령어로 블랙잭을 시작하세요.\n"
-            "예: /deal 100",
+            "게임 시작\n\n" "/deal [금액] 명령어로 블랙잭을 시작하세요.\n" "예: /deal 100",
             reply_markup=reply_markup,
         )
 
@@ -303,9 +301,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with get_db() as db:
             user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
             if not user:
-                await query.edit_message_text(
-                    "등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-                )
+                await query.edit_message_text("등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
                 return
 
             # 일일 보상 수령 가능 여부 확인
@@ -315,8 +311,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(
-                    "일일 보상은 하루에 한 번만 받을 수 있습니다.\n"
-                    "내일 다시 시도해주세요!",
+                    "일일 보상은 하루에 한 번만 받을 수 있습니다.\n" "내일 다시 시도해주세요!",
                     reply_markup=reply_markup,
                 )
                 return
@@ -333,9 +328,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             vip_bonus = " (VIP 보너스!)" if user.is_vip_active else ""
 
             # 뒤로가기 버튼 추가
-            keyboard = [
-                [InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]
-            ]
+            keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await query.edit_message_text(
@@ -353,9 +346,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with get_db() as db:
             user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
             if not user:
-                await query.edit_message_text(
-                    "등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-                )
+                await query.edit_message_text("등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
                 return
 
             # 통계 및 프로필 정보
@@ -401,9 +392,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             # 뒤로가기 버튼 추가
-            keyboard = [
-                [InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]
-            ]
+            keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await query.edit_message_text(profile_message, reply_markup=reply_markup)
@@ -434,8 +423,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_caption(
-            caption="게임 시작\n\n"
-            "/deal [금액] 명령어로 블랙잭을 시작하세요.\n"
-            "예: /deal 100",
+            caption="게임 시작\n\n" "/deal [금액] 명령어로 블랙잭을 시작하세요.\n" "예: /deal 100",
             reply_markup=reply_markup,
         )

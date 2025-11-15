@@ -197,9 +197,7 @@ class CardImageGenerator:
         )
 
         total_width = max(card_area_width, 600)
-        total_height = (
-            self.CARD_HEIGHT + 120
-        ) * 2 + 120  # 딜러 + 플레이어 + 메시지 + 결과
+        total_height = (self.CARD_HEIGHT + 120) * 2 + 120  # 딜러 + 플레이어 + 메시지 + 결과
 
         # 배경색 (결과에 따라 변경)
         bg_color = self.COLOR_BACKGROUND
@@ -214,9 +212,7 @@ class CardImageGenerator:
 
         # 딜러 섹션
         y_offset = 20
-        draw.text(
-            (20, y_offset), "🃏 딜러", fill=self.COLOR_WHITE, font=self.font_large
-        )
+        draw.text((20, y_offset), "🃏 딜러", fill=self.COLOR_WHITE, font=self.font_large)
         y_offset += 60
 
         # 딜러 카드
@@ -238,9 +234,7 @@ class CardImageGenerator:
 
         # 플레이어 섹션
         y_offset += self.CARD_HEIGHT + 60
-        draw.text(
-            (20, y_offset), "🎴 플레이어", fill=self.COLOR_WHITE, font=self.font_large
-        )
+        draw.text((20, y_offset), "🎴 플레이어", fill=self.COLOR_WHITE, font=self.font_large)
         y_offset += 60
 
         # 플레이어 카드

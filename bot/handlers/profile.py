@@ -25,9 +25,7 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 통계 조회
@@ -104,9 +102,7 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 현재 사용자
         current_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not current_user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 수익 순위 (상위 10명)
@@ -164,9 +160,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 라운드별 통계 조회

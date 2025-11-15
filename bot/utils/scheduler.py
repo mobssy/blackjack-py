@@ -178,9 +178,7 @@ class JackPyScheduler:
                         await self._send_notification(group.owner.tg_user_id, message)
 
                 db.commit()
-                logger.info(
-                    f"✅ 그룹 플랜 만료 체크 완료 (만료: {len(expired_groups)})"
-                )
+                logger.info(f"✅ 그룹 플랜 만료 체크 완료 (만료: {len(expired_groups)})")
 
         except Exception as e:
             logger.error(f"❌ 그룹 플랜 만료 체크 오류: {e}")
