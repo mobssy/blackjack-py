@@ -1,0 +1,129 @@
+# JackPy - Deploy Workflow
+# 프로덕션 서버 자동 배포
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment archive
+        run: |
+          tar -czf jackpy.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='tests' \
+            --exclude='*.pyc' \
+            --exclude='__pycache__' \
+            --exclude='.env' \
+            --exclude='jackpy.log' \
+            .
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "jackpy.tar.gz"
+          target: "/tmp"
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+
+            # 배포 디렉토리 설정
+            APP_DIR="/home/app/apps/jackpy"
+            SHARED_DIR="${APP_DIR}/shared"
+            RELEASES_DIR="${APP_DIR}/releases"
+            CURRENT_DIR="${APP_DIR}/current"
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            RELEASE_DIR="${RELEASES_DIR}/${TIMESTAMP}"
+
+            echo "🚀 JackPy 배포 시작..."
+
+            # 디렉토리 생성
+            mkdir -p "${RELEASES_DIR}"
+            mkdir -p "${SHARED_DIR}/logs"
+            mkdir -p "${RELEASE_DIR}"
+
+            # 압축 해제
+            tar -xzf /tmp/jackpy.tar.gz -C "${RELEASE_DIR}"
+            rm /tmp/jackpy.tar.gz
+
+            # 심볼릭 링크 생성 (공유 파일)
+            ln -nfs "${SHARED_DIR}/.env" "${RELEASE_DIR}/.env"
+            ln -nfs "${SHARED_DIR}/logs" "${RELEASE_DIR}/logs"
+
+            # Python 가상환경 확인 및 생성
+            if [ ! -d "${SHARED_DIR}/venv" ]; then
+              echo "📦 가상환경 생성 중..."
+              python3.11 -m venv "${SHARED_DIR}/venv"
+            fi
+
+            # 의존성 설치
+            echo "📦 의존성 설치 중..."
+            source "${SHARED_DIR}/venv/bin/activate"
+            pip install --upgrade pip
+            pip install -r "${RELEASE_DIR}/infra/requirements.txt"
+
+            # 데이터베이스 마이그레이션
+            echo "🗄️ 데이터베이스 마이그레이션 실행..."
+            cd "${RELEASE_DIR}"
+            alembic -c infra/alembic.ini upgrade head || true
+
+            # 현재 버전 업데이트
+            ln -nfs "${RELEASE_DIR}" "${CURRENT_DIR}"
+
+            # systemd 서비스 재시작
+            echo "🔄 서비스 재시작 중..."
+            sudo systemctl restart jackpy
+
+            # 서비스 상태 확인
+            sleep 5
+            if systemctl is-active --quiet jackpy; then
+              echo "✅ 배포 성공!"
+              systemctl status jackpy --no-pager
+            else
+              echo "❌ 배포 실패! 서비스가 시작되지 않았습니다."
+              journalctl -u jackpy -n 50 --no-pager
+              exit 1
+            fi
+
+            # 오래된 릴리스 정리 (최근 5개만 유지)
+            echo "🧹 오래된 릴리스 정리..."
+            cd "${RELEASES_DIR}"
+            ls -t | tail -n +6 | xargs -r rm -rf
+
+            echo "🎉 배포 완료!"
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ 배포가 성공적으로 완료되었습니다."
+          # 여기에 Slack/Discord 알림 추가 가능
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ 배포에 실패했습니다."
+          # 여기에 Slack/Discord 알림 추가 가능

@@ -1,0 +1,53 @@
+# JackPy - systemd Service Unit
+# 위치: /etc/systemd/system/jackpy.service
+#
+# 설치 방법:
+# 1. sudo cp infra/jackpy.service /etc/systemd/system/
+# 2. sudo systemctl daemon-reload
+# 3. sudo systemctl enable jackpy
+# 4. sudo systemctl start jackpy
+#
+# 상태 확인: sudo systemctl status jackpy
+# 로그 확인: sudo journalctl -u jackpy -f
+
+[Unit]
+Description=JackPy Telegram Casino Bot
+Documentation=https://github.com/yourusername/jackpy
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=app
+Group=app
+WorkingDirectory=/home/app/apps/jackpy/current
+EnvironmentFile=/home/app/apps/jackpy/shared/.env
+
+# Python 가상환경 경로
+ExecStart=/home/app/apps/jackpy/shared/venv/bin/python -m bot.main
+
+# 재시작 정책
+Restart=always
+RestartSec=10
+StartLimitInterval=200
+StartLimitBurst=5
+
+# 로깅
+StandardOutput=append:/home/app/apps/jackpy/shared/logs/out.log
+StandardError=append:/home/app/apps/jackpy/shared/logs/err.log
+SyslogIdentifier=jackpy
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/app/apps/jackpy/shared/logs
+
+# 리소스 제한
+LimitNOFILE=65536
+MemoryLimit=512M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+# JackPy Requirements
+
+# Telegram Bot
+python-telegram-bot==20.7
+
+# Database
+SQLAlchemy==2.0.23
+alembic==1.13.0
+
+# Image Processing
+Pillow==10.1.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# HTTP Requests (for card download)
+requests==2.31.0
+
+# Testing (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1

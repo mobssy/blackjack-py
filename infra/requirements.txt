@@ -1,0 +1,32 @@
+# JackPy - Python Dependencies
+# 프로덕션용 의존성 패키지
+
+# Telegram Bot
+python-telegram-bot==20.7
+python-telegram-bot[job-queue]==20.7
+
+# Database
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.0
+
+# Scheduler
+APScheduler==3.10.4
+
+# Environment
+python-dotenv==1.0.0
+
+# Image Processing (프로필 카드용)
+Pillow==10.1.0
+
+# Utilities
+pytz==2023.3
+
+# Testing (개발용)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Linting (개발용)
+flake8==6.1.0
+black==23.11.0
