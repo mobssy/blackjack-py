@@ -2,6 +2,7 @@
 JackPy - 카드 덱 관리
 블랙잭 카드 생성 및 계산 로직
 """
+
 import random
 from typing import List, Tuple
 
@@ -13,23 +14,14 @@ class Card:
     카드 표기: 랭크 + 무늬
     예: AS (Ace of Spades), KH (King of Hearts), 10D (10 of Diamonds)
     """
+
     SUITS = ["S", "H", "D", "C"]  # Spades, Hearts, Diamonds, Clubs
     RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
     # 한국어 표시용
-    SUIT_NAMES = {
-        "S": "♠️",
-        "H": "♥️",
-        "D": "♦️",
-        "C": "♣️"
-    }
+    SUIT_NAMES = {"S": "♠️", "H": "♥️", "D": "♦️", "C": "♣️"}
 
-    RANK_NAMES = {
-        "A": "A",
-        "J": "J",
-        "Q": "Q",
-        "K": "K"
-    }
+    RANK_NAMES = {"A": "A", "J": "J", "Q": "Q", "K": "K"}
 
     def __init__(self, card_str: str):
         """
@@ -196,5 +188,9 @@ def get_hand_display(hand: List[str], hide_first: bool = False) -> Tuple[str, in
         Tuple[str, int]: (표시 문자열, 핸드 값)
     """
     hand_str = format_hand(hand, hide_first)
-    value = calculate_hand_value(hand) if not hide_first else calculate_hand_value([hand[0]])
+    value = (
+        calculate_hand_value(hand)
+        if not hide_first
+        else calculate_hand_value([hand[0]])
+    )
     return hand_str, value

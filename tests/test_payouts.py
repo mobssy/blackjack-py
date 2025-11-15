@@ -2,6 +2,7 @@
 JackPy - Payouts 테스트
 정산 로직 테스트
 """
+
 import pytest
 from bot.utils.payouts import PayoutCalculator, determine_outcome
 from models.round import GameOutcome
@@ -67,7 +68,7 @@ class TestDetermineOutcome:
             player_blackjack=False,
             dealer_blackjack=False,
             player_bust=True,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.BUST
 
@@ -79,7 +80,7 @@ class TestDetermineOutcome:
             player_blackjack=False,
             dealer_blackjack=False,
             player_bust=False,
-            dealer_bust=True
+            dealer_bust=True,
         )
         assert outcome == GameOutcome.WIN
 
@@ -91,7 +92,7 @@ class TestDetermineOutcome:
             player_blackjack=True,
             dealer_blackjack=True,
             player_bust=False,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.PUSH
 
@@ -103,7 +104,7 @@ class TestDetermineOutcome:
             player_blackjack=True,
             dealer_blackjack=False,
             player_bust=False,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.BLACKJACK
 
@@ -115,7 +116,7 @@ class TestDetermineOutcome:
             player_blackjack=False,
             dealer_blackjack=True,
             player_bust=False,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.LOSS
 
@@ -127,7 +128,7 @@ class TestDetermineOutcome:
             player_blackjack=False,
             dealer_blackjack=False,
             player_bust=False,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.WIN
 
@@ -139,7 +140,7 @@ class TestDetermineOutcome:
             player_blackjack=False,
             dealer_blackjack=False,
             player_bust=False,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.LOSS
 
@@ -151,7 +152,7 @@ class TestDetermineOutcome:
             player_blackjack=False,
             dealer_blackjack=False,
             player_bust=False,
-            dealer_bust=False
+            dealer_bust=False,
         )
         assert outcome == GameOutcome.PUSH
 

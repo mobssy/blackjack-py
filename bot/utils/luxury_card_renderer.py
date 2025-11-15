@@ -2,6 +2,7 @@
 JackPy - 럭셔리 카드 렌더러
 라스베가스 카지노급 고급 디자인
 """
+
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 from typing import List, Optional, Tuple
 import io
@@ -37,26 +38,36 @@ class LuxuryCardRenderer:
 
     # 무늬 색상 (더 선명하고 풍부하게)
     SUIT_COLORS = {
-        'S': (20, 20, 20),        # 블랙
-        'C': (25, 25, 25),        # 블랙
-        'H': (220, 20, 60),       # 크림슨
-        'D': (255, 85, 0),        # 다이아몬드 오렌지
+        "S": (20, 20, 20),  # 블랙
+        "C": (25, 25, 25),  # 블랙
+        "H": (220, 20, 60),  # 크림슨
+        "D": (255, 85, 0),  # 다이아몬드 오렌지
     }
 
     # 무늬별 강조 색상
     SUIT_GLOW_COLORS = {
-        'S': (100, 100, 255),     # 블루 글로우
-        'C': (50, 255, 50),       # 그린 글로우
-        'H': (255, 50, 100),      # 핑크 글로우
-        'D': (255, 200, 50),      # 골드 글로우
+        "S": (100, 100, 255),  # 블루 글로우
+        "C": (50, 255, 50),  # 그린 글로우
+        "H": (255, 50, 100),  # 핑크 글로우
+        "D": (255, 200, 50),  # 골드 글로우
     }
 
-    SUIT_SYMBOLS = {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}
+    SUIT_SYMBOLS = {"S": "♠", "H": "♥", "D": "♦", "C": "♣"}
 
     RANK_DISPLAY = {
-        'A': 'A', '2': '2', '3': '3', '4': '4', '5': '5',
-        '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10',
-        'J': 'J', 'Q': 'Q', 'K': 'K'
+        "A": "A",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8",
+        "9": "9",
+        "T": "10",
+        "J": "J",
+        "Q": "Q",
+        "K": "K",
     }
 
     def __init__(self, theme: Optional[Theme] = None):
@@ -95,7 +106,7 @@ class LuxuryCardRenderer:
 
     def _create_holographic_pattern(self, width: int, height: int) -> Image.Image:
         """홀로그램 반짝임 패턴"""
-        pattern = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        pattern = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(pattern)
 
         # 대각선 홀로그램 라인
@@ -113,33 +124,28 @@ class LuxuryCardRenderer:
 
         return pattern.filter(ImageFilter.GaussianBlur(radius=1.5))
 
-    def _create_diamond_pattern(self, width: int, height: int, color: Tuple) -> Image.Image:
+    def _create_diamond_pattern(
+        self, width: int, height: int, color: Tuple
+    ) -> Image.Image:
         """다이아몬드 패턴"""
-        pattern = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        pattern = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(pattern)
 
         spacing = 40
         for y in range(0, height + spacing, spacing):
             for x in range(0, width + spacing, spacing):
                 # 다이아몬드 모양
-                points = [
-                    (x, y - 10),
-                    (x + 10, y),
-                    (x, y + 10),
-                    (x - 10, y)
-                ]
+                points = [(x, y - 10), (x + 10, y), (x, y + 10), (x - 10, y)]
                 draw.polygon(points, outline=color, width=1)
 
         return pattern
 
     def _create_metallic_gradient(
-        self,
-        size: Tuple[int, int],
-        base_color: Tuple[int, int, int]
+        self, size: Tuple[int, int], base_color: Tuple[int, int, int]
     ) -> Image.Image:
         """메탈릭 그라데이션"""
         width, height = size
-        gradient = Image.new('RGBA', size, (0, 0, 0, 0))
+        gradient = Image.new("RGBA", size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(gradient)
 
         for y in range(height):
@@ -157,7 +163,7 @@ class LuxuryCardRenderer:
 
     def _create_luxury_card_front(self, card_str: str) -> Image.Image:
         """럭셔리 앞면 카드"""
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
 
         rank = card_str[:-1]
         suit = card_str[-1]
@@ -167,28 +173,27 @@ class LuxuryCardRenderer:
         glow_color = self.SUIT_GLOW_COLORS.get(suit, (255, 255, 255))
 
         # === 베이스: 펄 화이트 그라데이션 ===
-        base = Image.new('RGBA', card.size, (255, 255, 255, 255))
+        base = Image.new("RGBA", card.size, (255, 255, 255, 255))
 
         # 미세한 펄 효과
-        pearl = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        pearl = Image.new("RGBA", card.size, (0, 0, 0, 0))
         pearl_draw = ImageDraw.Draw(pearl)
         for y in range(0, self.CARD_HEIGHT, 5):
             alpha = int(15 + 10 * math.sin(y * 0.1))
-            pearl_draw.line([(0, y), (self.CARD_WIDTH, y)],
-                          fill=(248, 248, 255, alpha))
+            pearl_draw.line([(0, y), (self.CARD_WIDTH, y)], fill=(248, 248, 255, alpha))
 
         base = Image.alpha_composite(base, pearl)
 
         # 라운드 마스크 적용
-        mask = Image.new('L', card.size, 0)
+        mask = Image.new("L", card.size, 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
-            fill=255
+            fill=255,
         )
 
-        result = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        result = Image.new("RGBA", card.size, (0, 0, 0, 0))
         result.paste(base, (0, 0), mask)
         card = result
 
@@ -198,9 +203,7 @@ class LuxuryCardRenderer:
 
         # === 다이아몬드 패턴 (아주 은은하게) ===
         diamond = self._create_diamond_pattern(
-            self.CARD_WIDTH,
-            self.CARD_HEIGHT,
-            (200, 200, 200, 30)
+            self.CARD_WIDTH, self.CARD_HEIGHT, (200, 200, 200, 30)
         )
         card = Image.alpha_composite(card, diamond)
 
@@ -212,7 +215,7 @@ class LuxuryCardRenderer:
             [(4, 4), (self.CARD_WIDTH - 4, self.CARD_HEIGHT - 4)],
             radius=self.CARD_RADIUS - 2,
             outline=self.DARK_GOLD,
-            width=4
+            width=4,
         )
 
         # 중간 - 브라이트 골드
@@ -220,7 +223,7 @@ class LuxuryCardRenderer:
             [(8, 8), (self.CARD_WIDTH - 8, self.CARD_HEIGHT - 8)],
             radius=self.CARD_RADIUS - 4,
             outline=self.METALLIC_GOLD,
-            width=3
+            width=3,
         )
 
         # 내부 - 플래티넘
@@ -228,24 +231,26 @@ class LuxuryCardRenderer:
             [(12, 12), (self.CARD_WIDTH - 12, self.CARD_HEIGHT - 12)],
             radius=self.CARD_RADIUS - 6,
             outline=self.PLATINUM,
-            width=1
+            width=1,
         )
 
         # === 중앙 무늬 글로우 ===
-        glow_layer = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        glow_layer = Image.new("RGBA", card.size, (0, 0, 0, 0))
         glow_draw = ImageDraw.Draw(glow_layer)
 
         # 큰 글로우
         glow_draw.ellipse(
-            [(self.CARD_WIDTH * 0.15, self.CARD_HEIGHT * 0.2),
-             (self.CARD_WIDTH * 0.85, self.CARD_HEIGHT * 0.8)],
-            fill=glow_color + (30,)
+            [
+                (self.CARD_WIDTH * 0.15, self.CARD_HEIGHT * 0.2),
+                (self.CARD_WIDTH * 0.85, self.CARD_HEIGHT * 0.8),
+            ],
+            fill=glow_color + (30,),
         )
         glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=40))
         card = Image.alpha_composite(card, glow_layer)
 
         # === 코너 장식 (좌상단) ===
-        corner = Image.new('RGBA', (110, 140), (0, 0, 0, 0))
+        corner = Image.new("RGBA", (110, 140), (0, 0, 0, 0))
         corner_draw = ImageDraw.Draw(corner)
 
         # 골드 배경 박스
@@ -254,34 +259,37 @@ class LuxuryCardRenderer:
             radius=20,
             fill=(255, 250, 240, 240),
             outline=self.METALLIC_GOLD,
-            width=3
+            width=3,
         )
 
         # 내부 테두리
         corner_draw.rounded_rectangle(
-            [(5, 5), (105, 135)],
-            radius=17,
-            outline=self.DARK_GOLD + (150,),
-            width=2
+            [(5, 5), (105, 135)], radius=17, outline=self.DARK_GOLD + (150,), width=2
         )
 
         # 랭크
         corner_draw.text((20, 15), rank_display, fill=suit_color, font=self.font_rank)
 
         # 작은 무늬
-        corner_draw.text((25, 80), suit_symbol, fill=suit_color, font=self.font_suit_small)
+        corner_draw.text(
+            (25, 80), suit_symbol, fill=suit_color, font=self.font_suit_small
+        )
 
         card.paste(corner, (15, 20), corner)
 
         # === 코너 장식 (우하단, 180도 회전) ===
         corner_rotated = corner.rotate(180)
-        card.paste(corner_rotated,
-                  (self.CARD_WIDTH - corner.width - 15,
-                   self.CARD_HEIGHT - corner.height - 20),
-                  corner_rotated)
+        card.paste(
+            corner_rotated,
+            (
+                self.CARD_WIDTH - corner.width - 15,
+                self.CARD_HEIGHT - corner.height - 20,
+            ),
+            corner_rotated,
+        )
 
         # === 중앙 큰 무늬 (입체 효과) ===
-        symbol_layer = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        symbol_layer = Image.new("RGBA", card.size, (0, 0, 0, 0))
         symbol_draw = ImageDraw.Draw(symbol_layer)
 
         # 텍스트 크기 계산
@@ -298,7 +306,7 @@ class LuxuryCardRenderer:
                 (x + offset[0], y + offset[1]),
                 suit_symbol,
                 fill=(0, 0, 0, shadow_alpha),
-                font=self.font_suit_large
+                font=self.font_suit_large,
             )
 
         # 외곽선 (골드)
@@ -309,29 +317,33 @@ class LuxuryCardRenderer:
                         (x + dx, y + dy),
                         suit_symbol,
                         fill=self.DARK_GOLD + (100,),
-                        font=self.font_suit_large
+                        font=self.font_suit_large,
                     )
 
         # 메인 무늬
-        symbol_draw.text((x, y), suit_symbol, fill=suit_color, font=self.font_suit_large)
+        symbol_draw.text(
+            (x, y), suit_symbol, fill=suit_color, font=self.font_suit_large
+        )
 
         # 하이라이트 (입체감)
         symbol_draw.text(
             (x - 2, y - 2),
             suit_symbol,
             fill=(255, 255, 255, 80),
-            font=self.font_suit_large
+            font=self.font_suit_large,
         )
 
         card = Image.alpha_composite(card, symbol_layer)
 
         # === 최종 광택 효과 ===
-        gloss = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        gloss = Image.new("RGBA", card.size, (0, 0, 0, 0))
         gloss_draw = ImageDraw.Draw(gloss)
         gloss_draw.ellipse(
-            [(-self.CARD_WIDTH * 0.3, -self.CARD_HEIGHT * 0.4),
-             (self.CARD_WIDTH * 0.7, self.CARD_HEIGHT * 0.3)],
-            fill=(255, 255, 255, 60)
+            [
+                (-self.CARD_WIDTH * 0.3, -self.CARD_HEIGHT * 0.4),
+                (self.CARD_WIDTH * 0.7, self.CARD_HEIGHT * 0.3),
+            ],
+            fill=(255, 255, 255, 60),
         )
         gloss = gloss.filter(ImageFilter.GaussianBlur(radius=50))
         card = Image.alpha_composite(card, gloss)
@@ -340,10 +352,10 @@ class LuxuryCardRenderer:
 
     def _create_luxury_card_back(self) -> Image.Image:
         """럭셔리 뒷면 카드"""
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
 
         # === 베이스: 다크 그라데이션 ===
-        base = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        base = Image.new("RGBA", card.size, (0, 0, 0, 0))
         draw_base = ImageDraw.Draw(base)
 
         for y in range(self.CARD_HEIGHT):
@@ -355,23 +367,21 @@ class LuxuryCardRenderer:
             draw_base.line([(0, y), (self.CARD_WIDTH, y)], fill=(r, g, b, 255))
 
         # 라운드 마스크
-        mask = Image.new('L', card.size, 0)
+        mask = Image.new("L", card.size, 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
-            fill=255
+            fill=255,
         )
 
-        result = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        result = Image.new("RGBA", card.size, (0, 0, 0, 0))
         result.paste(base, (0, 0), mask)
         card = result
 
         # === 다이아몬드 패턴 (골드) ===
         diamond = self._create_diamond_pattern(
-            self.CARD_WIDTH,
-            self.CARD_HEIGHT,
-            self.METALLIC_GOLD + (120,)
+            self.CARD_WIDTH, self.CARD_HEIGHT, self.METALLIC_GOLD + (120,)
         )
         card = Image.alpha_composite(card, diamond)
 
@@ -385,11 +395,13 @@ class LuxuryCardRenderer:
         for i in range(4):
             offset = 4 + i * 3
             draw.rounded_rectangle(
-                [(offset, offset),
-                 (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset)],
+                [
+                    (offset, offset),
+                    (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset),
+                ],
                 radius=self.CARD_RADIUS - i * 2,
                 outline=self.METALLIC_GOLD + (255 - i * 40,),
-                width=3
+                width=3,
             )
 
         # === 중앙 로고 ===
@@ -397,7 +409,7 @@ class LuxuryCardRenderer:
         center_y = self.CARD_HEIGHT // 2
 
         # 로고 배경 (원형)
-        logo_bg = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        logo_bg = Image.new("RGBA", card.size, (0, 0, 0, 0))
         logo_draw = ImageDraw.Draw(logo_bg)
 
         # 외부 원 (골드)
@@ -405,14 +417,14 @@ class LuxuryCardRenderer:
             [(center_x - 80, center_y - 80), (center_x + 80, center_y + 80)],
             fill=(20, 20, 40, 220),
             outline=self.METALLIC_GOLD,
-            width=5
+            width=5,
         )
 
         # 내부 원 (플래티넘)
         logo_draw.ellipse(
             [(center_x - 70, center_y - 70), (center_x + 70, center_y + 70)],
             outline=self.PLATINUM,
-            width=2
+            width=2,
         )
 
         card = Image.alpha_composite(card, logo_bg)
@@ -423,7 +435,7 @@ class LuxuryCardRenderer:
         except:
             logo_font = self.font_rank
 
-        text_layer = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        text_layer = Image.new("RGBA", card.size, (0, 0, 0, 0))
         text_draw = ImageDraw.Draw(text_layer)
 
         # 텍스트 그림자
@@ -432,7 +444,7 @@ class LuxuryCardRenderer:
                 (center_x - 30 + offset[0], center_y - 35 + offset[1]),
                 "JP",
                 fill=(0, 0, 0, 100),
-                font=logo_font
+                font=logo_font,
             )
 
         # 메인 텍스트
@@ -440,7 +452,7 @@ class LuxuryCardRenderer:
             (center_x - 30, center_y - 35),
             "JP",
             fill=self.METALLIC_GOLD,
-            font=logo_font
+            font=logo_font,
         )
 
         card = Image.alpha_composite(card, text_layer)
@@ -450,12 +462,9 @@ class LuxuryCardRenderer:
     def _add_dramatic_shadow(self, card: Image.Image) -> Image.Image:
         """드라마틱한 그림자"""
         shadow_offset = 15
-        shadow_size = (
-            card.width + shadow_offset * 2,
-            card.height + shadow_offset * 2
-        )
+        shadow_size = (card.width + shadow_offset * 2, card.height + shadow_offset * 2)
 
-        shadow = Image.new('RGBA', shadow_size, (0, 0, 0, 0))
+        shadow = Image.new("RGBA", shadow_size, (0, 0, 0, 0))
         shadow_draw = ImageDraw.Draw(shadow)
 
         # 다층 그림자
@@ -463,10 +472,9 @@ class LuxuryCardRenderer:
             offset = shadow_offset + i * 2
             alpha = 180 - i * 40
             shadow_draw.rounded_rectangle(
-                [(offset, offset),
-                 (card.width + offset, card.height + offset)],
+                [(offset, offset), (card.width + offset, card.height + offset)],
                 radius=self.CARD_RADIUS + 5,
-                fill=(0, 0, 0, alpha)
+                fill=(0, 0, 0, alpha),
             )
 
         shadow = shadow.filter(ImageFilter.GaussianBlur(radius=12))
@@ -476,7 +484,7 @@ class LuxuryCardRenderer:
 
     def _create_velvet_background(self, width: int, height: int) -> Image.Image:
         """벨벳 질감 배경"""
-        bg = Image.new('RGB', (width, height), self.theme.colors.background)
+        bg = Image.new("RGB", (width, height), self.theme.colors.background)
 
         if self.theme.has_gradient:
             draw = ImageDraw.Draw(bg)
@@ -494,10 +502,11 @@ class LuxuryCardRenderer:
                 draw.line([(0, y), (width, y)], fill=(r, g, b))
 
         # 벨벳 질감 노이즈
-        noise = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        noise = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         noise_draw = ImageDraw.Draw(noise)
 
         import random
+
         random.seed(42)  # 일관성을 위해
         for _ in range(width * height // 100):
             x = random.randint(0, width - 1)
@@ -505,7 +514,7 @@ class LuxuryCardRenderer:
             brightness = random.randint(0, 30)
             noise_draw.point((x, y), fill=(brightness, brightness, brightness, 20))
 
-        bg = bg.convert('RGBA')
+        bg = bg.convert("RGBA")
         bg = Image.alpha_composite(bg, noise)
 
         return bg
@@ -517,19 +526,20 @@ class LuxuryCardRenderer:
         player_value: int,
         dealer_value: Optional[int] = None,
         hide_dealer_first: bool = True,
-        message: str = ""
+        message: str = "",
     ) -> bytes:
         """럭셔리 게임 이미지 생성"""
 
-        message_lines = message.split('\n') if message else []
+        message_lines = message.split("\n") if message else []
 
         # 크기 계산
         max_cards = max(len(player_hand), len(dealer_hand), 1)
         shadow_extra = 30
         card_visual_width = self.CARD_WIDTH + shadow_extra
 
-        card_area_width = (max_cards * card_visual_width +
-                          (max_cards - 1) * self.CARD_SPACING + 150)
+        card_area_width = (
+            max_cards * card_visual_width + (max_cards - 1) * self.CARD_SPACING + 150
+        )
 
         total_width = max(card_area_width, 1100)
         section_height = self.CARD_HEIGHT + shadow_extra + 250
@@ -549,7 +559,7 @@ class LuxuryCardRenderer:
                 [(offset, offset), (total_width - offset, total_height - offset)],
                 radius=40 - i * 2,
                 outline=self.METALLIC_GOLD + (alpha,),
-                width=3
+                width=3,
             )
 
         # === 딜러 섹션 ===
@@ -558,14 +568,12 @@ class LuxuryCardRenderer:
         # 섹션 패널
         panel_width = total_width - 120
         panel_height = section_height - 80
-        panel = Image.new('RGBA', (panel_width, panel_height), (0, 0, 0, 0))
+        panel = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
         panel_draw = ImageDraw.Draw(panel)
 
         # 글래스모픽 배경
         panel_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)],
-            radius=30,
-            fill=(255, 255, 255, 25)
+            [(0, 0), (panel_width, panel_height)], radius=30, fill=(255, 255, 255, 25)
         )
 
         # 골드 테두리
@@ -574,7 +582,7 @@ class LuxuryCardRenderer:
                 [(i * 3, i * 3), (panel_width - i * 3, panel_height - i * 3)],
                 radius=28 - i,
                 outline=self.METALLIC_GOLD + (200 - i * 40,),
-                width=2
+                width=2,
             )
 
         image.paste(panel, (60, dealer_y), panel)
@@ -584,14 +592,14 @@ class LuxuryCardRenderer:
         label_y = dealer_y + 30
 
         # 라벨 배경 (골드)
-        label_bg = Image.new('RGBA', (250, 75), (0, 0, 0, 0))
+        label_bg = Image.new("RGBA", (250, 75), (0, 0, 0, 0))
         label_bg_draw = ImageDraw.Draw(label_bg)
         label_bg_draw.rounded_rectangle(
             [(0, 0), (250, 75)],
             radius=20,
             fill=self.DARK_GOLD + (180,),
             outline=self.METALLIC_GOLD,
-            width=3
+            width=3,
         )
         image.paste(label_bg, (label_x, label_y), label_bg)
 
@@ -599,7 +607,7 @@ class LuxuryCardRenderer:
             (label_x + 30, label_y + 15),
             "🤖 딜러",
             fill=(255, 255, 255),
-            font=self.font_title
+            font=self.font_title,
         )
 
         # 딜러 카드
@@ -626,13 +634,11 @@ class LuxuryCardRenderer:
         # === 플레이어 섹션 ===
         player_y = dealer_y + section_height
 
-        panel2 = Image.new('RGBA', (panel_width, panel_height), (0, 0, 0, 0))
+        panel2 = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
         panel2_draw = ImageDraw.Draw(panel2)
 
         panel2_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)],
-            radius=30,
-            fill=(255, 255, 255, 25)
+            [(0, 0), (panel_width, panel_height)], radius=30, fill=(255, 255, 255, 25)
         )
 
         for i in range(3):
@@ -640,20 +646,20 @@ class LuxuryCardRenderer:
                 [(i * 3, i * 3), (panel_width - i * 3, panel_height - i * 3)],
                 radius=28 - i,
                 outline=self.METALLIC_GOLD + (200 - i * 40,),
-                width=2
+                width=2,
             )
 
         image.paste(panel2, (60, player_y), panel2)
 
         # 플레이어 라벨
-        label_bg2 = Image.new('RGBA', (300, 75), (0, 0, 0, 0))
+        label_bg2 = Image.new("RGBA", (300, 75), (0, 0, 0, 0))
         label_bg2_draw = ImageDraw.Draw(label_bg2)
         label_bg2_draw.rounded_rectangle(
             [(0, 0), (300, 75)],
             radius=20,
             fill=self.DARK_GOLD + (180,),
             outline=self.METALLIC_GOLD,
-            width=3
+            width=3,
         )
         image.paste(label_bg2, (label_x, player_y + 30), label_bg2)
 
@@ -661,7 +667,7 @@ class LuxuryCardRenderer:
             (label_x + 30, player_y + 45),
             "🎯 플레이어",
             fill=(255, 255, 255),
-            font=self.font_title
+            font=self.font_title,
         )
 
         # 플레이어 카드
@@ -685,20 +691,20 @@ class LuxuryCardRenderer:
             msg_y = player_y + panel_height + 60
             msg_panel_height = len(message_lines) * 50 + 60
 
-            msg_panel = Image.new('RGBA', (panel_width, msg_panel_height), (0, 0, 0, 0))
+            msg_panel = Image.new("RGBA", (panel_width, msg_panel_height), (0, 0, 0, 0))
             msg_draw = ImageDraw.Draw(msg_panel)
 
             msg_draw.rounded_rectangle(
                 [(0, 0), (panel_width, msg_panel_height)],
                 radius=25,
-                fill=(0, 0, 0, 200)
+                fill=(0, 0, 0, 200),
             )
 
             msg_draw.rounded_rectangle(
                 [(0, 0), (panel_width, msg_panel_height)],
                 radius=25,
                 outline=self.METALLIC_GOLD,
-                width=3
+                width=3,
             )
 
             for i, line in enumerate(message_lines):
@@ -706,21 +712,21 @@ class LuxuryCardRenderer:
                     (40, 20 + i * 50),
                     line,
                     fill=(255, 255, 255),
-                    font=self.font_message
+                    font=self.font_message,
                 )
 
             image.paste(msg_panel, (60, msg_y), msg_panel)
 
         # 바이트 변환
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG', quality=98)
+        image.save(img_byte_arr, format="PNG", quality=98)
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
 
     def _create_value_chip(self, text: str) -> Image.Image:
         """값 표시 칩 (골드)"""
         width, height = 240, 80
-        chip = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        chip = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(chip)
 
         # 메탈릭 골드 그라데이션
@@ -733,11 +739,11 @@ class LuxuryCardRenderer:
             draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
 
         # 라운드 마스크
-        mask = Image.new('L', (width, height), 0)
+        mask = Image.new("L", (width, height), 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=35, fill=255)
 
-        result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        result = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         result.paste(chip, (0, 0), mask)
         chip = result
 
@@ -745,17 +751,11 @@ class LuxuryCardRenderer:
 
         # 테두리
         draw.rounded_rectangle(
-            [(0, 0), (width - 1, height - 1)],
-            radius=35,
-            outline=self.OBSIDIAN,
-            width=4
+            [(0, 0), (width - 1, height - 1)], radius=35, outline=self.OBSIDIAN, width=4
         )
 
         draw.rounded_rectangle(
-            [(3, 3), (width - 4, height - 4)],
-            radius=33,
-            outline=self.PLATINUM,
-            width=2
+            [(3, 3), (width - 4, height - 4)], radius=33, outline=self.PLATINUM, width=2
         )
 
         # 텍스트
@@ -767,7 +767,9 @@ class LuxuryCardRenderer:
         text_y = (height - text_height) // 2 - 5
 
         # 텍스트 그림자
-        draw.text((text_x + 2, text_y + 2), text, fill=(0, 0, 0, 180), font=self.font_value)
+        draw.text(
+            (text_x + 2, text_y + 2), text, fill=(0, 0, 0, 180), font=self.font_value
+        )
 
         # 메인 텍스트
         draw.text((text_x, text_y), text, fill=self.OBSIDIAN, font=self.font_value)

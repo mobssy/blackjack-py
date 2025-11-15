@@ -2,11 +2,18 @@
 JackPy - User 모델
 사용자 정보 및 VIP 상태 관리
 """
+
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy import (
-    Column, Integer, BigInteger, String, Boolean,
-    DateTime, JSON, Numeric
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    Boolean,
+    DateTime,
+    JSON,
+    Numeric,
 )
 from models.base import Base, TimestampMixin
 
@@ -26,6 +33,7 @@ class User(Base, TimestampMixin):
         last_daily_at: 마지막 데일리 보상 수령일
         stats_json: 통계 정보 (JSON)
     """
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

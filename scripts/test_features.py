@@ -2,6 +2,7 @@
 개선된 기능 테스트 스크립트
 pytest 없이 기본 테스트 실행
 """
+
 import sys
 from pathlib import Path
 
@@ -56,7 +57,7 @@ def test_enhanced_card_image():
 
     from bot.utils.enhanced_card_image import (
         EnhancedCardImageGenerator,
-        get_enhanced_card_generator
+        get_enhanced_card_generator,
     )
     from bot.utils.themes import ThemeManager, ThemeType
 
@@ -81,7 +82,7 @@ def test_enhanced_card_image():
         player_value=21,
         dealer_value=15,
         hide_dealer_first=False,
-        message="Test"
+        message="Test",
     )
 
     assert image_bytes is not None, "이미지 생성 오류"
@@ -113,10 +114,7 @@ def test_card_animation():
     """카드 애니메이션 테스트"""
     print("🎬 카드 애니메이션 테스트...")
 
-    from bot.utils.card_animation import (
-        CardAnimationGenerator,
-        get_animation_generator
-    )
+    from bot.utils.card_animation import CardAnimationGenerator, get_animation_generator
 
     # 생성기 초기화
     gen = CardAnimationGenerator()
@@ -203,6 +201,7 @@ def main():
     except Exception as e:
         print(f"\n❌ 오류 발생: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

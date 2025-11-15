@@ -2,6 +2,7 @@
 JackPy - 프로필 핸들러
 /my, /rank 명령어 처리
 """
+
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -43,9 +44,7 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # VIP 상태
         vip_status = "✅ 활성" if user.is_vip_active else "❌ 비활성"
         vip_expires = (
-            user.vip_expires_at.strftime("%Y-%m-%d")
-            if user.vip_expires_at
-            else "N/A"
+            user.vip_expires_at.strftime("%Y-%m-%d") if user.vip_expires_at else "N/A"
         )
 
         # 프로필 카드 (텍스트 기반)
@@ -111,15 +110,11 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # 수익 순위 (상위 10명)
-        top_users = db.query(User).order_by(
-            desc(User.wallet)
-        ).limit(10).all()
+        top_users = db.query(User).order_by(desc(User.wallet)).limit(10).all()
 
         # 랭킹 메시지 생성
         rank_message = (
-            f"🏆 JackPy 랭킹\n"
-            f"━━━━━━━━━━━━━━━━━━━\n\n"
-            f"💰 잔액 순위 (Top 10)\n\n"
+            f"🏆 JackPy 랭킹\n" f"━━━━━━━━━━━━━━━━━━━\n\n" f"💰 잔액 순위 (Top 10)\n\n"
         )
 
         current_user_rank = None
@@ -139,9 +134,9 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 현재 사용자가 Top 10에 없는 경우
         if current_user_rank is None:
             # 현재 사용자 순위 계산
-            higher_users = db.query(User).filter(
-                User.wallet > current_user.wallet
-            ).count()
+            higher_users = (
+                db.query(User).filter(User.wallet > current_user.wallet).count()
+            )
             current_user_rank = higher_users + 1
 
             rank_message += (
@@ -151,11 +146,7 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"잔액: ${current_user.wallet:,.2f}\n"
             )
 
-        rank_message += (
-            f"\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"더 높은 순위를 노려보세요! 🎰"
-        )
+        rank_message += f"\n" f"━━━━━━━━━━━━━━━━━━━\n" f"더 높은 순위를 노려보세요! 🎰"
 
         await update.message.reply_text(rank_message)
 
@@ -180,22 +171,28 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 라운드별 통계 조회
         total_rounds = db.query(Round).filter(Round.user_id == user.id).count()
-        total_bet = db.query(func.sum(Round.bet)).filter(
-            Round.user_id == user.id
-        ).scalar() or 0
-        total_payout = db.query(func.sum(Round.payout)).filter(
-            Round.user_id == user.id
-        ).scalar() or 0
+        total_bet = (
+            db.query(func.sum(Round.bet)).filter(Round.user_id == user.id).scalar() or 0
+        )
+        total_payout = (
+            db.query(func.sum(Round.payout)).filter(Round.user_id == user.id).scalar()
+            or 0
+        )
 
         # 최대 베팅 및 최대 승리
-        max_bet_round = db.query(Round).filter(
-            Round.user_id == user.id
-        ).order_by(desc(Round.bet)).first()
+        max_bet_round = (
+            db.query(Round)
+            .filter(Round.user_id == user.id)
+            .order_by(desc(Round.bet))
+            .first()
+        )
 
-        max_win_round = db.query(Round).filter(
-            Round.user_id == user.id,
-            Round.payout > 0
-        ).order_by(desc(Round.payout)).first()
+        max_win_round = (
+            db.query(Round)
+            .filter(Round.user_id == user.id, Round.payout > 0)
+            .order_by(desc(Round.payout))
+            .first()
+        )
 
         max_bet = max_bet_round.bet if max_bet_round else 0
         max_win = max_win_round.payout if max_win_round else 0

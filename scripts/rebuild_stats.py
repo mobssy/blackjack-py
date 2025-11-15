@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # .env 파일 로드
-load_dotenv(os.path.join(project_root, '.env'))
+load_dotenv(os.path.join(project_root, ".env"))
 
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.insert(0, project_root)
@@ -38,8 +38,14 @@ def rebuild_user_stats():
 
             # 통계 계산
             total_games = len(rounds)
-            wins = sum(1 for r in rounds if r.outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK))
-            losses = sum(1 for r in rounds if r.outcome in (GameOutcome.LOSS, GameOutcome.BUST))
+            wins = sum(
+                1
+                for r in rounds
+                if r.outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK)
+            )
+            losses = sum(
+                1 for r in rounds if r.outcome in (GameOutcome.LOSS, GameOutcome.BUST)
+            )
             total_bet = sum(float(r.bet) for r in rounds)
             total_profit = sum(float(r.payout) for r in rounds)
 
@@ -49,7 +55,7 @@ def rebuild_user_stats():
                 "wins": wins,
                 "losses": losses,
                 "total_bet": total_bet,
-                "total_profit": total_profit
+                "total_profit": total_profit,
             }
 
             win_rate = (wins / total_games * 100) if total_games > 0 else 0

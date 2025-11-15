@@ -2,10 +2,8 @@
 JackPy - Round 모델
 블랙잭 게임 라운드 기록
 """
-from sqlalchemy import (
-    Column, Integer, ForeignKey, Numeric,
-    String, JSON, Enum
-)
+
+from sqlalchemy import Column, Integer, ForeignKey, Numeric, String, JSON, Enum
 from sqlalchemy.orm import relationship
 import enum
 from models.base import Base, TimestampMixin
@@ -13,6 +11,7 @@ from models.base import Base, TimestampMixin
 
 class GameOutcome(enum.Enum):
     """게임 결과"""
+
     WIN = "WIN"
     LOSS = "LOSS"
     PUSH = "PUSH"
@@ -35,6 +34,7 @@ class Round(Base, TimestampMixin):
         outcome: 게임 결과
         payout: 정산 금액 (양수: 획득, 음수: 손실)
     """
+
     __tablename__ = "rounds"
 
     id = Column(Integer, primary_key=True, index=True)

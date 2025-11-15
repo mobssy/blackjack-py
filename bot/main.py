@@ -2,6 +2,7 @@
 JackPy - 메인 봇 파일
 텔레그램 봇 초기화 및 실행
 """
+
 import os
 import logging
 import sys
@@ -10,7 +11,7 @@ from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
-    filters
+    filters,
 )
 from dotenv import load_dotenv
 
@@ -23,8 +24,8 @@ logging.basicConfig(
     level=logging.INFO,
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("jackpy.log", encoding="utf-8")
-    ]
+        logging.FileHandler("jackpy.log", encoding="utf-8"),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -36,11 +37,27 @@ if not TELEGRAM_TOKEN:
 
 # 핸들러 import
 from bot.handlers import (
-    cmd_start, cmd_help, button_callback,
-    cmd_deal, cmd_hit, cmd_stand, cmd_wallet, cmd_daily,
-    cmd_vip, cmd_business, cmd_confirm, cmd_confirm_business,
-    cmd_admin, cmd_approve, cmd_approve_business, cmd_reject, cmd_revoke, cmd_add_balance,
-    cmd_my, cmd_rank, cmd_stats
+    cmd_start,
+    cmd_help,
+    button_callback,
+    cmd_deal,
+    cmd_hit,
+    cmd_stand,
+    cmd_wallet,
+    cmd_daily,
+    cmd_vip,
+    cmd_business,
+    cmd_confirm,
+    cmd_confirm_business,
+    cmd_admin,
+    cmd_approve,
+    cmd_approve_business,
+    cmd_reject,
+    cmd_revoke,
+    cmd_add_balance,
+    cmd_my,
+    cmd_rank,
+    cmd_stats,
 )
 
 # 미들웨어 import
@@ -158,8 +175,7 @@ def main():
     # 봇 시작
     logger.info("🚀 봇 시작...")
     app.run_polling(
-        allowed_updates=["message", "callback_query"],
-        drop_pending_updates=True
+        allowed_updates=["message", "callback_query"], drop_pending_updates=True
     )
 
 

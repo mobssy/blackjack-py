@@ -2,6 +2,7 @@
 JackPy - 정산 로직
 블랙잭 게임 결과에 따른 정산 계산
 """
+
 from typing import Tuple
 from models.round import GameOutcome
 
@@ -111,7 +112,7 @@ def determine_outcome(
     player_blackjack: bool,
     dealer_blackjack: bool,
     player_bust: bool,
-    dealer_bust: bool
+    dealer_bust: bool,
 ) -> GameOutcome:
     """
     게임 결과 판정

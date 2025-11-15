@@ -2,6 +2,7 @@
 JackPy - 광고 시스템
 무료 플랜 그룹의 광고 표시 관리
 """
+
 import random
 from typing import Optional
 
@@ -79,7 +80,9 @@ def get_ad_footer(show_ad: bool = False) -> str:
     return ""
 
 
-def should_show_game_ad(is_free_plan: bool, ad_probability: Optional[float] = None) -> bool:
+def should_show_game_ad(
+    is_free_plan: bool, ad_probability: Optional[float] = None
+) -> bool:
     """
     게임 후 광고 표시 여부 결정
 

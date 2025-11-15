@@ -2,6 +2,7 @@
 JackPy - 스케줄러
 VIP 만료 체크 및 자동 알림
 """
+
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import List
@@ -40,7 +41,7 @@ class JackPyScheduler:
             self.check_vip_expiration,
             CronTrigger(hour=0, minute=0),
             id="check_vip_expiration",
-            replace_existing=True
+            replace_existing=True,
         )
 
         # 매일 자정에 그룹 플랜 만료 체크
@@ -48,7 +49,7 @@ class JackPyScheduler:
             self.check_group_plan_expiration,
             CronTrigger(hour=0, minute=0),
             id="check_group_plan_expiration",
-            replace_existing=True
+            replace_existing=True,
         )
 
         # 매주 월요일 오전 9시 통계 리포트
@@ -56,7 +57,7 @@ class JackPyScheduler:
             self.weekly_stats_report,
             CronTrigger(day_of_week=0, hour=9, minute=0),
             id="weekly_stats_report",
-            replace_existing=True
+            replace_existing=True,
         )
 
         self.scheduler.start()
@@ -80,12 +81,16 @@ class JackPyScheduler:
                 now = datetime.now(timezone.utc)
 
                 # 만료 예정 사용자 조회
-                expiring_users = db.query(User).filter(
-                    User.is_vip == True,
-                    User.vip_expires_at.isnot(None),
-                    User.vip_expires_at > now,
-                    User.vip_expires_at <= now + timedelta(days=3)
-                ).all()
+                expiring_users = (
+                    db.query(User)
+                    .filter(
+                        User.is_vip == True,
+                        User.vip_expires_at.isnot(None),
+                        User.vip_expires_at > now,
+                        User.vip_expires_at <= now + timedelta(days=3),
+                    )
+                    .all()
+                )
 
                 for user in expiring_users:
                     days_left = (user.vip_expires_at - now).days
@@ -116,18 +121,24 @@ class JackPyScheduler:
                         await self._send_notification(user.tg_user_id, message)
 
                 # 만료된 사용자 VIP 상태 해제
-                expired_users = db.query(User).filter(
-                    User.is_vip == True,
-                    User.vip_expires_at.isnot(None),
-                    User.vip_expires_at <= now
-                ).all()
+                expired_users = (
+                    db.query(User)
+                    .filter(
+                        User.is_vip == True,
+                        User.vip_expires_at.isnot(None),
+                        User.vip_expires_at <= now,
+                    )
+                    .all()
+                )
 
                 for user in expired_users:
                     user.is_vip = False
                     logger.info(f"VIP 만료: {user.display_name}")
 
                 db.commit()
-                logger.info(f"✅ VIP 만료 체크 완료 (알림: {len(expiring_users)}, 만료: {len(expired_users)})")
+                logger.info(
+                    f"✅ VIP 만료 체크 완료 (알림: {len(expiring_users)}, 만료: {len(expired_users)})"
+                )
 
         except Exception as e:
             logger.error(f"❌ VIP 만료 체크 오류: {e}")
@@ -141,11 +152,15 @@ class JackPyScheduler:
                 now = datetime.now(timezone.utc)
 
                 # 만료된 그룹 조회
-                expired_groups = db.query(Group).filter(
-                    Group.plan.in_([PlanType.VIP, PlanType.BUSINESS]),
-                    Group.expires_at.isnot(None),
-                    Group.expires_at <= now
-                ).all()
+                expired_groups = (
+                    db.query(Group)
+                    .filter(
+                        Group.plan.in_([PlanType.VIP, PlanType.BUSINESS]),
+                        Group.expires_at.isnot(None),
+                        Group.expires_at <= now,
+                    )
+                    .all()
+                )
 
                 for group in expired_groups:
                     # 무료 플랜으로 변경
@@ -163,7 +178,9 @@ class JackPyScheduler:
                         await self._send_notification(group.owner.tg_user_id, message)
 
                 db.commit()
-                logger.info(f"✅ 그룹 플랜 만료 체크 완료 (만료: {len(expired_groups)})")
+                logger.info(
+                    f"✅ 그룹 플랜 만료 체크 완료 (만료: {len(expired_groups)})"
+                )
 
         except Exception as e:
             logger.error(f"❌ 그룹 플랜 만료 체크 오류: {e}")
@@ -183,9 +200,7 @@ class JackPyScheduler:
         """
         try:
             await self.bot.send_message(
-                chat_id=user_id,
-                text=message,
-                parse_mode="HTML"
+                chat_id=user_id, text=message, parse_mode="HTML"
             )
         except Exception as e:
             logger.warning(f"알림 발송 실패 (user_id={user_id}): {e}")

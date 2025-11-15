@@ -2,6 +2,7 @@
 JackPy - VIP and Business Plan 핸들러
 /vip, /business, /confirm 명령어 처리
 """
+
 import logging
 import os
 from datetime import datetime, timezone, timedelta
@@ -19,8 +20,7 @@ BUSINESS_PRICE_MONTHLY = 300.0
 
 # 입금 계좌 정보 (환경변수에서 로드)
 BANK_ACCOUNT_INFO = os.getenv(
-    "BANK_ACCOUNT_INFO",
-    "신한은행 110-490-935730 \n예금주: 신겸"
+    "BANK_ACCOUNT_INFO", "신한은행 110-490-935730 \n예금주: 신겸"
 )
 
 
@@ -158,7 +158,7 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             depositor_name=depositor_name,
             amount=amount,
             duration_days=duration_days,
-            status=ApprovalStatus.PENDING
+            status=ApprovalStatus.PENDING,
         )
         db.add(approval)
         db.commit()
@@ -179,8 +179,7 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if admin_id:
                 try:
                     await context.bot.send_message(
-                        chat_id=int(admin_id),
-                        text=admin_message
+                        chat_id=int(admin_id), text=admin_message
                     )
                 except Exception as e:
                     logger.error(f"관리자 알림 전송 실패: {e}")
@@ -236,7 +235,7 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
             depositor_name=depositor_name,
             amount=amount,
             duration_days=30,  # 비즈니스는 월 단위
-            status=ApprovalStatus.PENDING
+            status=ApprovalStatus.PENDING,
         )
         db.add(approval)
         db.commit()
@@ -256,8 +255,7 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
             if admin_id:
                 try:
                     await context.bot.send_message(
-                        chat_id=int(admin_id),
-                        text=admin_message
+                        chat_id=int(admin_id), text=admin_message
                     )
                 except Exception as e:
                     logger.error(f"관리자 알림 전송 실패: {e}")

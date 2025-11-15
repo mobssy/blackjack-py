@@ -2,6 +2,7 @@
 JackPy - 프리미엄 카드 렌더러
 아름답고 고급스러운 카드 디자인
 """
+
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import List, Optional, Tuple
 import io
@@ -29,25 +30,30 @@ class PremiumCardRenderer:
 
     # 무늬 색상 (더 선명하게)
     SUIT_COLORS = {
-        'S': (0, 0, 0),           # 스페이드 - 블랙
-        'C': (0, 0, 0),           # 클로버 - 블랙
-        'H': (220, 20, 60),       # 하트 - 크림슨
-        'D': (255, 69, 0),        # 다이아몬드 - 오렌지레드
+        "S": (0, 0, 0),  # 스페이드 - 블랙
+        "C": (0, 0, 0),  # 클로버 - 블랙
+        "H": (220, 20, 60),  # 하트 - 크림슨
+        "D": (255, 69, 0),  # 다이아몬드 - 오렌지레드
     }
 
     # 무늬 유니코드
-    SUIT_SYMBOLS = {
-        'S': '♠',
-        'H': '♥',
-        'D': '♦',
-        'C': '♣'
-    }
+    SUIT_SYMBOLS = {"S": "♠", "H": "♥", "D": "♦", "C": "♣"}
 
     # 랭크 표시명
     RANK_NAMES = {
-        'A': 'A', '2': '2', '3': '3', '4': '4', '5': '5',
-        '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10',
-        'J': 'J', 'Q': 'Q', 'K': 'K'
+        "A": "A",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8",
+        "9": "9",
+        "T": "10",
+        "J": "J",
+        "Q": "Q",
+        "K": "K",
     }
 
     def __init__(self, theme: Optional[Theme] = None):
@@ -103,15 +109,17 @@ class PremiumCardRenderer:
             PIL Image 객체
         """
         # 카드 베이스
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
 
         # 그림자 레이어
-        shadow = Image.new('RGBA', (self.CARD_WIDTH + 20, self.CARD_HEIGHT + 20), (0, 0, 0, 0))
+        shadow = Image.new(
+            "RGBA", (self.CARD_WIDTH + 20, self.CARD_HEIGHT + 20), (0, 0, 0, 0)
+        )
         shadow_draw = ImageDraw.Draw(shadow)
         shadow_draw.rounded_rectangle(
             [(10, 10), (self.CARD_WIDTH + 10, self.CARD_HEIGHT + 10)],
             radius=self.CARD_RADIUS,
-            fill=(0, 0, 0, 120)
+            fill=(0, 0, 0, 120),
         )
         shadow = shadow.filter(ImageFilter.GaussianBlur(radius=8))
 
@@ -122,16 +130,16 @@ class PremiumCardRenderer:
         draw.rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
-            fill=(255, 255, 255, 255)
+            fill=(255, 255, 255, 255),
         )
 
         # 골드 테두리 (다중)
         for i in range(3):
             draw.rounded_rectangle(
-                [(i*2, i*2), (self.CARD_WIDTH - i*2, self.CARD_HEIGHT - i*2)],
+                [(i * 2, i * 2), (self.CARD_WIDTH - i * 2, self.CARD_HEIGHT - i * 2)],
                 radius=self.CARD_RADIUS - i,
-                outline=(218, 165, 32, 255 - i*50),
-                width=2
+                outline=(218, 165, 32, 255 - i * 50),
+                width=2,
             )
 
         # 카드 정보
@@ -158,37 +166,45 @@ class PremiumCardRenderer:
         # 그림자 효과 (무늬)
         for offset in [(2, 2), (1, 1)]:
             shadow_color = tuple([c // 3 for c in color])
-            draw.text((x + offset[0], y + offset[1]), suit_symbol,
-                     fill=shadow_color + (100,), font=self.font_suit)
+            draw.text(
+                (x + offset[0], y + offset[1]),
+                suit_symbol,
+                fill=shadow_color + (100,),
+                font=self.font_suit,
+            )
 
         # 실제 무늬
         draw.text((x, y), suit_symbol, fill=color, font=self.font_suit)
 
         # 우하단 랭크 (거꾸로)
-        rotated_text = Image.new('RGBA', (100, 100), (0, 0, 0, 0))
+        rotated_text = Image.new("RGBA", (100, 100), (0, 0, 0, 0))
         rotated_draw = ImageDraw.Draw(rotated_text)
         rotated_draw.text((0, 0), rank_display, fill=color, font=self.font_rank)
         rotated_text = rotated_text.rotate(180, expand=False)
-        card.paste(rotated_text, (self.CARD_WIDTH - 75, self.CARD_HEIGHT - 70), rotated_text)
+        card.paste(
+            rotated_text, (self.CARD_WIDTH - 75, self.CARD_HEIGHT - 70), rotated_text
+        )
 
         # 우하단 작은 무늬 (거꾸로)
-        rotated_suit = Image.new('RGBA', (80, 80), (0, 0, 0, 0))
+        rotated_suit = Image.new("RGBA", (80, 80), (0, 0, 0, 0))
         rotated_draw = ImageDraw.Draw(rotated_suit)
         rotated_draw.text((0, 0), suit_symbol, fill=color, font=self.font_rank_small)
         rotated_suit = rotated_suit.rotate(180, expand=False)
-        card.paste(rotated_suit, (self.CARD_WIDTH - 75, self.CARD_HEIGHT - 125), rotated_suit)
+        card.paste(
+            rotated_suit, (self.CARD_WIDTH - 75, self.CARD_HEIGHT - 125), rotated_suit
+        )
 
         # 광택 효과 (좌상단 하이라이트)
-        highlight = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        highlight = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
         highlight_draw = ImageDraw.Draw(highlight)
 
         # 대각선 그라데이션 하이라이트
         for i in range(100):
             alpha = int(30 * (1 - i / 100))
             highlight_draw.rounded_rectangle(
-                [(0, 0), (self.CARD_WIDTH - i*2, self.CARD_HEIGHT - i*2)],
+                [(0, 0), (self.CARD_WIDTH - i * 2, self.CARD_HEIGHT - i * 2)],
                 radius=self.CARD_RADIUS,
-                fill=(255, 255, 255, alpha)
+                fill=(255, 255, 255, alpha),
             )
 
         card = Image.alpha_composite(card, highlight)
@@ -202,7 +218,7 @@ class PremiumCardRenderer:
         Returns:
             PIL Image 객체
         """
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
         draw = ImageDraw.Draw(card)
 
         # 그라데이션 배경 (남색 -> 보라색)
@@ -214,15 +230,15 @@ class PremiumCardRenderer:
             draw.line([(0, y), (self.CARD_WIDTH, y)], fill=(r, g, b))
 
         # 라운드 마스크 적용
-        mask = Image.new('L', (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
+        mask = Image.new("L", (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
-            fill=255
+            fill=255,
         )
 
-        result = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        result = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
         result.paste(card, (0, 0), mask)
         card = result
 
@@ -231,10 +247,10 @@ class PremiumCardRenderer:
         # 골드 테두리
         for i in range(3):
             draw.rounded_rectangle(
-                [(i*2, i*2), (self.CARD_WIDTH - i*2, self.CARD_HEIGHT - i*2)],
+                [(i * 2, i * 2), (self.CARD_WIDTH - i * 2, self.CARD_HEIGHT - i * 2)],
                 radius=self.CARD_RADIUS - i,
-                outline=(218, 165, 32, 255 - i*50),
-                width=2
+                outline=(218, 165, 32, 255 - i * 50),
+                width=2,
             )
 
         # 다이아몬드 패턴
@@ -242,10 +258,10 @@ class PremiumCardRenderer:
         for x in range(0, self.CARD_WIDTH, spacing):
             for y in range(0, self.CARD_HEIGHT, spacing):
                 points = [
-                    (x + spacing//2, y),
-                    (x + spacing, y + spacing//2),
-                    (x + spacing//2, y + spacing),
-                    (x, y + spacing//2)
+                    (x + spacing // 2, y),
+                    (x + spacing, y + spacing // 2),
+                    (x + spacing // 2, y + spacing),
+                    (x, y + spacing // 2),
                 ]
                 draw.polygon(points, outline=(255, 215, 0, 100), width=1)
 
@@ -258,7 +274,7 @@ class PremiumCardRenderer:
             [(center_x - 50, center_y - 50), (center_x + 50, center_y + 50)],
             fill=(30, 40, 120, 200),
             outline=(218, 165, 32, 255),
-            width=3
+            width=3,
         )
 
         # "JP" 텍스트
@@ -271,10 +287,10 @@ class PremiumCardRenderer:
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
         draw.text(
-            (center_x - text_width//2, center_y - text_height//2),
+            (center_x - text_width // 2, center_y - text_height // 2),
             "JP",
             fill=(255, 215, 0),
-            font=logo_font
+            font=logo_font,
         )
 
         return card
@@ -290,17 +306,20 @@ class PremiumCardRenderer:
             그림자가 추가된 카드
         """
         shadow_offset = 12
-        shadow = Image.new('RGBA',
+        shadow = Image.new(
+            "RGBA",
             (card.width + shadow_offset * 2, card.height + shadow_offset * 2),
-            (0, 0, 0, 0)
+            (0, 0, 0, 0),
         )
 
         shadow_draw = ImageDraw.Draw(shadow)
         shadow_draw.rounded_rectangle(
-            [(shadow_offset, shadow_offset),
-             (card.width + shadow_offset, card.height + shadow_offset)],
+            [
+                (shadow_offset, shadow_offset),
+                (card.width + shadow_offset, card.height + shadow_offset),
+            ],
             radius=self.CARD_RADIUS,
-            fill=(0, 0, 0, 150)
+            fill=(0, 0, 0, 150),
         )
 
         shadow = shadow.filter(ImageFilter.GaussianBlur(radius=10))
@@ -319,7 +338,7 @@ class PremiumCardRenderer:
         Returns:
             배경 이미지
         """
-        bg = Image.new('RGB', (width, height), self.theme.colors.background)
+        bg = Image.new("RGB", (width, height), self.theme.colors.background)
 
         if self.theme.has_gradient:
             draw = ImageDraw.Draw(bg)
@@ -334,13 +353,10 @@ class PremiumCardRenderer:
                 draw.line([(0, y), (width, y)], fill=(r, g, b))
 
         # 미묘한 패턴 추가
-        draw = ImageDraw.Draw(bg, 'RGBA')
+        draw = ImageDraw.Draw(bg, "RGBA")
         for x in range(0, width, 100):
             for y in range(0, height, 100):
-                draw.ellipse(
-                    [(x, y), (x + 50, y + 50)],
-                    fill=(255, 255, 255, 5)
-                )
+                draw.ellipse([(x, y), (x + 50, y + 50)], fill=(255, 255, 255, 5))
 
         return bg
 
@@ -351,7 +367,7 @@ class PremiumCardRenderer:
         player_value: int,
         dealer_value: Optional[int] = None,
         hide_dealer_first: bool = True,
-        message: str = ""
+        message: str = "",
     ) -> bytes:
         """
         프리미엄 게임 이미지 생성
@@ -370,8 +386,11 @@ class PremiumCardRenderer:
         max_cards = max(len(player_hand), len(dealer_hand))
         card_shadow_size = 24
 
-        card_area_width = (max_cards * (self.CARD_WIDTH + card_shadow_size) +
-                          (max_cards - 1) * self.CARD_SPACING + 100)
+        card_area_width = (
+            max_cards * (self.CARD_WIDTH + card_shadow_size)
+            + (max_cards - 1) * self.CARD_SPACING
+            + 100
+        )
 
         total_width = max(card_area_width, 900)
         section_height = self.CARD_HEIGHT + card_shadow_size + 200
@@ -379,19 +398,22 @@ class PremiumCardRenderer:
 
         # 배경
         image = self._create_game_background(total_width, total_height)
-        image = image.convert('RGBA')
+        image = image.convert("RGBA")
         draw = ImageDraw.Draw(image)
 
         # 고급스러운 테두리
-        border_gradient = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
+        border_gradient = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 0))
         border_draw = ImageDraw.Draw(border_gradient)
 
         for i in range(8):
             alpha = 255 - i * 30
             border_draw.rectangle(
-                [(10 + i*2, 10 + i*2), (total_width - 10 - i*2, total_height - 10 - i*2)],
+                [
+                    (10 + i * 2, 10 + i * 2),
+                    (total_width - 10 - i * 2, total_height - 10 - i * 2),
+                ],
                 outline=self.theme.colors.border_color + (alpha,),
-                width=2
+                width=2,
             )
 
         image = Image.alpha_composite(image, border_gradient)
@@ -401,14 +423,14 @@ class PremiumCardRenderer:
         y_offset = 50
 
         # 딜러 라벨 배경
-        label_bg = Image.new('RGBA', (250, 70), (0, 0, 0, 0))
+        label_bg = Image.new("RGBA", (250, 70), (0, 0, 0, 0))
         label_draw = ImageDraw.Draw(label_bg)
         label_draw.rounded_rectangle(
             [(0, 0), (250, 70)],
             radius=15,
             fill=self.theme.colors.accent_color + (50,),
             outline=self.theme.colors.accent_color,
-            width=2
+            width=2,
         )
         image.paste(label_bg, (50, y_offset), label_bg)
 
@@ -416,7 +438,7 @@ class PremiumCardRenderer:
             (60, y_offset + 10),
             "🤖 딜러",
             fill=self.theme.colors.text_color,
-            font=self.font_title
+            font=self.font_title,
         )
         y_offset += 100
 
@@ -434,14 +456,14 @@ class PremiumCardRenderer:
 
         # 딜러 값
         if dealer_value is not None:
-            value_bg = Image.new('RGBA', (150, 60), (0, 0, 0, 0))
+            value_bg = Image.new("RGBA", (150, 60), (0, 0, 0, 0))
             value_draw = ImageDraw.Draw(value_bg)
             value_draw.rounded_rectangle(
                 [(0, 0), (150, 60)],
                 radius=10,
                 fill=(0, 0, 0, 150),
                 outline=self.theme.colors.accent_color,
-                width=2
+                width=2,
             )
             image.paste(value_bg, (x_offset + 20, y_offset + 120), value_bg)
 
@@ -449,21 +471,21 @@ class PremiumCardRenderer:
                 (x_offset + 40, y_offset + 125),
                 f"합: {dealer_value}",
                 fill=self.theme.colors.accent_color,
-                font=self.font_value
+                font=self.font_value,
             )
 
         # === 플레이어 섹션 ===
         y_offset += section_height
 
         # 플레이어 라벨 배경
-        label_bg = Image.new('RGBA', (280, 70), (0, 0, 0, 0))
+        label_bg = Image.new("RGBA", (280, 70), (0, 0, 0, 0))
         label_draw = ImageDraw.Draw(label_bg)
         label_draw.rounded_rectangle(
             [(0, 0), (280, 70)],
             radius=15,
             fill=self.theme.colors.accent_color + (50,),
             outline=self.theme.colors.accent_color,
-            width=2
+            width=2,
         )
         image.paste(label_bg, (50, y_offset), label_bg)
 
@@ -471,7 +493,7 @@ class PremiumCardRenderer:
             (60, y_offset + 10),
             "🎯 플레이어",
             fill=self.theme.colors.text_color,
-            font=self.font_title
+            font=self.font_title,
         )
         y_offset += 100
 
@@ -484,14 +506,14 @@ class PremiumCardRenderer:
             x_offset += self.CARD_WIDTH + card_shadow_size + self.CARD_SPACING
 
         # 플레이어 값
-        value_bg = Image.new('RGBA', (150, 60), (0, 0, 0, 0))
+        value_bg = Image.new("RGBA", (150, 60), (0, 0, 0, 0))
         value_draw = ImageDraw.Draw(value_bg)
         value_draw.rounded_rectangle(
             [(0, 0), (150, 60)],
             radius=10,
             fill=(0, 0, 0, 150),
             outline=self.theme.colors.accent_color,
-            width=2
+            width=2,
         )
         image.paste(value_bg, (x_offset + 20, y_offset + 120), value_bg)
 
@@ -499,7 +521,7 @@ class PremiumCardRenderer:
             (x_offset + 40, y_offset + 125),
             f"합: {player_value}",
             fill=self.theme.colors.accent_color,
-            font=self.font_value
+            font=self.font_value,
         )
 
         # === 메시지 ===
@@ -507,16 +529,16 @@ class PremiumCardRenderer:
             y_offset += self.CARD_HEIGHT + card_shadow_size + 50
 
             # 메시지 배경
-            lines = message.split('\n')
+            lines = message.split("\n")
             msg_height = len(lines) * 45 + 20
-            msg_bg = Image.new('RGBA', (total_width - 100, msg_height), (0, 0, 0, 0))
+            msg_bg = Image.new("RGBA", (total_width - 100, msg_height), (0, 0, 0, 0))
             msg_draw = ImageDraw.Draw(msg_bg)
             msg_draw.rounded_rectangle(
                 [(0, 0), (total_width - 100, msg_height)],
                 radius=15,
                 fill=(0, 0, 0, 180),
                 outline=self.theme.colors.border_color,
-                width=2
+                width=2,
             )
             image.paste(msg_bg, (50, y_offset), msg_bg)
 
@@ -525,12 +547,12 @@ class PremiumCardRenderer:
                     (70, y_offset + 10 + i * 45),
                     line,
                     fill=self.theme.colors.text_color,
-                    font=self.font_message
+                    font=self.font_message,
                 )
 
         # 이미지를 바이트로 변환
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG', quality=95)
+        image.save(img_byte_arr, format="PNG", quality=95)
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
 

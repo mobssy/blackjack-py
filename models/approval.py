@@ -2,10 +2,8 @@
 JackPy - Approval 모델
 VIP/비즈니스 플랜 승인 요청 관리
 """
-from sqlalchemy import (
-    Column, Integer, ForeignKey, String,
-    Enum, Numeric, DateTime
-)
+
+from sqlalchemy import Column, Integer, ForeignKey, String, Enum, Numeric, DateTime
 from sqlalchemy.orm import relationship
 import enum
 from models.base import Base, TimestampMixin
@@ -13,12 +11,14 @@ from models.base import Base, TimestampMixin
 
 class ApprovalType(enum.Enum):
     """승인 타입"""
+
     VIP = "VIP"
     BUSINESS = "BUSINESS"
 
 
 class ApprovalStatus(enum.Enum):
     """승인 상태"""
+
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
@@ -40,6 +40,7 @@ class Approval(Base, TimestampMixin):
         approved_at: 승인일시
         rejection_reason: 거절 사유
     """
+
     __tablename__ = "approvals"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -48,10 +49,7 @@ class Approval(Base, TimestampMixin):
     # 요청 정보
     type = Column(Enum(ApprovalType), nullable=False)
     status = Column(
-        Enum(ApprovalStatus),
-        default=ApprovalStatus.PENDING,
-        nullable=False,
-        index=True
+        Enum(ApprovalStatus), default=ApprovalStatus.PENDING, nullable=False, index=True
     )
 
     # 입금 정보

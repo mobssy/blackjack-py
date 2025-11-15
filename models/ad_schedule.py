@@ -2,6 +2,7 @@
 JackPy - AdSchedule 모델
 그룹별 광고 스케줄 관리
 """
+
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, BigInteger, DateTime
 from models.base import Base, TimestampMixin
@@ -19,6 +20,7 @@ class AdSchedule(Base, TimestampMixin):
         last_sent_at: 마지막 광고 발송 시각
         interval_minutes: 광고 발송 간격 (분)
     """
+
     __tablename__ = "ad_schedules"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -29,7 +31,9 @@ class AdSchedule(Base, TimestampMixin):
     interval_minutes = Column(Integer, default=60, nullable=False)  # 기본 1시간
 
     def __repr__(self):
-        return f"<AdSchedule(chat_id={self.chat_id}, interval={self.interval_minutes}min)>"
+        return (
+            f"<AdSchedule(chat_id={self.chat_id}, interval={self.interval_minutes}min)>"
+        )
 
     def can_send_ad(self) -> bool:
         """

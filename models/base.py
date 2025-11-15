@@ -2,6 +2,7 @@
 JackPy - 데이터베이스 베이스 설정
 SQLAlchemy Base 및 Session 관리
 """
+
 import os
 from datetime import datetime, timezone
 from sqlalchemy import create_engine
@@ -12,8 +13,7 @@ from typing import Generator
 
 # Database URL from environment variable
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/jackpy"
+    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/jackpy"
 )
 
 # SQLAlchemy 엔진 생성
@@ -22,15 +22,11 @@ engine = create_engine(
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,  # 연결 유효성 검사
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true"
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
 )
 
 # 세션 팩토리
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base 클래스
 Base = declarative_base()
@@ -42,16 +38,15 @@ class TimestampMixin:
     @declared_attr
     def created_at(cls):
         from sqlalchemy import Column, DateTime
+
         return Column(DateTime, default=datetime.utcnow, nullable=False)
 
     @declared_attr
     def updated_at(cls):
         from sqlalchemy import Column, DateTime
+
         return Column(
-            DateTime,
-            default=datetime.utcnow,
-            onupdate=datetime.utcnow,
-            nullable=False
+            DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
         )
 
 

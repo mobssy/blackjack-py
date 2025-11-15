@@ -2,6 +2,7 @@
 JackPy - 카드 애니메이션
 카드 뒤집기 애니메이션 GIF 생성
 """
+
 from PIL import Image, ImageDraw
 from typing import List
 import io
@@ -41,7 +42,7 @@ class CardAnimationGenerator:
         # 뒷면
         back_path = self.cards_dir / "back.png"
         if back_path.exists():
-            back = Image.open(back_path).convert('RGBA')
+            back = Image.open(back_path).convert("RGBA")
             back = back.resize((self.card_width, self.card_height), Image.LANCZOS)
         else:
             back = self._create_back_card()
@@ -53,7 +54,7 @@ class CardAnimationGenerator:
 
     def _create_back_card(self) -> Image.Image:
         """뒷면 카드 생성"""
-        card = Image.new('RGBA', (self.card_width, self.card_height), (255, 255, 255))
+        card = Image.new("RGBA", (self.card_width, self.card_height), (255, 255, 255))
         draw = ImageDraw.Draw(card)
 
         draw.rounded_rectangle(
@@ -61,7 +62,7 @@ class CardAnimationGenerator:
             radius=15,
             fill=(30, 60, 150),
             outline=(20, 40, 100),
-            width=3
+            width=3,
         )
 
         # 패턴
@@ -84,13 +85,21 @@ class CardAnimationGenerator:
         """
         # 카드 파일명 변환
         rank_map = {
-            'A': 'ace', '2': '2', '3': '3', '4': '4', '5': '5',
-            '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10',
-            'J': 'jack', 'Q': 'queen', 'K': 'king'
+            "A": "ace",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9",
+            "T": "10",
+            "J": "jack",
+            "Q": "queen",
+            "K": "king",
         }
-        suit_map = {
-            'S': 'spades', 'H': 'hearts', 'D': 'diamonds', 'C': 'clubs'
-        }
+        suit_map = {"S": "spades", "H": "hearts", "D": "diamonds", "C": "clubs"}
 
         rank = card_str[:-1]
         suit = card_str[-1]
@@ -102,7 +111,7 @@ class CardAnimationGenerator:
         filepath = self.cards_dir / filename
 
         if filepath.exists():
-            card = Image.open(filepath).convert('RGBA')
+            card = Image.open(filepath).convert("RGBA")
             card = card.resize((self.card_width, self.card_height), Image.LANCZOS)
             return card
         else:
@@ -111,7 +120,7 @@ class CardAnimationGenerator:
 
     def _create_simple_front_card(self, card_str: str) -> Image.Image:
         """간단한 앞면 카드 생성 (폴백)"""
-        card = Image.new('RGBA', (self.card_width, self.card_height), (255, 255, 255))
+        card = Image.new("RGBA", (self.card_width, self.card_height), (255, 255, 255))
         draw = ImageDraw.Draw(card)
 
         draw.rounded_rectangle(
@@ -119,7 +128,7 @@ class CardAnimationGenerator:
             radius=15,
             fill=(255, 255, 255),
             outline=(0, 0, 0),
-            width=3
+            width=3,
         )
 
         # 간단하게 중앙에 카드 문자열 표시
@@ -134,10 +143,7 @@ class CardAnimationGenerator:
         return card
 
     def create_flip_animation(
-        self,
-        card_str: str,
-        frames: int = 10,
-        duration: int = 50
+        self, card_str: str, frames: int = 10, duration: int = 50
     ) -> bytes:
         """
         카드 뒤집기 애니메이션 생성
@@ -173,13 +179,10 @@ class CardAnimationGenerator:
             new_width = int(self.card_width * scale)
             new_width = max(new_width, 1)  # 최소 1픽셀
 
-            scaled = current_image.resize(
-                (new_width, self.card_height),
-                Image.LANCZOS
-            )
+            scaled = current_image.resize((new_width, self.card_height), Image.LANCZOS)
 
             # 중앙 배치를 위한 프레임 생성
-            frame = Image.new('RGBA', (self.card_width, self.card_height), (0, 0, 0, 0))
+            frame = Image.new("RGBA", (self.card_width, self.card_height), (0, 0, 0, 0))
             x_offset = (self.card_width - new_width) // 2
             frame.paste(scaled, (x_offset, 0))
 
@@ -189,20 +192,17 @@ class CardAnimationGenerator:
         img_byte_arr = io.BytesIO()
         animation_frames[0].save(
             img_byte_arr,
-            format='GIF',
+            format="GIF",
             save_all=True,
             append_images=animation_frames[1:],
             duration=duration,
-            loop=0
+            loop=0,
         )
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
 
     def create_deal_animation(
-        self,
-        cards: List[str],
-        frames_per_card: int = 5,
-        duration: int = 100
+        self, cards: List[str], frames_per_card: int = 5, duration: int = 100
     ) -> bytes:
         """
         카드 딜 애니메이션 생성
@@ -225,7 +225,7 @@ class CardAnimationGenerator:
         for card_idx in range(len(cards) + 1):
             for frame_idx in range(frames_per_card):
                 # 배경
-                frame = Image.new('RGBA', (total_width, total_height), (34, 139, 34))
+                frame = Image.new("RGBA", (total_width, total_height), (34, 139, 34))
 
                 # 이미 나타난 카드들
                 x_offset = 20
@@ -247,11 +247,11 @@ class CardAnimationGenerator:
         img_byte_arr = io.BytesIO()
         animation_frames[0].save(
             img_byte_arr,
-            format='GIF',
+            format="GIF",
             save_all=True,
             append_images=animation_frames[1:],
             duration=duration,
-            loop=0
+            loop=0,
         )
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()

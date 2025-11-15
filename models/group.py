@@ -2,10 +2,17 @@
 JackPy - Group 모델
 텔레그램 그룹 및 플랜 관리
 """
+
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, BigInteger, String, DateTime,
-    Enum, ForeignKey, JSON
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    DateTime,
+    Enum,
+    ForeignKey,
+    JSON,
 )
 from sqlalchemy.orm import relationship
 import enum
@@ -14,6 +21,7 @@ from models.base import Base, TimestampMixin
 
 class PlanType(enum.Enum):
     """플랜 타입"""
+
     FREE = "FREE"
     VIP = "VIP"
     BUSINESS = "BUSINESS"
@@ -32,6 +40,7 @@ class Group(Base, TimestampMixin):
         owner_user_id: 그룹 오너 User ID
         settings_json: 커스텀 설정 (JSON)
     """
+
     __tablename__ = "groups"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -39,11 +48,7 @@ class Group(Base, TimestampMixin):
     title = Column(String(256), nullable=True)
 
     # 플랜 관리
-    plan = Column(
-        Enum(PlanType),
-        default=PlanType.FREE,
-        nullable=False
-    )
+    plan = Column(Enum(PlanType), default=PlanType.FREE, nullable=False)
     expires_at = Column(DateTime, nullable=True)
 
     # 오너 정보

@@ -2,6 +2,7 @@
 JackPy - 인증 미들웨어
 사용자 및 그룹 자동 등록/조회
 """
+
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -41,8 +42,8 @@ async def user_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         "wins": 0,
                         "losses": 0,
                         "total_bet": 0,
-                        "total_profit": 0
-                    }
+                        "total_profit": 0,
+                    },
                 )
                 db.add(user)
                 db.commit()
@@ -83,11 +84,7 @@ async def group_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if not group:
                 # 그룹 자동 등록 (무료 플랜)
-                group = Group(
-                    chat_id=chat_id,
-                    title=title,
-                    plan=PlanType.FREE
-                )
+                group = Group(chat_id=chat_id, title=title, plan=PlanType.FREE)
                 db.add(group)
                 db.commit()
                 logger.info(f"신규 그룹 자동 등록: {title} ({chat_id})")

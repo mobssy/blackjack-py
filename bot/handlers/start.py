@@ -2,6 +2,7 @@
 JackPy - 시작 및 기본 명령어 핸들러
 /start, /help 명령어 처리
 """
+
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -29,9 +30,7 @@ def _get_start_menu_message(user_display_name: str = None, is_new: bool = False)
             f"가입 축하 보너스: $1,000\n\n"
         )
     elif user_display_name:
-        welcome_message = (
-            f"다시 오신 것을 환영합니다, {user_display_name}님!\n\n"
-        )
+        welcome_message = f"다시 오신 것을 환영합니다, {user_display_name}님!\n\n"
     else:
         welcome_message = "JackPy\n\n"
 
@@ -70,16 +69,16 @@ def _get_start_menu_keyboard():
     keyboard = [
         [
             InlineKeyboardButton("VIP Plan", callback_data="plan_vip"),
-            InlineKeyboardButton("Business Plan", callback_data="plan_business")
+            InlineKeyboardButton("Business Plan", callback_data="plan_business"),
         ],
         [
             InlineKeyboardButton("게임 시작", callback_data="start_game"),
-            InlineKeyboardButton("도움말", callback_data="help")
+            InlineKeyboardButton("도움말", callback_data="help"),
         ],
         [
             InlineKeyboardButton("출석 체크", callback_data="daily_check"),
-            InlineKeyboardButton("프로필", callback_data="my_profile")
-        ]
+            InlineKeyboardButton("프로필", callback_data="my_profile"),
+        ],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -112,8 +111,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "wins": 0,
                     "losses": 0,
                     "total_bet": 0,
-                    "total_profit": 0
-                }
+                    "total_profit": 0,
+                },
             )
             db.add(user)
             db.commit()
@@ -261,7 +260,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "게임 시작\n\n"
             "/deal [금액] 명령어로 블랙잭을 시작하세요.\n"
             "예: /deal 100",
-            reply_markup=reply_markup
+            reply_markup=reply_markup,
         )
 
     elif query.data == "help":
@@ -311,33 +310,39 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # 일일 보상 수령 가능 여부 확인
             if not user.can_claim_daily():
-                keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
+                keyboard = [
+                    [InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]
+                ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(
                     "일일 보상은 하루에 한 번만 받을 수 있습니다.\n"
                     "내일 다시 시도해주세요!",
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
                 )
                 return
 
             # 보상 지급
             reward = 500.0 if user.is_vip_active else 200.0
             user.add_wallet(reward)
-            user.last_daily_at = db.query(User).filter(User.id == user.id).first().updated_at
+            user.last_daily_at = (
+                db.query(User).filter(User.id == user.id).first().updated_at
+            )
 
             db.commit()
 
             vip_bonus = " (VIP 보너스!)" if user.is_vip_active else ""
 
             # 뒤로가기 버튼 추가
-            keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
+            keyboard = [
+                [InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await query.edit_message_text(
                 f"일일 보상 수령!\n\n"
                 f"받은 금액: ${reward:,.2f}{vip_bonus}\n"
                 f"현재 잔액: ${user.wallet:,.2f}",
-                reply_markup=reply_markup
+                reply_markup=reply_markup,
             )
 
     elif query.data == "my_profile":
@@ -366,6 +371,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             vip_expires = ""
             if user.is_vip_active and user.vip_expires_at:
                 from datetime import datetime
+
                 days_left = (user.vip_expires_at - datetime.utcnow()).days
                 vip_expires = f" ({days_left}일 남음)"
 
@@ -395,7 +401,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             # 뒤로가기 버튼 추가
-            keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
+            keyboard = [
+                [InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await query.edit_message_text(profile_message, reply_markup=reply_markup)
@@ -403,6 +411,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data in ("game_hit", "game_stand"):
         # 게임 버튼 - blackjack 핸들러로 위임
         from bot.handlers.blackjack import game_button_callback
+
         await game_button_callback(update, context)
 
     elif query.data == "back_to_start":
@@ -428,5 +437,5 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption="게임 시작\n\n"
             "/deal [금액] 명령어로 블랙잭을 시작하세요.\n"
             "예: /deal 100",
-            reply_markup=reply_markup
+            reply_markup=reply_markup,
         )

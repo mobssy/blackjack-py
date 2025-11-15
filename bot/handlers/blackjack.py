@@ -2,16 +2,29 @@
 JackPy - 블랙잭 게임 핸들러
 /deal, /hit, /stand 명령어 처리
 """
+
 import logging
 from typing import Dict, Optional
 from io import BytesIO
-from telegram import Update, InputFile, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram import (
+    Update,
+    InputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+)
 from telegram.ext import ContextTypes
 from models import get_db, User, Group, Round, GameOutcome, PlanType
 from bot.utils import (
-    Deck, calculate_hand_value, is_blackjack, is_bust,
-    get_hand_display, determine_outcome, PayoutCalculator,
-    should_show_game_ad, get_ad_footer
+    Deck,
+    calculate_hand_value,
+    is_blackjack,
+    is_bust,
+    get_hand_display,
+    determine_outcome,
+    PayoutCalculator,
+    should_show_game_ad,
+    get_ad_footer,
 )
 from bot.utils.card_image import get_card_generator
 from bot.utils.enhanced_card_image import get_enhanced_card_generator
@@ -57,7 +70,7 @@ def _get_game_keyboard():
     keyboard = [
         [
             InlineKeyboardButton("HIT", callback_data="game_hit"),
-            InlineKeyboardButton("STAND", callback_data="game_stand")
+            InlineKeyboardButton("STAND", callback_data="game_stand"),
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -112,9 +125,12 @@ class BlackjackGame:
         dealer_bust = is_bust(self.dealer_hand)
 
         outcome = determine_outcome(
-            player_value, dealer_value,
-            player_blackjack, dealer_blackjack,
-            player_bust, dealer_bust
+            player_value,
+            dealer_value,
+            player_blackjack,
+            dealer_blackjack,
+            player_bust,
+            dealer_bust,
         )
 
         payout = PayoutCalculator.calculate(outcome, self.bet)
@@ -134,9 +150,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 베팅 금액 파싱
     if not context.args or len(context.args) == 0:
-        await update.message.reply_text(
-            "❌ 사용법: /deal [금액]\n예: /deal 100"
-        )
+        await update.message.reply_text("❌ 사용법: /deal [금액]\n예: /deal 100")
         return
 
     try:
@@ -208,16 +222,14 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         player_value=player_value,
         dealer_value=None,
         hide_dealer_first=True,
-        message="명령어: /hit (카드 추가) | /stand (멈춤)"
+        message="명령어: /hit (카드 추가) | /stand (멈춤)",
     )
 
     # 이미지 전송
     theme_name = f" 💎 [{theme.name} 에디션]" if theme.name != "Classic" else " ✨"
     caption = f"🎰 블랙잭 시작!{theme_name}\n💰 베팅: ${bet_amount:,.2f}"
     await update.message.reply_photo(
-        photo=BytesIO(image_bytes),
-        caption=caption,
-        reply_markup=_get_game_keyboard()
+        photo=BytesIO(image_bytes), caption=caption, reply_markup=_get_game_keyboard()
     )
 
 
@@ -261,14 +273,14 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         player_value=player_value,
         dealer_value=None,
         hide_dealer_first=True,
-        message="명령어: /hit (카드 추가) | /stand (멈춤)"
+        message="명령어: /hit (카드 추가) | /stand (멈춤)",
     )
 
     # 이미지 전송
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption="✨ 카드를 한 장 더 받았습니다!",
-        reply_markup=_get_game_keyboard()
+        reply_markup=_get_game_keyboard(),
     )
 
 
@@ -307,7 +319,7 @@ async def _finish_game(
     game: BlackjackGame,
     outcome: GameOutcome,
     payout: float,
-    db=None
+    db=None,
 ):
     """
     게임 종료 처리
@@ -348,7 +360,7 @@ async def _finish_game(
             wins=1 if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK) else 0,
             losses=1 if outcome in (GameOutcome.LOSS, GameOutcome.BUST) else 0,
             total_bet=float(game.bet),
-            total_profit=float(payout)
+            total_profit=float(payout),
         )
 
         # 라운드 기록
@@ -359,7 +371,7 @@ async def _finish_game(
             player_hand=game.player_hand,
             dealer_hand=game.dealer_hand,
             outcome=outcome,
-            payout=payout
+            payout=payout,
         )
         db.add(round_record)
         db.commit()
@@ -381,7 +393,7 @@ async def _finish_game(
             f"💰 베팅 금액: ${game.bet:,.2f}",
             f"💵 정산 금액: {payout_str}",
             f"💳 현재 잔액: ${user.wallet:,.2f}",
-            "━━━━━━━━━━━━━━━━━━━━"
+            "━━━━━━━━━━━━━━━━━━━━",
         ]
 
         result_message = "\n".join(result_lines)
@@ -404,7 +416,7 @@ async def _finish_game(
             player_value=player_value,
             dealer_value=dealer_value,
             hide_dealer_first=False,
-            message=result_message
+            message=result_message,
         )
 
         # 이미지 전송 - 결과에 따라 다른 이모지
@@ -413,7 +425,7 @@ async def _finish_game(
             GameOutcome.WIN: "🏆",
             GameOutcome.PUSH: "🤝",
             GameOutcome.LOSS: "😢",
-            GameOutcome.BUST: "💥"
+            GameOutcome.BUST: "💥",
         }.get(outcome, "🎲")
 
         theme_badge = f" 💎 [{theme.name}]" if theme.name != "Classic" else " ✨"
@@ -425,7 +437,7 @@ async def _finish_game(
         await update.message.reply_photo(
             photo=BytesIO(image_bytes),
             caption=f"{result_emoji} 게임 종료!{theme_badge}",
-            reply_markup=reply_markup
+            reply_markup=reply_markup,
         )
 
     # 게임 세션 제거
@@ -494,7 +506,9 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 보상 지급
         reward = 500.0 if user.is_vip_active else 200.0
         user.add_wallet(reward)
-        user.last_daily_at = db.query(User).filter(User.id == user.id).first().updated_at
+        user.last_daily_at = (
+            db.query(User).filter(User.id == user.id).first().updated_at
+        )
 
         db.commit()
 
@@ -548,16 +562,15 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             player_value=temp_value,
             dealer_value=None,
             hide_dealer_first=True,
-            message="카드를 뽑는 중..."
+            message="카드를 뽑는 중...",
         )
 
         # 뒷면 카드 이미지 먼저 표시
         await query.edit_message_media(
             media=InputMediaPhoto(
-                media=BytesIO(back_image_bytes),
-                caption="카드를 뽑는 중..."
+                media=BytesIO(back_image_bytes), caption="카드를 뽑는 중..."
             ),
-            reply_markup=_get_game_keyboard()
+            reply_markup=_get_game_keyboard(),
         )
 
         # 짧은 딜레이 (카드 뒤집기 효과)
@@ -571,7 +584,9 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         if is_bust(game.player_hand):
             outcome = GameOutcome.BUST
             payout = PayoutCalculator.calculate(outcome, game.bet)
-            await _finish_game_callback(query, user_tg_id, game, outcome, payout, chat_id)
+            await _finish_game_callback(
+                query, user_tg_id, game, outcome, payout, chat_id
+            )
             return
 
         # 앞면 카드 이미지 생성
@@ -581,16 +596,15 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             player_value=player_value,
             dealer_value=None,
             hide_dealer_first=True,
-            message="명령어: /hit (카드 추가) | /stand (멈춤)"
+            message="명령어: /hit (카드 추가) | /stand (멈춤)",
         )
 
         # 앞면 카드로 업데이트
         await query.edit_message_media(
             media=InputMediaPhoto(
-                media=BytesIO(image_bytes),
-                caption="카드를 한 장 더 받았습니다!"
+                media=BytesIO(image_bytes), caption="카드를 한 장 더 받았습니다!"
             ),
-            reply_markup=_get_game_keyboard()
+            reply_markup=_get_game_keyboard(),
         )
 
     elif query.data == "game_stand":
@@ -606,7 +620,7 @@ async def _finish_game_callback(
     game: BlackjackGame,
     outcome: GameOutcome,
     payout: float,
-    chat_id: int
+    chat_id: int,
 ):
     """
     콜백을 통한 게임 종료 처리
@@ -641,7 +655,7 @@ async def _finish_game_callback(
             wins=1 if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK) else 0,
             losses=1 if outcome in (GameOutcome.LOSS, GameOutcome.BUST) else 0,
             total_bet=float(game.bet),
-            total_profit=float(payout)
+            total_profit=float(payout),
         )
 
         # 라운드 기록
@@ -652,7 +666,7 @@ async def _finish_game_callback(
             player_hand=game.player_hand,
             dealer_hand=game.dealer_hand,
             outcome=outcome,
-            payout=payout
+            payout=payout,
         )
         db.add(round_record)
         db.commit()
@@ -674,7 +688,7 @@ async def _finish_game_callback(
             f"💰 베팅 금액: ${game.bet:,.2f}",
             f"💵 정산 금액: {payout_str}",
             f"💳 현재 잔액: ${user.wallet:,.2f}",
-            "━━━━━━━━━━━━━━━━━━━━"
+            "━━━━━━━━━━━━━━━━━━━━",
         ]
 
         result_message = "\n".join(result_lines)
@@ -697,7 +711,7 @@ async def _finish_game_callback(
             player_value=player_value,
             dealer_value=dealer_value,
             hide_dealer_first=False,
-            message=result_message
+            message=result_message,
         )
 
         # 결과에 따라 다른 이모지
@@ -706,7 +720,7 @@ async def _finish_game_callback(
             GameOutcome.WIN: "🏆",
             GameOutcome.PUSH: "🤝",
             GameOutcome.LOSS: "😢",
-            GameOutcome.BUST: "💥"
+            GameOutcome.BUST: "💥",
         }.get(outcome, "🎲")
 
         theme_badge = f" 💎 [{theme.name}]" if theme.name != "Classic" else " ✨"
@@ -719,9 +733,9 @@ async def _finish_game_callback(
         await query.edit_message_media(
             media=InputMediaPhoto(
                 media=BytesIO(image_bytes),
-                caption=f"{result_emoji} 게임 종료!{theme_badge}"
+                caption=f"{result_emoji} 게임 종료!{theme_badge}",
             ),
-            reply_markup=reply_markup
+            reply_markup=reply_markup,
         )
 
     # 게임 세션 제거

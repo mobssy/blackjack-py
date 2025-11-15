@@ -2,10 +2,15 @@
 JackPy - Deck 테스트
 카드 덱 및 블랙잭 로직 테스트
 """
+
 import pytest
 from bot.utils.deck import (
-    Card, Deck, calculate_hand_value, is_blackjack,
-    is_bust, format_hand
+    Card,
+    Deck,
+    calculate_hand_value,
+    is_blackjack,
+    is_bust,
+    format_hand,
 )
 
 
@@ -22,7 +27,7 @@ class TestCard:
         """카드 값 테스트"""
         assert Card("AS").value == 11  # Ace
         assert Card("KH").value == 10  # King
-        assert Card("5D").value == 5   # Number
+        assert Card("5D").value == 5  # Number
         assert Card("10C").value == 10  # 10
 
     def test_card_display(self):

@@ -2,6 +2,7 @@
 JackPy - 카지노급 카드 렌더러
 실제 카지노 카드처럼 K, Q, J, A 그림 포함
 """
+
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import List, Optional, Tuple
 import io
@@ -32,20 +33,20 @@ class CasinoCardRenderer:
     PLATINUM = (229, 228, 226)
 
     SUIT_COLORS = {
-        'S': (20, 20, 20),
-        'C': (25, 25, 25),
-        'H': (220, 20, 60),
-        'D': (255, 85, 0),
+        "S": (20, 20, 20),
+        "C": (25, 25, 25),
+        "H": (220, 20, 60),
+        "D": (255, 85, 0),
     }
 
     SUIT_GLOW_COLORS = {
-        'S': (100, 100, 255),
-        'C': (50, 255, 50),
-        'H': (255, 50, 100),
-        'D': (255, 200, 50),
+        "S": (100, 100, 255),
+        "C": (50, 255, 50),
+        "H": (255, 50, 100),
+        "D": (255, 200, 50),
     }
 
-    SUIT_SYMBOLS = {'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'}
+    SUIT_SYMBOLS = {"S": "♠", "H": "♥", "D": "♦", "C": "♣"}
 
     def __init__(self, theme: Optional[Theme] = None):
         """초기화"""
@@ -91,27 +92,95 @@ class CasinoCardRenderer:
             try:
                 if Path(font_path).exists():
                     # 랭크용 - 영문은 Poppins, 나머지는 한글 폰트
-                    self.font_rank_large = ImageFont.truetype(str(poppins_semibold if poppins_semibold.exists() else korean_font_path), 72)
-                    self.font_rank_small = ImageFont.truetype(str(poppins_semibold if poppins_semibold.exists() else korean_font_path), 48)
+                    self.font_rank_large = ImageFont.truetype(
+                        str(
+                            poppins_semibold
+                            if poppins_semibold.exists()
+                            else korean_font_path
+                        ),
+                        72,
+                    )
+                    self.font_rank_small = ImageFont.truetype(
+                        str(
+                            poppins_semibold
+                            if poppins_semibold.exists()
+                            else korean_font_path
+                        ),
+                        48,
+                    )
 
                     # 무늬용
-                    self.font_suit_huge = ImageFont.truetype(str(poppins_regular if poppins_regular.exists() else korean_font_path), 180)
-                    self.font_suit_large = ImageFont.truetype(str(poppins_regular if poppins_regular.exists() else korean_font_path), 100)
-                    self.font_suit_medium = ImageFont.truetype(str(poppins_regular if poppins_regular.exists() else korean_font_path), 60)
-                    self.font_suit_small = ImageFont.truetype(str(poppins_regular if poppins_regular.exists() else korean_font_path), 44)
+                    self.font_suit_huge = ImageFont.truetype(
+                        str(
+                            poppins_regular
+                            if poppins_regular.exists()
+                            else korean_font_path
+                        ),
+                        180,
+                    )
+                    self.font_suit_large = ImageFont.truetype(
+                        str(
+                            poppins_regular
+                            if poppins_regular.exists()
+                            else korean_font_path
+                        ),
+                        100,
+                    )
+                    self.font_suit_medium = ImageFont.truetype(
+                        str(
+                            poppins_regular
+                            if poppins_regular.exists()
+                            else korean_font_path
+                        ),
+                        60,
+                    )
+                    self.font_suit_small = ImageFont.truetype(
+                        str(
+                            poppins_regular
+                            if poppins_regular.exists()
+                            else korean_font_path
+                        ),
+                        44,
+                    )
 
                     # 페이스 카드 문자
-                    self.font_face_letter = ImageFont.truetype(str(poppins_bold if poppins_bold.exists() else korean_font_path), 140)
+                    self.font_face_letter = ImageFont.truetype(
+                        str(
+                            poppins_bold if poppins_bold.exists() else korean_font_path
+                        ),
+                        140,
+                    )
 
                     # UI 텍스트 - 한글 지원 필수
                     if korean_font_path:
                         self.font_title = ImageFont.truetype(str(korean_font_path), 58)
                         self.font_value = ImageFont.truetype(str(korean_font_path), 50)
-                        self.font_message = ImageFont.truetype(str(korean_font_path), 40)
+                        self.font_message = ImageFont.truetype(
+                            str(korean_font_path), 40
+                        )
                     else:
-                        self.font_title = ImageFont.truetype(str(poppins_medium if poppins_medium.exists() else font_path), 58)
-                        self.font_value = ImageFont.truetype(str(poppins_semibold if poppins_semibold.exists() else font_path), 50)
-                        self.font_message = ImageFont.truetype(str(poppins_regular if poppins_regular.exists() else font_path), 40)
+                        self.font_title = ImageFont.truetype(
+                            str(
+                                poppins_medium if poppins_medium.exists() else font_path
+                            ),
+                            58,
+                        )
+                        self.font_value = ImageFont.truetype(
+                            str(
+                                poppins_semibold
+                                if poppins_semibold.exists()
+                                else font_path
+                            ),
+                            50,
+                        )
+                        self.font_message = ImageFont.truetype(
+                            str(
+                                poppins_regular
+                                if poppins_regular.exists()
+                                else font_path
+                            ),
+                            40,
+                        )
 
                     english_font_loaded = True
                     break
@@ -144,19 +213,27 @@ class CasinoCardRenderer:
         """
         # 카드 파일명 매핑
         rank_map = {
-            'A': 'A', '2': '2', '3': '3', '4': '4', '5': '5',
-            '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10',
-            'J': 'J', 'Q': 'Q', 'K': 'K'
+            "A": "A",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9",
+            "T": "10",
+            "J": "J",
+            "Q": "Q",
+            "K": "K",
         }
-        suit_map = {
-            'S': 'spades', 'H': 'hearts', 'D': 'diamonds', 'C': 'clubs'
-        }
+        suit_map = {"S": "spades", "H": "hearts", "D": "diamonds", "C": "clubs"}
 
         rank = card_str[:-1]
         suit = card_str[-1]
 
         rank_name = rank_map.get(rank, rank)
-        suit_name = suit_map.get(suit, '')
+        suit_name = suit_map.get(suit, "")
 
         # 파일명: "A_of_hearts.png"
         filename = f"{rank_name}_of_{suit_name}.png"
@@ -182,25 +259,24 @@ class CasinoCardRenderer:
         if card_path and card_path.exists():
             try:
                 # 이미지 로드
-                card_img = Image.open(card_path).convert('RGBA')
+                card_img = Image.open(card_path).convert("RGBA")
 
                 # 카드 크기에 맞게 리사이즈
                 card_img = card_img.resize(
-                    (self.CARD_WIDTH, self.CARD_HEIGHT),
-                    Image.LANCZOS
+                    (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS
                 )
 
                 # 라운드 코너 적용
-                mask = Image.new('L', (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
+                mask = Image.new("L", (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
                 mask_draw = ImageDraw.Draw(mask)
                 mask_draw.rounded_rectangle(
                     [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
                     radius=self.CARD_RADIUS,
-                    fill=255
+                    fill=255,
                 )
 
                 # 마스크 적용
-                result = Image.new('RGBA', card_img.size, (0, 0, 0, 0))
+                result = Image.new("RGBA", card_img.size, (0, 0, 0, 0))
                 result.paste(card_img, (0, 0), mask)
 
                 # 골드 테두리 추가
@@ -209,28 +285,30 @@ class CasinoCardRenderer:
                     [(5, 5), (self.CARD_WIDTH - 5, self.CARD_HEIGHT - 5)],
                     radius=self.CARD_RADIUS - 2,
                     outline=self.DARK_GOLD,
-                    width=5
+                    width=5,
                 )
                 draw.rounded_rectangle(
                     [(10, 10), (self.CARD_WIDTH - 10, self.CARD_HEIGHT - 10)],
                     radius=self.CARD_RADIUS - 5,
                     outline=self.METALLIC_GOLD,
-                    width=3
+                    width=3,
                 )
                 draw.rounded_rectangle(
                     [(14, 14), (self.CARD_WIDTH - 14, self.CARD_HEIGHT - 14)],
                     radius=self.CARD_RADIUS - 7,
                     outline=self.PLATINUM,
-                    width=1
+                    width=1,
                 )
 
                 # 광택 효과
-                gloss = Image.new('RGBA', result.size, (0, 0, 0, 0))
+                gloss = Image.new("RGBA", result.size, (0, 0, 0, 0))
                 gloss_draw = ImageDraw.Draw(gloss)
                 gloss_draw.ellipse(
-                    [(-self.CARD_WIDTH * 0.3, -self.CARD_HEIGHT * 0.4),
-                     (self.CARD_WIDTH * 0.7, self.CARD_HEIGHT * 0.3)],
-                    fill=(255, 255, 255, 40)
+                    [
+                        (-self.CARD_WIDTH * 0.3, -self.CARD_HEIGHT * 0.4),
+                        (self.CARD_WIDTH * 0.7, self.CARD_HEIGHT * 0.3),
+                    ],
+                    fill=(255, 255, 255, 40),
                 )
                 gloss = gloss.filter(ImageFilter.GaussianBlur(radius=60))
                 result = Image.alpha_composite(result, gloss)
@@ -243,9 +321,11 @@ class CasinoCardRenderer:
 
         return None
 
-    def _create_corner_index(self, rank: str, suit_symbol: str, color: Tuple) -> Image.Image:
+    def _create_corner_index(
+        self, rank: str, suit_symbol: str, color: Tuple
+    ) -> Image.Image:
         """코너 인덱스 (랭크 + 무늬)"""
-        corner = Image.new('RGBA', (90, 130), (0, 0, 0, 0))
+        corner = Image.new("RGBA", (90, 130), (0, 0, 0, 0))
         draw = ImageDraw.Draw(corner)
 
         # 랭크
@@ -254,20 +334,27 @@ class CasinoCardRenderer:
         # 무늬
         bbox = draw.textbbox((0, 0), suit_symbol, font=self.font_suit_small)
         text_width = bbox[2] - bbox[0]
-        draw.text((45 - text_width // 2, 70), suit_symbol, fill=color, font=self.font_suit_small)
+        draw.text(
+            (45 - text_width // 2, 70),
+            suit_symbol,
+            fill=color,
+            font=self.font_suit_small,
+        )
 
         return corner
 
-    def _draw_face_king(self, suit: str, color: Tuple, glow_color: Tuple) -> Image.Image:
+    def _draw_face_king(
+        self, suit: str, color: Tuple, glow_color: Tuple
+    ) -> Image.Image:
         """킹 카드 중앙 그림"""
-        center = Image.new('RGBA', (200, 260), (0, 0, 0, 0))
+        center = Image.new("RGBA", (200, 260), (0, 0, 0, 0))
         draw = ImageDraw.Draw(center)
 
         suit_symbol = self.SUIT_SYMBOLS[suit]
 
         # 배경 실루엣 (왕관 모양)
         crown_points = [
-            (100, 30),   # 정점
+            (100, 30),  # 정점
             (120, 50),
             (110, 50),
             (120, 70),
@@ -279,7 +366,7 @@ class CasinoCardRenderer:
         draw.polygon(crown_points, fill=glow_color + (60,), outline=color, width=3)
 
         # 큰 'K' 문자
-        bbox = draw.textbbox((0, 0), 'K', font=self.font_face_letter)
+        bbox = draw.textbbox((0, 0), "K", font=self.font_face_letter)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
         x = (200 - text_width) // 2
@@ -287,23 +374,33 @@ class CasinoCardRenderer:
 
         # 그림자
         for offset in [(4, 4), (3, 3), (2, 2)]:
-            draw.text((x + offset[0], y + offset[1]), 'K',
-                     fill=(0, 0, 0, 80), font=self.font_face_letter)
+            draw.text(
+                (x + offset[0], y + offset[1]),
+                "K",
+                fill=(0, 0, 0, 80),
+                font=self.font_face_letter,
+            )
 
         # 메인 'K'
-        draw.text((x, y), 'K', fill=color, font=self.font_face_letter)
+        draw.text((x, y), "K", fill=color, font=self.font_face_letter)
 
         # 하단 심볼
         bbox = draw.textbbox((0, 0), suit_symbol, font=self.font_suit_medium)
         text_width = bbox[2] - bbox[0]
-        draw.text((100 - text_width // 2, 210), suit_symbol,
-                 fill=color, font=self.font_suit_medium)
+        draw.text(
+            (100 - text_width // 2, 210),
+            suit_symbol,
+            fill=color,
+            font=self.font_suit_medium,
+        )
 
         return center
 
-    def _draw_face_queen(self, suit: str, color: Tuple, glow_color: Tuple) -> Image.Image:
+    def _draw_face_queen(
+        self, suit: str, color: Tuple, glow_color: Tuple
+    ) -> Image.Image:
         """퀸 카드 중앙 그림"""
-        center = Image.new('RGBA', (200, 260), (0, 0, 0, 0))
+        center = Image.new("RGBA", (200, 260), (0, 0, 0, 0))
         draw = ImageDraw.Draw(center)
 
         suit_symbol = self.SUIT_SYMBOLS[suit]
@@ -311,38 +408,50 @@ class CasinoCardRenderer:
         # 배경 하트 (여왕 상징)
         heart_center = (100, 50)
         draw.ellipse(
-            [(heart_center[0] - 25, heart_center[1] - 15),
-             (heart_center[0] + 25, heart_center[1] + 15)],
+            [
+                (heart_center[0] - 25, heart_center[1] - 15),
+                (heart_center[0] + 25, heart_center[1] + 15),
+            ],
             fill=glow_color + (60,),
             outline=color,
-            width=2
+            width=2,
         )
 
         # 큰 'Q' 문자
-        bbox = draw.textbbox((0, 0), 'Q', font=self.font_face_letter)
+        bbox = draw.textbbox((0, 0), "Q", font=self.font_face_letter)
         text_width = bbox[2] - bbox[0]
         x = (200 - text_width) // 2
         y = 90
 
         # 그림자
         for offset in [(4, 4), (3, 3), (2, 2)]:
-            draw.text((x + offset[0], y + offset[1]), 'Q',
-                     fill=(0, 0, 0, 80), font=self.font_face_letter)
+            draw.text(
+                (x + offset[0], y + offset[1]),
+                "Q",
+                fill=(0, 0, 0, 80),
+                font=self.font_face_letter,
+            )
 
         # 메인 'Q'
-        draw.text((x, y), 'Q', fill=color, font=self.font_face_letter)
+        draw.text((x, y), "Q", fill=color, font=self.font_face_letter)
 
         # 하단 심볼
         bbox = draw.textbbox((0, 0), suit_symbol, font=self.font_suit_medium)
         text_width = bbox[2] - bbox[0]
-        draw.text((100 - text_width // 2, 210), suit_symbol,
-                 fill=color, font=self.font_suit_medium)
+        draw.text(
+            (100 - text_width // 2, 210),
+            suit_symbol,
+            fill=color,
+            font=self.font_suit_medium,
+        )
 
         return center
 
-    def _draw_face_jack(self, suit: str, color: Tuple, glow_color: Tuple) -> Image.Image:
+    def _draw_face_jack(
+        self, suit: str, color: Tuple, glow_color: Tuple
+    ) -> Image.Image:
         """잭 카드 중앙 그림"""
-        center = Image.new('RGBA', (200, 260), (0, 0, 0, 0))
+        center = Image.new("RGBA", (200, 260), (0, 0, 0, 0))
         draw = ImageDraw.Draw(center)
 
         suit_symbol = self.SUIT_SYMBOLS[suit]
@@ -357,41 +466,48 @@ class CasinoCardRenderer:
         draw.polygon(diamond_points, fill=glow_color + (60,), outline=color, width=3)
 
         # 큰 'J' 문자
-        bbox = draw.textbbox((0, 0), 'J', font=self.font_face_letter)
+        bbox = draw.textbbox((0, 0), "J", font=self.font_face_letter)
         text_width = bbox[2] - bbox[0]
         x = (200 - text_width) // 2
         y = 90
 
         # 그림자
         for offset in [(4, 4), (3, 3), (2, 2)]:
-            draw.text((x + offset[0], y + offset[1]), 'J',
-                     fill=(0, 0, 0, 80), font=self.font_face_letter)
+            draw.text(
+                (x + offset[0], y + offset[1]),
+                "J",
+                fill=(0, 0, 0, 80),
+                font=self.font_face_letter,
+            )
 
         # 메인 'J'
-        draw.text((x, y), 'J', fill=color, font=self.font_face_letter)
+        draw.text((x, y), "J", fill=color, font=self.font_face_letter)
 
         # 하단 심볼
         bbox = draw.textbbox((0, 0), suit_symbol, font=self.font_suit_medium)
         text_width = bbox[2] - bbox[0]
-        draw.text((100 - text_width // 2, 210), suit_symbol,
-                 fill=color, font=self.font_suit_medium)
+        draw.text(
+            (100 - text_width // 2, 210),
+            suit_symbol,
+            fill=color,
+            font=self.font_suit_medium,
+        )
 
         return center
 
-    def _draw_ace_center(self, suit: str, color: Tuple, glow_color: Tuple) -> Image.Image:
+    def _draw_ace_center(
+        self, suit: str, color: Tuple, glow_color: Tuple
+    ) -> Image.Image:
         """에이스 중앙 (초대형 심볼)"""
-        center = Image.new('RGBA', (200, 280), (0, 0, 0, 0))
+        center = Image.new("RGBA", (200, 280), (0, 0, 0, 0))
         draw = ImageDraw.Draw(center)
 
         suit_symbol = self.SUIT_SYMBOLS[suit]
 
         # 글로우 효과
-        glow_layer = Image.new('RGBA', center.size, (0, 0, 0, 0))
+        glow_layer = Image.new("RGBA", center.size, (0, 0, 0, 0))
         glow_draw = ImageDraw.Draw(glow_layer)
-        glow_draw.ellipse(
-            [(20, 20), (180, 260)],
-            fill=glow_color + (40,)
-        )
+        glow_draw.ellipse([(20, 20), (180, 260)], fill=glow_color + (40,))
         glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=40))
         center = Image.alpha_composite(center, glow_layer)
 
@@ -406,32 +522,44 @@ class CasinoCardRenderer:
 
         # 깊은 그림자
         for offset in [(6, 6), (4, 4), (2, 2)]:
-            draw.text((x + offset[0], y + offset[1]), suit_symbol,
-                     fill=(0, 0, 0, 100), font=self.font_suit_huge)
+            draw.text(
+                (x + offset[0], y + offset[1]),
+                suit_symbol,
+                fill=(0, 0, 0, 100),
+                font=self.font_suit_huge,
+            )
 
         # 골드 외곽선
         for dx in [-3, -2, -1, 0, 1, 2, 3]:
             for dy in [-3, -2, -1, 0, 1, 2, 3]:
                 if dx != 0 or dy != 0:
-                    draw.text((x + dx, y + dy), suit_symbol,
-                             fill=self.DARK_GOLD + (80,), font=self.font_suit_huge)
+                    draw.text(
+                        (x + dx, y + dy),
+                        suit_symbol,
+                        fill=self.DARK_GOLD + (80,),
+                        font=self.font_suit_huge,
+                    )
 
         # 메인 심볼
         draw.text((x, y), suit_symbol, fill=color, font=self.font_suit_huge)
 
         # 하이라이트
-        draw.text((x - 3, y - 3), suit_symbol,
-                 fill=(255, 255, 255, 60), font=self.font_suit_huge)
+        draw.text(
+            (x - 3, y - 3),
+            suit_symbol,
+            fill=(255, 255, 255, 60),
+            font=self.font_suit_huge,
+        )
 
         return center
 
     def _draw_number_symbols(self, rank: str, suit: str, color: Tuple) -> Image.Image:
         """숫자 카드 심볼 배치"""
-        center = Image.new('RGBA', (180, 260), (0, 0, 0, 0))
+        center = Image.new("RGBA", (180, 260), (0, 0, 0, 0))
         draw = ImageDraw.Draw(center)
 
         suit_symbol = self.SUIT_SYMBOLS[suit]
-        num = int(rank) if rank != 'T' else 10
+        num = int(rank) if rank != "T" else 10
 
         # 심볼 위치 정의
         positions = {
@@ -440,10 +568,48 @@ class CasinoCardRenderer:
             4: [(50, 50), (130, 50), (50, 210), (130, 210)],
             5: [(50, 50), (130, 50), (90, 130), (50, 210), (130, 210)],
             6: [(50, 50), (130, 50), (50, 130), (130, 130), (50, 210), (130, 210)],
-            7: [(50, 40), (130, 40), (90, 90), (50, 140), (130, 140), (50, 220), (130, 220)],
-            8: [(50, 40), (130, 40), (90, 80), (50, 130), (130, 130), (90, 180), (50, 220), (130, 220)],
-            9: [(50, 40), (130, 40), (50, 95), (130, 95), (90, 130), (50, 165), (130, 165), (50, 220), (130, 220)],
-            10: [(50, 30), (130, 30), (90, 70), (50, 110), (130, 110), (50, 150), (130, 150), (90, 190), (50, 230), (130, 230)],
+            7: [
+                (50, 40),
+                (130, 40),
+                (90, 90),
+                (50, 140),
+                (130, 140),
+                (50, 220),
+                (130, 220),
+            ],
+            8: [
+                (50, 40),
+                (130, 40),
+                (90, 80),
+                (50, 130),
+                (130, 130),
+                (90, 180),
+                (50, 220),
+                (130, 220),
+            ],
+            9: [
+                (50, 40),
+                (130, 40),
+                (50, 95),
+                (130, 95),
+                (90, 130),
+                (50, 165),
+                (130, 165),
+                (50, 220),
+                (130, 220),
+            ],
+            10: [
+                (50, 30),
+                (130, 30),
+                (90, 70),
+                (50, 110),
+                (130, 110),
+                (50, 150),
+                (130, 150),
+                (90, 190),
+                (50, 230),
+                (130, 230),
+            ],
         }
 
         if num in positions:
@@ -453,12 +619,20 @@ class CasinoCardRenderer:
                 text_height = bbox[3] - bbox[1]
 
                 # 그림자
-                draw.text((x - text_width // 2 + 2, y - text_height // 2 + 2),
-                         suit_symbol, fill=(0, 0, 0, 60), font=self.font_suit_small)
+                draw.text(
+                    (x - text_width // 2 + 2, y - text_height // 2 + 2),
+                    suit_symbol,
+                    fill=(0, 0, 0, 60),
+                    font=self.font_suit_small,
+                )
 
                 # 메인
-                draw.text((x - text_width // 2, y - text_height // 2),
-                         suit_symbol, fill=color, font=self.font_suit_small)
+                draw.text(
+                    (x - text_width // 2, y - text_height // 2),
+                    suit_symbol,
+                    fill=color,
+                    font=self.font_suit_small,
+                )
 
         return center
 
@@ -471,7 +645,7 @@ class CasinoCardRenderer:
             return real_card
 
         # === 실제 이미지 없으면 그려서 생성 ===
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
 
         rank = card_str[:-1]
         suit = card_str[-1]
@@ -480,25 +654,24 @@ class CasinoCardRenderer:
         glow_color = self.SUIT_GLOW_COLORS.get(suit, (255, 255, 255))
 
         # 펄 화이트 베이스
-        base = Image.new('RGBA', card.size, (255, 255, 255, 255))
+        base = Image.new("RGBA", card.size, (255, 255, 255, 255))
 
         # 미세 펄 효과
         for y in range(0, self.CARD_HEIGHT, 5):
             alpha = int(15 + 10 * math.sin(y * 0.1))
             draw_base = ImageDraw.Draw(base)
-            draw_base.line([(0, y), (self.CARD_WIDTH, y)],
-                          fill=(248, 248, 255, alpha))
+            draw_base.line([(0, y), (self.CARD_WIDTH, y)], fill=(248, 248, 255, alpha))
 
         # 라운드 마스크
-        mask = Image.new('L', card.size, 0)
+        mask = Image.new("L", card.size, 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
-            fill=255
+            fill=255,
         )
 
-        result = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        result = Image.new("RGBA", card.size, (0, 0, 0, 0))
         result.paste(base, (0, 0), mask)
         card = result
 
@@ -508,19 +681,19 @@ class CasinoCardRenderer:
             [(5, 5), (self.CARD_WIDTH - 5, self.CARD_HEIGHT - 5)],
             radius=self.CARD_RADIUS - 2,
             outline=self.DARK_GOLD,
-            width=5
+            width=5,
         )
         draw.rounded_rectangle(
             [(10, 10), (self.CARD_WIDTH - 10, self.CARD_HEIGHT - 10)],
             radius=self.CARD_RADIUS - 5,
             outline=self.METALLIC_GOLD,
-            width=3
+            width=3,
         )
         draw.rounded_rectangle(
             [(14, 14), (self.CARD_WIDTH - 14, self.CARD_HEIGHT - 14)],
             radius=self.CARD_RADIUS - 7,
             outline=self.PLATINUM,
-            width=1
+            width=1,
         )
 
         # 코너 인덱스
@@ -529,19 +702,23 @@ class CasinoCardRenderer:
 
         # 하단 코너 (회전)
         corner_bottom = corner.rotate(180)
-        card.paste(corner_bottom,
-                  (self.CARD_WIDTH - corner.width - 20,
-                   self.CARD_HEIGHT - corner.height - 25),
-                  corner_bottom)
+        card.paste(
+            corner_bottom,
+            (
+                self.CARD_WIDTH - corner.width - 20,
+                self.CARD_HEIGHT - corner.height - 25,
+            ),
+            corner_bottom,
+        )
 
         # 중앙 그림
-        if rank == 'K':
+        if rank == "K":
             center = self._draw_face_king(suit, suit_color, glow_color)
-        elif rank == 'Q':
+        elif rank == "Q":
             center = self._draw_face_queen(suit, suit_color, glow_color)
-        elif rank == 'J':
+        elif rank == "J":
             center = self._draw_face_jack(suit, suit_color, glow_color)
-        elif rank == 'A':
+        elif rank == "A":
             center = self._draw_ace_center(suit, suit_color, glow_color)
         else:
             center = self._draw_number_symbols(rank, suit, suit_color)
@@ -552,12 +729,14 @@ class CasinoCardRenderer:
         card.paste(center, (center_x, center_y), center)
 
         # 최종 광택
-        gloss = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        gloss = Image.new("RGBA", card.size, (0, 0, 0, 0))
         gloss_draw = ImageDraw.Draw(gloss)
         gloss_draw.ellipse(
-            [(-self.CARD_WIDTH * 0.3, -self.CARD_HEIGHT * 0.4),
-             (self.CARD_WIDTH * 0.7, self.CARD_HEIGHT * 0.3)],
-            fill=(255, 255, 255, 50)
+            [
+                (-self.CARD_WIDTH * 0.3, -self.CARD_HEIGHT * 0.4),
+                (self.CARD_WIDTH * 0.7, self.CARD_HEIGHT * 0.3),
+            ],
+            fill=(255, 255, 255, 50),
         )
         gloss = gloss.filter(ImageFilter.GaussianBlur(radius=60))
         card = Image.alpha_composite(card, gloss)
@@ -571,22 +750,21 @@ class CasinoCardRenderer:
         back_path = self.cards_dir / "back.png"
         if back_path.exists():
             try:
-                card_img = Image.open(back_path).convert('RGBA')
+                card_img = Image.open(back_path).convert("RGBA")
                 card_img = card_img.resize(
-                    (self.CARD_WIDTH, self.CARD_HEIGHT),
-                    Image.LANCZOS
+                    (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS
                 )
 
                 # 라운드 코너
-                mask = Image.new('L', (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
+                mask = Image.new("L", (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
                 mask_draw = ImageDraw.Draw(mask)
                 mask_draw.rounded_rectangle(
                     [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
                     radius=self.CARD_RADIUS,
-                    fill=255
+                    fill=255,
                 )
 
-                result = Image.new('RGBA', card_img.size, (0, 0, 0, 0))
+                result = Image.new("RGBA", card_img.size, (0, 0, 0, 0))
                 result.paste(card_img, (0, 0), mask)
 
                 # 골드 테두리
@@ -594,11 +772,13 @@ class CasinoCardRenderer:
                 for i in range(4):
                     offset = 5 + i * 4
                     draw.rounded_rectangle(
-                        [(offset, offset),
-                         (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset)],
+                        [
+                            (offset, offset),
+                            (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset),
+                        ],
                         radius=self.CARD_RADIUS - i * 2,
                         outline=self.METALLIC_GOLD + (255 - i * 40,),
-                        width=3
+                        width=3,
                     )
 
                 return result
@@ -606,10 +786,10 @@ class CasinoCardRenderer:
                 print(f"뒷면 이미지 로드 실패: {e}")
 
         # === 실제 이미지 없으면 그려서 생성 ===
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
 
         # 다크 그라데이션
-        base = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        base = Image.new("RGBA", card.size, (0, 0, 0, 0))
         draw_base = ImageDraw.Draw(base)
 
         for y in range(self.CARD_HEIGHT):
@@ -620,27 +800,29 @@ class CasinoCardRenderer:
             draw_base.line([(0, y), (self.CARD_WIDTH, y)], fill=(r, g, b, 255))
 
         # 라운드 마스크
-        mask = Image.new('L', card.size, 0)
+        mask = Image.new("L", card.size, 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
-            fill=255
+            fill=255,
         )
 
-        result = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        result = Image.new("RGBA", card.size, (0, 0, 0, 0))
         result.paste(base, (0, 0), mask)
         card = result
 
         # 다이아몬드 패턴
-        pattern = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        pattern = Image.new("RGBA", card.size, (0, 0, 0, 0))
         pattern_draw = ImageDraw.Draw(pattern)
 
         spacing = 40
         for y in range(0, self.CARD_HEIGHT + spacing, spacing):
             for x in range(0, self.CARD_WIDTH + spacing, spacing):
                 points = [(x, y - 10), (x + 10, y), (x, y + 10), (x - 10, y)]
-                pattern_draw.polygon(points, outline=self.METALLIC_GOLD + (100,), width=2)
+                pattern_draw.polygon(
+                    points, outline=self.METALLIC_GOLD + (100,), width=2
+                )
 
         card = Image.alpha_composite(card, pattern)
 
@@ -649,30 +831,32 @@ class CasinoCardRenderer:
         for i in range(4):
             offset = 5 + i * 4
             draw.rounded_rectangle(
-                [(offset, offset),
-                 (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset)],
+                [
+                    (offset, offset),
+                    (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset),
+                ],
                 radius=self.CARD_RADIUS - i * 2,
                 outline=self.METALLIC_GOLD + (255 - i * 40,),
-                width=3
+                width=3,
             )
 
         # 중앙 로고
         center_x = self.CARD_WIDTH // 2
         center_y = self.CARD_HEIGHT // 2
 
-        logo_bg = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        logo_bg = Image.new("RGBA", card.size, (0, 0, 0, 0))
         logo_draw = ImageDraw.Draw(logo_bg)
 
         logo_draw.ellipse(
             [(center_x - 90, center_y - 90), (center_x + 90, center_y + 90)],
             fill=(20, 20, 40, 230),
             outline=self.METALLIC_GOLD,
-            width=6
+            width=6,
         )
         logo_draw.ellipse(
             [(center_x - 80, center_y - 80), (center_x + 80, center_y + 80)],
             outline=self.PLATINUM,
-            width=2
+            width=2,
         )
 
         card = Image.alpha_composite(card, logo_bg)
@@ -683,7 +867,7 @@ class CasinoCardRenderer:
         except:
             logo_font = self.font_rank_large
 
-        text_layer = Image.new('RGBA', card.size, (0, 0, 0, 0))
+        text_layer = Image.new("RGBA", card.size, (0, 0, 0, 0))
         text_draw = ImageDraw.Draw(text_layer)
 
         # 그림자
@@ -692,7 +876,7 @@ class CasinoCardRenderer:
                 (center_x - 35 + offset[0], center_y - 40 + offset[1]),
                 "JP",
                 fill=(0, 0, 0, 120),
-                font=logo_font
+                font=logo_font,
             )
 
         # 메인 텍스트
@@ -700,7 +884,7 @@ class CasinoCardRenderer:
             (center_x - 35, center_y - 40),
             "JP",
             fill=self.METALLIC_GOLD,
-            font=logo_font
+            font=logo_font,
         )
 
         card = Image.alpha_composite(card, text_layer)
@@ -712,7 +896,7 @@ class CasinoCardRenderer:
         shadow_offset = 15
         shadow_size = (card.width + shadow_offset * 2, card.height + shadow_offset * 2)
 
-        shadow = Image.new('RGBA', shadow_size, (0, 0, 0, 0))
+        shadow = Image.new("RGBA", shadow_size, (0, 0, 0, 0))
         shadow_draw = ImageDraw.Draw(shadow)
 
         for i in range(3):
@@ -721,7 +905,7 @@ class CasinoCardRenderer:
             shadow_draw.rounded_rectangle(
                 [(offset, offset), (card.width + offset, card.height + offset)],
                 radius=self.CARD_RADIUS + 5,
-                fill=(0, 0, 0, alpha)
+                fill=(0, 0, 0, alpha),
             )
 
         shadow = shadow.filter(ImageFilter.GaussianBlur(radius=12))
@@ -731,7 +915,7 @@ class CasinoCardRenderer:
 
     def _create_velvet_background(self, width: int, height: int) -> Image.Image:
         """모던 그라데이션 배경 (네온 액센트)"""
-        bg = Image.new('RGB', (width, height), self.theme.colors.background)
+        bg = Image.new("RGB", (width, height), self.theme.colors.background)
 
         if self.theme.has_gradient:
             draw = ImageDraw.Draw(bg)
@@ -749,7 +933,8 @@ class CasinoCardRenderer:
 
             # 미묘한 노이즈 패턴 (모던한 텍스처)
             import random
-            noise = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+
+            noise = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             noise_draw = ImageDraw.Draw(noise)
             for _ in range(500):
                 x = random.randint(0, width)
@@ -757,13 +942,12 @@ class CasinoCardRenderer:
                 size = random.randint(1, 3)
                 alpha = random.randint(5, 20)
                 noise_draw.ellipse(
-                    [(x, y), (x + size, y + size)],
-                    fill=(255, 255, 255, alpha)
+                    [(x, y), (x + size, y + size)], fill=(255, 255, 255, alpha)
                 )
-            bg = bg.convert('RGBA')
+            bg = bg.convert("RGBA")
             bg = Image.alpha_composite(bg, noise)
 
-        return bg.convert('RGBA')
+        return bg.convert("RGBA")
 
     def generate_game_image(
         self,
@@ -772,18 +956,19 @@ class CasinoCardRenderer:
         player_value: int,
         dealer_value: Optional[int] = None,
         hide_dealer_first: bool = True,
-        message: str = ""
+        message: str = "",
     ) -> bytes:
         """카지노급 게임 이미지 생성"""
 
-        message_lines = message.split('\n') if message else []
+        message_lines = message.split("\n") if message else []
 
         max_cards = max(len(player_hand), len(dealer_hand), 1)
         shadow_extra = 30
         card_visual_width = self.CARD_WIDTH + shadow_extra
 
-        card_area_width = (max_cards * card_visual_width +
-                          (max_cards - 1) * self.CARD_SPACING + 150)
+        card_area_width = (
+            max_cards * card_visual_width + (max_cards - 1) * self.CARD_SPACING + 150
+        )
 
         total_width = max(card_area_width, 1150)
         section_height = self.CARD_HEIGHT + shadow_extra + 260
@@ -799,7 +984,7 @@ class CasinoCardRenderer:
         accent_color = self.theme.colors.accent_color
 
         # 외부 글로우 (네온 효과)
-        glow_layer = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
+        glow_layer = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 0))
         glow_draw = ImageDraw.Draw(glow_layer)
         for i in range(10, 0, -1):
             offset = 15 + i * 3
@@ -808,7 +993,7 @@ class CasinoCardRenderer:
                 [(offset, offset), (total_width - offset, total_height - offset)],
                 radius=50 - i,
                 outline=border_color + (alpha,),
-                width=i * 2
+                width=i * 2,
             )
         glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=15))
         image = Image.alpha_composite(image, glow_layer)
@@ -822,7 +1007,7 @@ class CasinoCardRenderer:
                 [(offset, offset), (total_width - offset, total_height - offset)],
                 radius=38 - i * 2,
                 outline=border_color + (alpha,),
-                width=3
+                width=3,
             )
 
         # 액센트 라인
@@ -830,7 +1015,7 @@ class CasinoCardRenderer:
             [(25, 25), (total_width - 25, total_height - 25)],
             radius=35,
             outline=accent_color + (180,),
-            width=1
+            width=1,
         )
 
         # 딜러 섹션
@@ -839,16 +1024,14 @@ class CasinoCardRenderer:
         panel_height = section_height - 80
 
         # Glassmorphism 스타일 패널
-        panel = Image.new('RGBA', (panel_width, panel_height), (0, 0, 0, 0))
+        panel = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
         panel_draw = ImageDraw.Draw(panel)
         panel_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)],
-            radius=30,
-            fill=(255, 255, 255, 15)
+            [(0, 0), (panel_width, panel_height)], radius=30, fill=(255, 255, 255, 15)
         )
 
         # 네온 테두리 글로우 (축소)
-        panel_glow = Image.new('RGBA', (panel_width, panel_height), (0, 0, 0, 0))
+        panel_glow = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
         panel_glow_draw = ImageDraw.Draw(panel_glow)
         for i in range(4, 0, -1):
             alpha = int(35 - i * 6)
@@ -856,7 +1039,7 @@ class CasinoCardRenderer:
                 [(0, 0), (panel_width, panel_height)],
                 radius=30,
                 outline=border_color + (alpha,),
-                width=i * 2
+                width=i * 2,
             )
         panel_glow = panel_glow.filter(ImageFilter.GaussianBlur(radius=5))
         panel = Image.alpha_composite(panel, panel_glow)
@@ -866,13 +1049,13 @@ class CasinoCardRenderer:
             [(0, 0), (panel_width, panel_height)],
             radius=30,
             outline=border_color + (180,),
-            width=2
+            width=2,
         )
         panel_draw.rounded_rectangle(
             [(2, 2), (panel_width - 2, panel_height - 2)],
             radius=28,
             outline=accent_color + (100,),
-            width=1
+            width=1,
         )
 
         image.paste(panel, (60, dealer_y), panel)
@@ -881,7 +1064,7 @@ class CasinoCardRenderer:
         label_x = 100
         label_y = dealer_y + 30
 
-        label_bg = Image.new('RGBA', (260, 80), (0, 0, 0, 0))
+        label_bg = Image.new("RGBA", (260, 80), (0, 0, 0, 0))
         label_bg_draw = ImageDraw.Draw(label_bg)
 
         # 네온 글로우
@@ -891,7 +1074,7 @@ class CasinoCardRenderer:
                 [(0, 0), (260, 80)],
                 radius=22,
                 outline=border_color + (alpha,),
-                width=i * 2
+                width=i * 2,
             )
         label_bg = label_bg.filter(ImageFilter.GaussianBlur(radius=6))
 
@@ -901,20 +1084,17 @@ class CasinoCardRenderer:
             radius=22,
             fill=(20, 20, 30, 220),
             outline=border_color,
-            width=3
+            width=3,
         )
         label_bg_draw.rounded_rectangle(
-            [(3, 3), (257, 77)],
-            radius=20,
-            outline=accent_color + (150,),
-            width=1
+            [(3, 3), (257, 77)], radius=20, outline=accent_color + (150,), width=1
         )
 
         image.paste(label_bg, (label_x, label_y), label_bg)
 
         # 텍스트 중앙 정렬 계산
         dealer_text = "🤖 딜러"
-        temp_draw = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+        temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
         dealer_bbox = temp_draw.textbbox((0, 0), dealer_text, font=self.font_title)
         dealer_text_width = dealer_bbox[2] - dealer_bbox[0]
         dealer_text_height = dealer_bbox[3] - dealer_bbox[1]
@@ -922,21 +1102,25 @@ class CasinoCardRenderer:
         dealer_text_y = label_y + (80 - dealer_text_height) // 2 - 5
 
         # 텍스트 글로우 효과
-        text_glow = Image.new('RGBA', image.size, (0, 0, 0, 0))
+        text_glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
         text_glow_draw = ImageDraw.Draw(text_glow)
         for offset in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
             text_glow_draw.text(
                 (dealer_text_x + offset[0], dealer_text_y + offset[1]),
                 dealer_text,
                 fill=border_color + (100,),
-                font=self.font_title
+                font=self.font_title,
             )
         text_glow = text_glow.filter(ImageFilter.GaussianBlur(radius=3))
         image = Image.alpha_composite(image, text_glow)
         draw = ImageDraw.Draw(image)
 
-        draw.text((dealer_text_x, dealer_text_y), dealer_text,
-                 fill=(255, 255, 255), font=self.font_title)
+        draw.text(
+            (dealer_text_x, dealer_text_y),
+            dealer_text,
+            fill=(255, 255, 255),
+            font=self.font_title,
+        )
 
         # 딜러 카드
         cards_y = label_y + 110
@@ -963,16 +1147,14 @@ class CasinoCardRenderer:
         player_y = dealer_y + section_height - 20
 
         # Glassmorphism 패널
-        panel2 = Image.new('RGBA', (panel_width, panel_height), (0, 0, 0, 0))
+        panel2 = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
         panel2_draw = ImageDraw.Draw(panel2)
         panel2_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)],
-            radius=30,
-            fill=(255, 255, 255, 15)
+            [(0, 0), (panel_width, panel_height)], radius=30, fill=(255, 255, 255, 15)
         )
 
         # 네온 글로우 (축소)
-        panel2_glow = Image.new('RGBA', (panel_width, panel_height), (0, 0, 0, 0))
+        panel2_glow = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
         panel2_glow_draw = ImageDraw.Draw(panel2_glow)
         for i in range(4, 0, -1):
             alpha = int(35 - i * 6)
@@ -980,7 +1162,7 @@ class CasinoCardRenderer:
                 [(0, 0), (panel_width, panel_height)],
                 radius=30,
                 outline=accent_color + (alpha,),
-                width=i * 2
+                width=i * 2,
             )
         panel2_glow = panel2_glow.filter(ImageFilter.GaussianBlur(radius=5))
         panel2 = Image.alpha_composite(panel2, panel2_glow)
@@ -990,19 +1172,19 @@ class CasinoCardRenderer:
             [(0, 0), (panel_width, panel_height)],
             radius=30,
             outline=accent_color + (180,),
-            width=2
+            width=2,
         )
         panel2_draw.rounded_rectangle(
             [(2, 2), (panel_width - 2, panel_height - 2)],
             radius=28,
             outline=border_color + (100,),
-            width=1
+            width=1,
         )
 
         image.paste(panel2, (60, player_y), panel2)
 
         # 플레이어 라벨 (네온 스타일)
-        label_bg2 = Image.new('RGBA', (310, 80), (0, 0, 0, 0))
+        label_bg2 = Image.new("RGBA", (310, 80), (0, 0, 0, 0))
         label_bg2_draw = ImageDraw.Draw(label_bg2)
 
         # 네온 글로우
@@ -1012,7 +1194,7 @@ class CasinoCardRenderer:
                 [(0, 0), (310, 80)],
                 radius=22,
                 outline=accent_color + (alpha,),
-                width=i * 2
+                width=i * 2,
             )
         label_bg2 = label_bg2.filter(ImageFilter.GaussianBlur(radius=6))
 
@@ -1022,20 +1204,17 @@ class CasinoCardRenderer:
             radius=22,
             fill=(20, 20, 30, 220),
             outline=accent_color,
-            width=3
+            width=3,
         )
         label_bg2_draw.rounded_rectangle(
-            [(3, 3), (307, 77)],
-            radius=20,
-            outline=border_color + (150,),
-            width=1
+            [(3, 3), (307, 77)], radius=20, outline=border_color + (150,), width=1
         )
 
         image.paste(label_bg2, (label_x, player_y + 30), label_bg2)
 
         # 텍스트 중앙 정렬 계산
         player_text = "🎯 플레이어"
-        temp_draw2 = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+        temp_draw2 = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
         player_bbox = temp_draw2.textbbox((0, 0), player_text, font=self.font_title)
         player_text_width = player_bbox[2] - player_bbox[0]
         player_text_height = player_bbox[3] - player_bbox[1]
@@ -1043,21 +1222,25 @@ class CasinoCardRenderer:
         player_text_y = player_y + 30 + (80 - player_text_height) // 2 - 5
 
         # 텍스트 글로우
-        text_glow2 = Image.new('RGBA', image.size, (0, 0, 0, 0))
+        text_glow2 = Image.new("RGBA", image.size, (0, 0, 0, 0))
         text_glow2_draw = ImageDraw.Draw(text_glow2)
         for offset in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
             text_glow2_draw.text(
                 (player_text_x + offset[0], player_text_y + offset[1]),
                 player_text,
                 fill=accent_color + (100,),
-                font=self.font_title
+                font=self.font_title,
             )
         text_glow2 = text_glow2.filter(ImageFilter.GaussianBlur(radius=3))
         image = Image.alpha_composite(image, text_glow2)
         draw = ImageDraw.Draw(image)
 
-        draw.text((player_text_x, player_text_y), player_text,
-                 fill=(255, 255, 255), font=self.font_title)
+        draw.text(
+            (player_text_x, player_text_y),
+            player_text,
+            fill=(255, 255, 255),
+            font=self.font_title,
+        )
 
         # 플레이어 카드
         cards_y = player_y + 140
@@ -1085,16 +1268,16 @@ class CasinoCardRenderer:
             msg_panel_height = len(message_lines) * 52 + 70
 
             # 베이스 패널
-            msg_panel = Image.new('RGBA', (panel_width, msg_panel_height), (0, 0, 0, 0))
+            msg_panel = Image.new("RGBA", (panel_width, msg_panel_height), (0, 0, 0, 0))
             msg_draw = ImageDraw.Draw(msg_panel)
             msg_draw.rounded_rectangle(
                 [(0, 0), (panel_width, msg_panel_height)],
                 radius=25,
-                fill=(10, 10, 20, 230)
+                fill=(10, 10, 20, 230),
             )
 
             # 네온 글로우 (별도 레이어, 축소)
-            msg_glow = Image.new('RGBA', (panel_width, msg_panel_height), (0, 0, 0, 0))
+            msg_glow = Image.new("RGBA", (panel_width, msg_panel_height), (0, 0, 0, 0))
             msg_glow_draw = ImageDraw.Draw(msg_glow)
             for i in range(4, 0, -1):
                 alpha = int(35 - i * 6)
@@ -1102,7 +1285,7 @@ class CasinoCardRenderer:
                     [(0, 0), (panel_width, msg_panel_height)],
                     radius=25,
                     outline=border_color + (alpha,),
-                    width=i * 2
+                    width=i * 2,
                 )
             msg_glow = msg_glow.filter(ImageFilter.GaussianBlur(radius=5))
             msg_panel = Image.alpha_composite(msg_panel, msg_glow)
@@ -1113,13 +1296,13 @@ class CasinoCardRenderer:
                 [(0, 0), (panel_width, msg_panel_height)],
                 radius=25,
                 outline=border_color,
-                width=3
+                width=3,
             )
             msg_draw.rounded_rectangle(
                 [(3, 3), (panel_width - 3, msg_panel_height - 3)],
                 radius=23,
                 outline=accent_color + (120,),
-                width=1
+                width=1,
             )
 
             # 텍스트
@@ -1128,21 +1311,21 @@ class CasinoCardRenderer:
                     (45, 25 + i * 52),
                     line,
                     fill=(255, 255, 255),
-                    font=self.font_message
+                    font=self.font_message,
                 )
 
             image.paste(msg_panel, (60, msg_y), msg_panel)
 
         # 바이트 변환
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG', quality=98)
+        image.save(img_byte_arr, format="PNG", quality=98)
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
 
     def _create_value_chip(self, text: str) -> Image.Image:
         """네온 스타일 값 칩"""
         width, height = 250, 85
-        chip = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        chip = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(chip)
 
         border_color = self.theme.colors.border_color
@@ -1155,14 +1338,14 @@ class CasinoCardRenderer:
                 [(0, 0), (width, height)],
                 radius=38,
                 outline=accent_color + (alpha,),
-                width=i * 2
+                width=i * 2,
             )
         chip = chip.filter(ImageFilter.GaussianBlur(radius=8))
 
         draw = ImageDraw.Draw(chip)
 
         # 다크 그라데이션 배경
-        bg = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        bg = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         bg_draw = ImageDraw.Draw(bg)
         for y in range(height):
             ratio = y / height
@@ -1170,26 +1353,23 @@ class CasinoCardRenderer:
             bg_draw.line([(0, y), (width, y)], fill=(15, 15, 25, alpha))
 
         # 라운드 마스크
-        mask = Image.new('L', (width, height), 0)
+        mask = Image.new("L", (width, height), 0)
         mask_draw = ImageDraw.Draw(mask)
         mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=38, fill=255)
 
-        result = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+        result = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         result.paste(bg, (0, 0), mask)
         chip = Image.alpha_composite(chip, result)
 
         draw = ImageDraw.Draw(chip)
         draw.rounded_rectangle(
-            [(0, 0), (width - 1, height - 1)],
-            radius=38,
-            outline=accent_color,
-            width=3
+            [(0, 0), (width - 1, height - 1)], radius=38, outline=accent_color, width=3
         )
         draw.rounded_rectangle(
             [(3, 3), (width - 4, height - 4)],
             radius=36,
             outline=border_color + (180,),
-            width=1
+            width=1,
         )
 
         # 텍스트 글로우
@@ -1205,7 +1385,7 @@ class CasinoCardRenderer:
                 (text_x + offset[0], text_y + offset[1]),
                 text,
                 fill=accent_color + (120,),
-                font=self.font_value
+                font=self.font_value,
             )
 
         draw.text((text_x, text_y), text, fill=(255, 255, 255), font=self.font_value)

@@ -1,6 +1,7 @@
 """
 테마 시스템 테스트
 """
+
 import pytest
 from bot.utils.themes import ThemeManager, ThemeType, Theme
 

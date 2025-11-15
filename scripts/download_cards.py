@@ -2,6 +2,7 @@
 카드 이미지 다운로드 스크립트
 무료 카드 이미지를 다운로드하여 assets/cards에 저장
 """
+
 import os
 import requests
 from pathlib import Path

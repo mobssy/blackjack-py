@@ -2,6 +2,7 @@
 JackPy - 카드 이미지 생성
 PIL을 사용하여 카드 이미지 생성
 """
+
 from PIL import Image, ImageDraw, ImageFont
 from typing import List
 import io
@@ -23,27 +24,28 @@ class CardImageGenerator:
 
     # 무늬별 색상
     SUIT_COLORS = {
-        'S': COLOR_BLACK,  # 스페이드
-        'C': COLOR_BLACK,  # 클로버
-        'H': COLOR_RED,    # 하트
-        'D': COLOR_RED,    # 다이아몬드
+        "S": COLOR_BLACK,  # 스페이드
+        "C": COLOR_BLACK,  # 클로버
+        "H": COLOR_RED,  # 하트
+        "D": COLOR_RED,  # 다이아몬드
     }
 
     # 무늬 유니코드
-    SUIT_SYMBOLS = {
-        'S': '♠',
-        'H': '♥',
-        'D': '♦',
-        'C': '♣'
-    }
+    SUIT_SYMBOLS = {"S": "♠", "H": "♥", "D": "♦", "C": "♣"}
 
     def __init__(self):
         """초기화"""
         try:
             # 시스템 폰트 사용
-            self.font_large = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
-            self.font_small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 40)
-            self.font_suit = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
+            self.font_large = ImageFont.truetype(
+                "/System/Library/Fonts/Helvetica.ttc", 60
+            )
+            self.font_small = ImageFont.truetype(
+                "/System/Library/Fonts/Helvetica.ttc", 40
+            )
+            self.font_suit = ImageFont.truetype(
+                "/System/Library/Fonts/Helvetica.ttc", 80
+            )
         except:
             # 폰트 로드 실패 시 기본 폰트
             self.font_large = ImageFont.load_default()
@@ -62,7 +64,7 @@ class CardImageGenerator:
             PIL Image 객체
         """
         # 카드 배경 생성
-        card = Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), self.COLOR_WHITE)
+        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), self.COLOR_WHITE)
         draw = ImageDraw.Draw(card)
 
         if hidden:
@@ -72,7 +74,7 @@ class CardImageGenerator:
                 [(5, 5), (self.CARD_WIDTH - 5, self.CARD_HEIGHT - 5)],
                 fill=(50, 50, 150),
                 outline=self.COLOR_BLACK,
-                width=3
+                width=3,
             )
             # 패턴
             for i in range(0, self.CARD_WIDTH, 20):
@@ -92,7 +94,7 @@ class CardImageGenerator:
                 radius=10,
                 fill=self.COLOR_WHITE,
                 outline=self.COLOR_BLACK,
-                width=3
+                width=3,
             )
 
             # 랭크 (좌상단)
@@ -113,16 +115,13 @@ class CardImageGenerator:
                 (self.CARD_WIDTH - 35, self.CARD_HEIGHT - 50),
                 rank,
                 fill=color,
-                font=self.font_small
+                font=self.font_small,
             )
 
         return card
 
     def generate_hand_image(
-        self,
-        cards: List[str],
-        hide_first: bool = False,
-        title: str = ""
+        self, cards: List[str], hide_first: bool = False, title: str = ""
     ) -> bytes:
         """
         핸드 전체 이미지 생성
@@ -137,11 +136,13 @@ class CardImageGenerator:
         """
         # 전체 이미지 크기 계산
         num_cards = len(cards)
-        total_width = num_cards * self.CARD_WIDTH + (num_cards - 1) * self.CARD_SPACING + 40
+        total_width = (
+            num_cards * self.CARD_WIDTH + (num_cards - 1) * self.CARD_SPACING + 40
+        )
         total_height = self.CARD_HEIGHT + 100  # 제목 공간
 
         # 배경 생성
-        image = Image.new('RGBA', (total_width, total_height), self.COLOR_BACKGROUND)
+        image = Image.new("RGBA", (total_width, total_height), self.COLOR_BACKGROUND)
         draw = ImageDraw.Draw(image)
 
         # 제목 그리기
@@ -153,14 +154,14 @@ class CardImageGenerator:
         y_offset = 80
 
         for i, card_str in enumerate(cards):
-            hidden = (i == 0 and hide_first)
+            hidden = i == 0 and hide_first
             card_img = self.draw_single_card(card_str, hidden)
             image.paste(card_img, (x_offset, y_offset))
             x_offset += self.CARD_WIDTH + self.CARD_SPACING
 
         # 이미지를 바이트로 변환
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG')
+        image.save(img_byte_arr, format="PNG")
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
 
@@ -172,7 +173,7 @@ class CardImageGenerator:
         dealer_value: int = None,
         hide_dealer_first: bool = True,
         message: str = "",
-        game_result: str = None  # "WIN", "LOSE", "PUSH", "BLACKJACK"
+        game_result: str = None,  # "WIN", "LOSE", "PUSH", "BLACKJACK"
     ) -> bytes:
         """
         게임 전체 이미지 생성 (플레이어 + 딜러)
@@ -191,10 +192,14 @@ class CardImageGenerator:
         """
         # 각 핸드의 최대 너비 계산
         max_cards = max(len(player_hand), len(dealer_hand))
-        card_area_width = max_cards * self.CARD_WIDTH + (max_cards - 1) * self.CARD_SPACING + 40
+        card_area_width = (
+            max_cards * self.CARD_WIDTH + (max_cards - 1) * self.CARD_SPACING + 40
+        )
 
         total_width = max(card_area_width, 600)
-        total_height = (self.CARD_HEIGHT + 120) * 2 + 120  # 딜러 + 플레이어 + 메시지 + 결과
+        total_height = (
+            self.CARD_HEIGHT + 120
+        ) * 2 + 120  # 딜러 + 플레이어 + 메시지 + 결과
 
         # 배경색 (결과에 따라 변경)
         bg_color = self.COLOR_BACKGROUND
@@ -204,18 +209,20 @@ class CardImageGenerator:
             bg_color = (100, 20, 20)  # 진한 빨간색
 
         # 배경
-        image = Image.new('RGBA', (total_width, total_height), bg_color)
+        image = Image.new("RGBA", (total_width, total_height), bg_color)
         draw = ImageDraw.Draw(image)
 
         # 딜러 섹션
         y_offset = 20
-        draw.text((20, y_offset), "🃏 딜러", fill=self.COLOR_WHITE, font=self.font_large)
+        draw.text(
+            (20, y_offset), "🃏 딜러", fill=self.COLOR_WHITE, font=self.font_large
+        )
         y_offset += 60
 
         # 딜러 카드
         x_offset = 20
         for i, card_str in enumerate(dealer_hand):
-            hidden = (i == 0 and hide_dealer_first)
+            hidden = i == 0 and hide_dealer_first
             card_img = self.draw_single_card(card_str, hidden)
             image.paste(card_img, (x_offset, y_offset))
             x_offset += self.CARD_WIDTH + self.CARD_SPACING
@@ -226,12 +233,14 @@ class CardImageGenerator:
                 (x_offset + 20, y_offset + 80),
                 f"합: {dealer_value}",
                 fill=self.COLOR_WHITE,
-                font=self.font_small
+                font=self.font_small,
             )
 
         # 플레이어 섹션
         y_offset += self.CARD_HEIGHT + 60
-        draw.text((20, y_offset), "🎴 플레이어", fill=self.COLOR_WHITE, font=self.font_large)
+        draw.text(
+            (20, y_offset), "🎴 플레이어", fill=self.COLOR_WHITE, font=self.font_large
+        )
         y_offset += 60
 
         # 플레이어 카드
@@ -246,13 +255,15 @@ class CardImageGenerator:
             (x_offset + 20, y_offset + 80),
             f"합: {player_value}",
             fill=self.COLOR_WHITE,
-            font=self.font_small
+            font=self.font_small,
         )
 
         # 하단 메시지
         if message:
             y_offset += self.CARD_HEIGHT + 40
-            draw.text((20, y_offset), message, fill=self.COLOR_WHITE, font=self.font_small)
+            draw.text(
+                (20, y_offset), message, fill=self.COLOR_WHITE, font=self.font_small
+            )
 
         # 게임 결과 표시 (큰 텍스트)
         if game_result:
@@ -274,7 +285,9 @@ class CardImageGenerator:
 
             # 결과 텍스트 크기 계산 및 중앙 배치
             try:
-                result_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 100)
+                result_font = ImageFont.truetype(
+                    "/System/Library/Fonts/Helvetica.ttc", 100
+                )
             except:
                 result_font = self.font_suit
 
@@ -287,22 +300,27 @@ class CardImageGenerator:
             padding = 30
             box_coords = [
                 (text_x - padding, text_y - padding),
-                (text_x + text_width + padding, text_y + 100)
+                (text_x + text_width + padding, text_y + 100),
             ]
-            draw.rectangle(box_coords, fill=(0, 0, 0, 200), outline=result_color, width=5)
+            draw.rectangle(
+                box_coords, fill=(0, 0, 0, 200), outline=result_color, width=5
+            )
 
             # 결과 텍스트
-            draw.text((text_x, text_y), result_text, fill=result_color, font=result_font)
+            draw.text(
+                (text_x, text_y), result_text, fill=result_color, font=result_font
+            )
 
         # 이미지를 바이트로 변환
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG')
+        image.save(img_byte_arr, format="PNG")
         img_byte_arr.seek(0)
         return img_byte_arr.getvalue()
 
 
 # 전역 인스턴스
 _card_generator = None
+
 
 def get_card_generator() -> CardImageGenerator:
     """카드 생성기 싱글톤"""

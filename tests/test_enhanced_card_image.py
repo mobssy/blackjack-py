@@ -1,13 +1,14 @@
 """
 개선된 카드 이미지 생성 테스트
 """
+
 import pytest
 from pathlib import Path
 from PIL import Image
 import io
 from bot.utils.enhanced_card_image import (
     EnhancedCardImageGenerator,
-    get_enhanced_card_generator
+    get_enhanced_card_generator,
 )
 from bot.utils.themes import ThemeManager, ThemeType
 
@@ -57,7 +58,7 @@ class TestEnhancedCardImageGenerator:
             player_value=21,
             dealer_value=15,
             hide_dealer_first=False,
-            message="Test message"
+            message="Test message",
         )
 
         assert image_bytes is not None
@@ -82,7 +83,7 @@ class TestEnhancedCardImageGenerator:
             player_value=21,
             dealer_value=None,
             hide_dealer_first=True,
-            message="Dealer's first card is hidden"
+            message="Dealer's first card is hidden",
         )
 
         assert image_bytes is not None
@@ -123,7 +124,7 @@ class TestEnhancedCardImageGenerator:
         gen = EnhancedCardImageGenerator()
 
         # 간단한 카드 이미지 생성
-        card = Image.new('RGBA', (160, 240), (255, 255, 255))
+        card = Image.new("RGBA", (160, 240), (255, 255, 255))
 
         card_with_shadow = gen._add_card_shadow(card)
 
