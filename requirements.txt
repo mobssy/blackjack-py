@@ -19,3 +19,19 @@ requests==2.31.0
 # Testing (optional)
 pytest==7.4.3
 pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Type Checking (optional)
+mypy==1.7.1
+types-pytz==2023.3.1.1
+
+# Pre-commit Hooks (optional)
+pre-commit==3.5.0
+
+# Linting (optional)
+flake8==6.1.0
+black==23.11.0
+
+# Security (optional)
+bandit==1.7.5
+safety==2.3.5

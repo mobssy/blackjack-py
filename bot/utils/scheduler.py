@@ -183,10 +183,96 @@ class JackPyScheduler:
         except Exception as e:
             logger.error(f"❌ 그룹 플랜 만료 체크 오류: {e}")
 
-    async def weekly_stats_report(self):
+    async def weekly_stats_report(self) -> None:
         """주간 통계 리포트 (관리자용)"""
         logger.info("📊 주간 통계 리포트 생성")
-        # TODO: 구현 (관리자에게 주간 통계 발송)
+
+        try:
+            import os
+            from sqlalchemy import func
+
+            # 관리자 ID 가져오기
+            admin_ids_str = os.getenv("ADMIN_IDS", "")
+            if not admin_ids_str:
+                logger.warning("⚠️ 관리자 ID가 설정되지 않음")
+                return
+
+            admin_ids = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+
+            # 지난 7일간 통계 계산
+            with get_db() as db:
+                from models.round import Round
+
+                # 기간 설정
+                week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+
+                # 전체 사용자 수
+                total_users = db.query(func.count(User.id)).scalar()
+
+                # VIP 사용자 수
+                vip_users = db.query(func.count(User.id)).filter(User.is_vip == True).scalar()
+
+                # 주간 신규 사용자
+                new_users = (
+                    db.query(func.count(User.id))
+                    .filter(User.created_at >= week_ago)
+                    .scalar()
+                )
+
+                # 주간 게임 수
+                weekly_games = (
+                    db.query(func.count(Round.id))
+                    .filter(Round.created_at >= week_ago)
+                    .scalar()
+                )
+
+                # 주간 총 베팅 금액
+                weekly_bets = (
+                    db.query(func.sum(Round.bet))
+                    .filter(Round.created_at >= week_ago)
+                    .scalar()
+                    or 0
+                )
+
+                # 주간 총 정산 금액
+                weekly_payouts = (
+                    db.query(func.sum(Round.payout))
+                    .filter(Round.created_at >= week_ago)
+                    .scalar()
+                    or 0
+                )
+
+                # 하우스 수익
+                house_profit = float(weekly_bets) + float(weekly_payouts)
+
+                # 통계 메시지 생성
+                message = f"""📊 <b>주간 통계 리포트</b>
+
+📅 <b>기간:</b> {week_ago.strftime('%Y-%m-%d')} ~ {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
+
+👥 <b>사용자</b>
+• 전체: {total_users:,}명
+• VIP: {vip_users:,}명
+• 신규: {new_users:,}명
+
+🎰 <b>게임</b>
+• 총 게임 수: {weekly_games:,}회
+• 총 베팅: ${weekly_bets:,.2f}
+• 총 정산: ${weekly_payouts:,.2f}
+• 하우스 수익: ${house_profit:,.2f}
+
+📈 <b>성장률</b>
+• 게임당 평균 베팅: ${(weekly_bets / weekly_games if weekly_games > 0 else 0):,.2f}
+• 사용자당 평균 게임: {(weekly_games / total_users if total_users > 0 else 0):.2f}회
+"""
+
+                # 관리자들에게 발송
+                for admin_id in admin_ids:
+                    await self._send_notification(admin_id, message)
+                    logger.info(f"✅ 주간 통계 발송: admin_id={admin_id}")
+
+        except Exception as e:
+            logger.error(f"❌ 주간 통계 리포트 생성 오류: {e}", exc_info=True)
 
     async def _send_notification(self, user_id: int, message: str):
         """

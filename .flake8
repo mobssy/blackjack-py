@@ -1,0 +1,50 @@
+# JackPy - Flake8 Linter Configuration
+# Python 코드 린팅 설정
+
+[flake8]
+# 최대 줄 길이 (Black과 일치)
+max-line-length = 88
+
+# 최대 복잡도
+max-complexity = 10
+
+# 무시할 에러 코드
+# E203: whitespace before ':' (Black과 충돌)
+# W503: line break before binary operator (Black과 충돌)
+# E501: line too long (max-line-length로 처리)
+extend-ignore = E203, W503
+
+# 제외할 디렉토리
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    build,
+    dist,
+    .eggs,
+    *.egg-info,
+    .mypy_cache,
+    .pytest_cache,
+    .tox,
+    migrations,
+    alembic
+
+# 파일별 예외
+per-file-ignores =
+    # __init__.py: F401 (imported but unused)
+    __init__.py:F401,
+    # 테스트 파일: F811 (redefinition of unused)
+    tests/*:F811
+
+# 통계 표시
+count = True
+statistics = True
+show-source = True
+
+# Docstring 검사
+docstring-convention = google
+
+# Import 순서 검사 (isort와 함께 사용)
+import-order-style = google
+application-import-names = bot,models

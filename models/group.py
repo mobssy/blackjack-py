@@ -4,6 +4,7 @@ JackPy - Group 모델
 """
 
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import (
     Column,
     Integer,
@@ -61,7 +62,7 @@ class Group(Base, TimestampMixin):
     # Relationships
     owner = relationship("User", foreign_keys=[owner_user_id])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Group(id={self.id}, title={self.title}, plan={self.plan.value})>"
 
     @property

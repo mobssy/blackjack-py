@@ -5,6 +5,7 @@ JackPy - User 모델
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional, Dict, Any
 from sqlalchemy import (
     Column,
     Integer,
@@ -53,7 +54,7 @@ class User(Base, TimestampMixin):
     # 예: {"total_games": 0, "wins": 0, "losses": 0, "total_bet": 0, "total_profit": 0}
     stats_json = Column(JSON, default=dict, nullable=False)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username}, vip={self.is_vip})>"
 
     @property
@@ -92,13 +93,13 @@ class User(Base, TimestampMixin):
             return True
         return False
 
-    def update_stats(self, **kwargs):
+    def update_stats(self, **kwargs: Any) -> None:
         """통계 업데이트"""
         if self.stats_json is None:
             self.stats_json = {}
 
         # 새로운 딕셔너리를 만들어서 할당 (SQLAlchemy가 변경 감지하도록)
-        new_stats = dict(self.stats_json)
+        new_stats: Dict[str, Any] = dict(self.stats_json)
         for key, value in kwargs.items():
             if key in new_stats:
                 new_stats[key] += value

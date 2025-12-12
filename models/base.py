@@ -79,7 +79,7 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def init_db():
+def init_db() -> None:
     """데이터베이스 테이블 초기화"""
     # 모든 모델 import
     from models.user import User
@@ -93,7 +93,7 @@ def init_db():
     print("✅ 데이터베이스 테이블 초기화 완료")
 
 
-def drop_db():
+def drop_db() -> None:
     """데이터베이스 테이블 삭제 (주의!)"""
     Base.metadata.drop_all(bind=engine)
     print("⚠️  데이터베이스 테이블 삭제 완료")

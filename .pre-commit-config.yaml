@@ -1,0 +1,81 @@
+# JackPy - Pre-commit Hooks Configuration
+# 커밋 전 자동 코드 품질 검사
+
+repos:
+  # Black - 코드 포맷팅
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: [--line-length=88]
+        exclude: ^(venv/|\.venv/|migrations/)
+
+  # Flake8 - 린팅
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88, --extend-ignore=E203 W503]
+        exclude: ^(venv/|\.venv/|migrations/|__pycache__/)
+
+  # MyPy - 타입 체킹
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-pytz==2023.3.1.1
+        args: [--config-file=mypy.ini]
+        exclude: ^(venv/|\.venv/|migrations/|tests/)
+
+  # Isort - Import 정렬
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
+        exclude: ^(venv/|\.venv/|migrations/)
+
+  # 기본 체크
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # 파일 끝 줄바꿈 확인
+      - id: end-of-file-fixer
+        exclude: ^(venv/|\.venv/|\.git/)
+      # 후행 공백 제거
+      - id: trailing-whitespace
+        exclude: ^(venv/|\.venv/|\.git/)
+      # YAML 문법 확인
+      - id: check-yaml
+        args: [--safe]
+        exclude: ^(venv/|\.venv/)
+      # JSON 문법 확인
+      - id: check-json
+        exclude: ^(venv/|\.venv/)
+      # TOML 문법 확인
+      - id: check-toml
+        exclude: ^(venv/|\.venv/)
+      # 큰 파일 방지 (5MB)
+      - id: check-added-large-files
+        args: [--maxkb=5120]
+      # Merge conflict 마커 확인
+      - id: check-merge-conflict
+      # Python docstring 첫 줄 확인
+      - id: check-docstring-first
+
+  # Bandit - 보안 취약점 검사
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-c, .bandit]
+        exclude: ^(venv/|\.venv/|tests/)
+
+# 실행 순서 제어
+default_language_version:
+  python: python3.11
+
+# 빠른 체크를 위한 최적화
+fail_fast: false

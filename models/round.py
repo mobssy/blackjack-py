@@ -51,7 +51,7 @@ class Round(Base, TimestampMixin):
     # Relationships
     user = relationship("User", backref="rounds")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Round(id={self.id}, user_id={self.user_id}, outcome={self.outcome.value}, payout={self.payout})>"
 
     @property

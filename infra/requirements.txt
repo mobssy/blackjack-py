@@ -30,3 +30,14 @@ pytest-cov==4.1.0
 # Linting (개발용)
 flake8==6.1.0
 black==23.11.0
+
+# Type Checking (개발용)
+mypy==1.7.1
+types-pytz==2023.3.1.1
+
+# Pre-commit Hooks (개발용)
+pre-commit==3.5.0
+
+# Security (개발용)
+bandit==1.7.5
+safety==2.3.5

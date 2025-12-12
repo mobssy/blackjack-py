@@ -33,10 +33,10 @@ class Card:
         self.rank = card_str[:-1]
         self.suit = card_str[-1]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.rank}{self.suit}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     @property
@@ -76,7 +76,7 @@ class Deck:
         self.num_decks = num_decks
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         """덱 초기화"""
         self.cards = []
         for _ in range(self.num_decks):

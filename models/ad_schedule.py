@@ -30,7 +30,7 @@ class AdSchedule(Base, TimestampMixin):
     last_sent_at = Column(DateTime, nullable=True)
     interval_minutes = Column(Integer, default=60, nullable=False)  # 기본 1시간
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<AdSchedule(chat_id={self.chat_id}, interval={self.interval_minutes}min)>"
         )
@@ -49,6 +49,6 @@ class AdSchedule(Base, TimestampMixin):
         elapsed_minutes: float = (now - self.last_sent_at).total_seconds() / 60
         return bool(elapsed_minutes >= self.interval_minutes)
 
-    def mark_sent(self):
+    def mark_sent(self) -> None:
         """광고 발송 기록"""
         self.last_sent_at = datetime.now(timezone.utc)

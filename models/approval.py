@@ -66,7 +66,7 @@ class Approval(Base, TimestampMixin):
     user = relationship("User", foreign_keys=[user_id], backref="approval_requests")
     approver = relationship("User", foreign_keys=[approved_by])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Approval(id={self.id}, user_id={self.user_id}, type={self.type.value}, status={self.status.value})>"
 
     @property

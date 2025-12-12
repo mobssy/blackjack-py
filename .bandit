@@ -1,0 +1,40 @@
+# JackPy - Bandit Security Scanner Configuration
+# 보안 취약점 검사 설정
+
+[bandit]
+# 제외할 디렉토리
+exclude_dirs =
+    /venv/,
+    /.venv/,
+    /tests/,
+    /.git/,
+    /__pycache__/,
+    /.pytest_cache/,
+    /.mypy_cache/
+
+# 스캔할 테스트 목록 (기본: 전체)
+# tests = B201,B301,B302,B303,B304,B305,B306
+
+# 건너뛸 테스트
+# B101: assert_used (테스트에서 assert 사용)
+# B601: paramiko_calls (paramiko 사용 시)
+# B607: start_process_with_partial_path
+skips = B101,B601
+
+# 심각도 수준
+# LOW, MEDIUM, HIGH
+severity = MEDIUM
+
+# 신뢰도 수준
+# LOW, MEDIUM, HIGH
+confidence = MEDIUM
+
+# 재귀적 스캔
+recursive = True
+
+# 결과 포맷
+# csv, json, txt, html, screen, yaml
+format = screen
+
+# 상세 출력
+verbose = False
