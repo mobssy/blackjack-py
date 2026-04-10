@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/21.PNG" alt="JackPy" width="120" />
+  <img src="assets/21.PNG" alt="JackPy" width="300" />
   <h1>JackPy</h1>
   <p>Production-grade Blackjack casino bot for Telegram.</p>
   <p>
