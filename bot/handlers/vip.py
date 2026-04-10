@@ -12,6 +12,18 @@ from models import get_db, User, Approval, ApprovalType, ApprovalStatus
 
 logger = logging.getLogger(__name__)
 
+
+async def _notify_admins(bot, message: str) -> None:
+    """관리자 전원에게 알림 전송"""
+    admin_ids = os.getenv("ADMIN_IDS", "").split(",")
+    for admin_id in admin_ids:
+        if admin_id:
+            try:
+                await bot.send_message(chat_id=int(admin_id), text=message)
+            except Exception as e:
+                logger.error(f"관리자 알림 전송 실패: {e}")
+
+
 # 플랜 가격 설정
 VIP_PRICE_30_DAYS = 30.0
 VIP_PRICE_90_DAYS = 80.0
@@ -35,7 +47,7 @@ async def cmd_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # VIP 상태 확인
@@ -47,7 +59,7 @@ async def cmd_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             message = (
                 f"VIP 회원 정보\n\n"
-                f"상태: ✅ 활성\n"
+                f"상태: [활성]\n"
                 f"만료일: {expires_str}\n\n"
                 f"VIP 혜택:\n"
                 f"광고 없음\n"
@@ -124,7 +136,7 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "❌ 사용법: /confirm [입금자명] [금액]\n"
+            "[오류] 사용법: /confirm [입금자명] [금액]\n"
             "예: /confirm 홍길동 30\n\n"
             "VIP 기간은 자동으로 30일로 설정됩니다."
         )
@@ -135,14 +147,14 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         amount = float(context.args[1])
         duration_days = 30  # 30일 고정
     except ValueError:
-        await update.message.reply_text("❌ 금액은 숫자로 입력해주세요.")
+        await update.message.reply_text("[오류] 금액은 숫자로 입력해주세요.")
         return
 
     # 사용자 조회
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 승인 요청 생성
@@ -158,7 +170,6 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.commit()
 
         # 관리자에게 알림
-        admin_ids = os.getenv("ADMIN_IDS", "").split(",")
         admin_message = (
             f"새로운 VIP 승인 요청\n\n"
             f"요청자: {user.display_name} (ID: {user.tg_user_id})\n"
@@ -168,15 +179,7 @@ async def cmd_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"승인: /approve {user.tg_user_id} {duration_days}\n"
             f"거절: /reject {user.tg_user_id} [사유]"
         )
-
-        for admin_id in admin_ids:
-            if admin_id:
-                try:
-                    await context.bot.send_message(
-                        chat_id=int(admin_id), text=admin_message
-                    )
-                except Exception as e:
-                    logger.error(f"관리자 알림 전송 실패: {e}")
+        await _notify_admins(context.bot, admin_message)
 
         # 사용자에게 확인 메시지
         await update.message.reply_text(
@@ -201,7 +204,7 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "❌ 사용법: /confirm_business [입금자명] [금액]\n" "예: /confirm_business 회사명 300"
+            "[오류] 사용법: /confirm_business [입금자명] [금액]\n" "예: /confirm_business 회사명 300"
         )
         return
 
@@ -209,14 +212,14 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         amount = float(context.args[1])
     except ValueError:
-        await update.message.reply_text("❌ 금액은 숫자로 입력해주세요.")
+        await update.message.reply_text("[오류] 금액은 숫자로 입력해주세요.")
         return
 
     # 사용자 조회
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 승인 요청 생성
@@ -232,7 +235,6 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
         db.commit()
 
         # 관리자에게 알림
-        admin_ids = os.getenv("ADMIN_IDS", "").split(",")
         admin_message = (
             f"새로운 Business Plan 승인 요청\n\n"
             f"요청자: {user.display_name} (ID: {user.tg_user_id})\n"
@@ -241,19 +243,11 @@ async def cmd_confirm_business(update: Update, context: ContextTypes.DEFAULT_TYP
             f"승인: /approve_business {user.tg_user_id} [chat_id]\n"
             f"거절: /reject {user.tg_user_id} [사유]"
         )
-
-        for admin_id in admin_ids:
-            if admin_id:
-                try:
-                    await context.bot.send_message(
-                        chat_id=int(admin_id), text=admin_message
-                    )
-                except Exception as e:
-                    logger.error(f"관리자 알림 전송 실패: {e}")
+        await _notify_admins(context.bot, admin_message)
 
         # 사용자에게 확인 메시지
         await update.message.reply_text(
-            f"✅ Business Plan 승인 요청이 접수되었습니다!\n\n"
+            f"Business Plan 승인 요청이 접수되었습니다!\n\n"
             f"입금자명: {depositor_name}\n"
             f"금액: ${amount:,.2f}\n\n"
             f"관리자 확인 후 그룹 설정을 진행해드립니다."

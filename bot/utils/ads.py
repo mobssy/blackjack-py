@@ -16,11 +16,10 @@ class AdManager:
 
     # 광고 메시지 템플릿
     AD_MESSAGES = [
-        "💎 VIP로 업그레이드하고 광고 없이 즐기세요! /vip",
-        "🎯 비즈니스 플랜으로 그룹을 커스터마이징하세요! /business",
-        "⚡️ VIP 회원만의 특별한 혜택을 누리세요! /vip",
-        "🌟 월 $30로 VIP의 모든 기능을 이용하세요! /vip",
-        "🏢 비즈니스 플랜: 월 $300로 완전한 브랜딩 가능! /business",
+        "JackPy를 즐겨주셔서 감사합니다!",
+        "매일 접속하여 일일 보상을 받아가세요!",
+        "친구들과 함께 블랙잭을 즐기세요!",
+        "행운을 빕니다!",
     ]
 
     # 광고 표시 확률 (0.0 ~ 1.0)
@@ -64,6 +63,9 @@ class AdManager:
         return f"\n\n───────────────\n{message}\n───────────────"
 
 
+_default_ad_manager = AdManager()
+
+
 def get_ad_footer(show_ad: bool = False) -> str:
     """
     게임 결과에 광고 푸터 추가
@@ -75,8 +77,7 @@ def get_ad_footer(show_ad: bool = False) -> str:
         str: 광고 푸터 (또는 빈 문자열)
     """
     if show_ad:
-        ad_manager = AdManager()
-        return ad_manager.format_ad()
+        return _default_ad_manager.format_ad()
     return ""
 
 
@@ -96,6 +97,5 @@ def should_show_game_ad(
     if not is_free_plan:
         return False
 
-    probability = ad_probability or AdManager.DEFAULT_AD_PROBABILITY
-    ad_manager = AdManager(probability)
-    return ad_manager.should_show_ad()
+    manager = AdManager(ad_probability) if ad_probability else _default_ad_manager
+    return manager.should_show_ad()

@@ -77,8 +77,8 @@ class PayoutCalculator:
             str: 결과 메시지
         """
         messages = {
-            GameOutcome.BLACKJACK: "블랙잭! 대박! 🎰",
-            GameOutcome.WIN: "승리했습니다! 🏆",
+            GameOutcome.BLACKJACK: "블랙잭! 대박!",
+            GameOutcome.WIN: "승리했습니다!",
             GameOutcome.PUSH: "무승부 (베팅금 반환)",
             GameOutcome.LOSS: "패배했습니다",
             GameOutcome.BUST: "버스트! (21 초과)",

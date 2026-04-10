@@ -4,6 +4,7 @@ JackPy - 시작 및 기본 명령어 핸들러
 """
 
 import logging
+from datetime import datetime, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from models import get_db, User, Group, PlanType
@@ -34,29 +35,40 @@ def _get_start_menu_message(user_display_name: str = None, is_new: bool = False)
     else:
         welcome_message = "JackPy\n\n"
 
-    # 플랜 안내 카드
-    plan_message = (
-        f"━━━━━━━━━━━━━━━\n"
-        f"플랜 안내\n"
-        f"━━━━━━━━━━━━━━━\n\n"
-        f"Free Plan\n"
-        f"• 기본 게임 기능\n"
-        f"• 일일 보상: $200\n"
-        f"• 광고 있음\n\n"
-        f"VIP Plan ($30/mo)\n"
-        f"• 광고 없음\n"
-        f"• 일일 보상: $500 (2.5배)\n"
-        f"• 특별 이벤트 참여\n"
-        f"• 우선 지원\n\n"
-        f"Business Plan ($300/mo)\n"
-        f"• 그룹 전용\n"
-        f"• 완전한 브랜딩\n"
-        f"• 커스텀 로고/테마\n"
-        f"• 전용 지원팀\n\n"
-        f"━━━━━━━━━━━━━━━"
-    )
+    return welcome_message
 
-    return welcome_message + plan_message
+
+def _get_help_message() -> str:
+    """도움말 메시지 반환"""
+    return (
+        "JackPy 도움말\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "게임 명령어\n"
+        "━━━━━━━━━━━━━━━\n"
+        "/deal [금액] - 블랙잭 시작\n"
+        "  예: /deal 100\n"
+        "/hit - 카드 추가\n"
+        "/stand - 멈춤\n"
+        "/wallet - 잔액 확인\n"
+        "/daily - 일일 보상\n"
+        "/rank - 랭킹 조회\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "사용자 명령어\n"
+        "━━━━━━━━━━━━━━━\n"
+        "/my - 내 프로필\n"
+        "/start - 시작하기\n"
+        "/help - 도움말\n\n"
+        "━━━━━━━━━━━━━━━\n"
+        "블랙잭 규칙\n"
+        "━━━━━━━━━━━━━━━\n"
+        "목표: 21에 가까운 숫자\n"
+        "블랙잭: 3:2 배당\n"
+        "일반 승리: 1:1 배당\n"
+        "무승부: 베팅액 반환\n"
+        "딜러: 17 이상까지 히트\n\n"
+        "━━━━━━━━━━━━━━━\n\n"
+        "Support: @jackpy_support"
+    )
 
 
 def _get_start_menu_keyboard():
@@ -67,10 +79,6 @@ def _get_start_menu_keyboard():
         InlineKeyboardMarkup: 시작 메뉴 키보드
     """
     keyboard = [
-        [
-            InlineKeyboardButton("VIP Plan", callback_data="plan_vip"),
-            InlineKeyboardButton("Business Plan", callback_data="plan_business"),
-        ],
         [
             InlineKeyboardButton("게임 시작", callback_data="start_game"),
             InlineKeyboardButton("도움말", callback_data="help"),
@@ -141,49 +149,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update: 업데이트 객체
         context: 컨텍스트 객체
     """
-    help_message = (
-        "JackPy 도움말\n\n"
-        "━━━━━━━━━━━━━━━\n"
-        "게임 명령어\n"
-        "━━━━━━━━━━━━━━━\n"
-        "/deal [금액] - 블랙잭 시작\n"
-        "  예: /deal 100\n"
-        "/hit - 카드 추가\n"
-        "/stand - 멈춤\n"
-        "/wallet - 잔액 확인\n"
-        "/daily - 일일 보상\n"
-        "/rank - 랭킹 조회\n\n"
-        "━━━━━━━━━━━━━━━\n"
-        "사용자 명령어\n"
-        "━━━━━━━━━━━━━━━\n"
-        "/my - 내 프로필\n"
-        "/start - 플랜 안내\n"
-        "/help - 도움말\n\n"
-        "━━━━━━━━━━━━━━━\n"
-        "VIP 명령어\n"
-        "━━━━━━━━━━━━━━━\n"
-        "/vip - VIP Plan 안내\n"
-        "/confirm [입금자명] [금액] - VIP 신청 (30일)\n"
-        "  예: /confirm 홍길동 30\n\n"
-        "━━━━━━━━━━━━━━━\n"
-        "비즈니스 명령어\n"
-        "━━━━━━━━━━━━━━━\n"
-        "/business - Business Plan 안내\n"
-        "/confirm_business [입금자명] [금액] - 비즈니스 신청\n"
-        "  예: /confirm_business 회사명 300\n\n"
-        "━━━━━━━━━━━━━━━\n"
-        "블랙잭 규칙\n"
-        "━━━━━━━━━━━━━━━\n"
-        "목표: 21에 가까운 숫자\n"
-        "블랙잭: 3:2 배당\n"
-        "일반 승리: 1:1 배당\n"
-        "무승부: 베팅액 반환\n"
-        "딜러: 17 이상까지 히트\n\n"
-        "━━━━━━━━━━━━━━━\n\n"
-        "Support: @jackpy_support"
-    )
-
-    await update.message.reply_text(help_message)
+    await update.message.reply_text(_get_help_message())
 
 
 # 인라인 버튼 콜백 핸들러
@@ -198,62 +164,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    if query.data == "plan_vip":
-        # VIP Plan 안내
-        vip_message = (
-            "VIP Plan 안내\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "혜택\n"
-            "━━━━━━━━━━━━━━━\n"
-            "• 광고 없음\n"
-            "• 일일 보상 2.5배 ($500)\n"
-            "• 특별 이벤트 참여\n"
-            "• 우선 지원\n"
-            "• VIP 전용 카드 테마\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "가격: $30/mo (30일)\n"
-            "━━━━━━━━━━━━━━━\n\n"
-            "신청 방법:\n"
-            "1. 계좌로 입금\n"
-            "2. /confirm [입금자명] [금액] 입력\n"
-            "   예: /confirm 홍길동 30\n"
-            "3. 관리자 승인 대기\n\n"
-            "입금 계좌:\n"
-            "국민은행 123-456-789012\n"
-            "예금주: JackPy"
-        )
-        keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(vip_message, reply_markup=reply_markup)
-
-    elif query.data == "plan_business":
-        # Business Plan 안내
-        business_message = (
-            "Business Plan 안내\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "혜택 (그룹 전용)\n"
-            "━━━━━━━━━━━━━━━\n"
-            "• 완전한 브랜딩\n"
-            "• 커스텀 로고/테마\n"
-            "• 전용 지원팀\n"
-            "• 광고 완전 제거\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "가격: $300/mo\n"
-            "━━━━━━━━━━━━━━━\n\n"
-            "신청 방법:\n"
-            "1. 계좌로 입금\n"
-            "2. 그룹에서 /confirm_business [입금자명] [금액] 입력\n"
-            "   예: /confirm_business 회사명 300\n"
-            "3. 관리자 승인 대기\n\n"
-            "입금 계좌:\n"
-            "국민은행 123-456-789012\n"
-            "예금주: JackPy"
-        )
-        keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(business_message, reply_markup=reply_markup)
-
-    elif query.data == "start_game":
+    if query.data == "start_game":
         keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
@@ -262,37 +173,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif query.data == "help":
-        help_message = (
-            "JackPy 도움말\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "게임 명령어\n"
-            "━━━━━━━━━━━━━━━\n"
-            "/deal [금액] - 블랙잭 시작\n"
-            "  예: /deal 100\n"
-            "/hit - 카드 추가\n"
-            "/stand - 멈춤\n"
-            "/wallet - 잔액 확인\n"
-            "/daily - 일일 보상\n"
-            "/rank - 랭킹 조회\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "사용자 명령어\n"
-            "━━━━━━━━━━━━━━━\n"
-            "/my - 내 프로필\n"
-            "/start - 플랜 안내\n"
-            "/help - 도움말\n\n"
-            "━━━━━━━━━━━━━━━\n"
-            "블랙잭 규칙\n"
-            "━━━━━━━━━━━━━━━\n"
-            "목표: 21에 가까운 숫자\n"
-            "블랙잭: 3:2 배당\n"
-            "일반 승리: 1:1 배당\n"
-            "무승부: 베팅액 반환\n"
-            "딜러: 17 이상까지 히트\n\n"
-            "Support: @jackpy_support"
-        )
         keyboard = [[InlineKeyboardButton("뒤로가기", callback_data="back_to_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(help_message, reply_markup=reply_markup)
+        await query.edit_message_text(_get_help_message(), reply_markup=reply_markup)
 
     elif query.data == "daily_check":
         # 출석 체크 버튼
@@ -319,10 +202,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # 보상 지급
             reward = 500.0 if user.is_vip_active else 200.0
             user.add_wallet(reward)
-            user.last_daily_at = (
-                db.query(User).filter(User.id == user.id).first().updated_at
-            )
-
+            user.last_daily_at = datetime.now(timezone.utc)
             db.commit()
 
             vip_bonus = " (VIP 보너스!)" if user.is_vip_active else ""
@@ -363,7 +243,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if user.is_vip_active and user.vip_expires_at:
                 from datetime import datetime
 
-                days_left = (user.vip_expires_at - datetime.utcnow()).days
+                days_left = (user.vip_expires_at - datetime.now(timezone.utc)).days
                 vip_expires = f" ({days_left}일 남음)"
 
             # 그룹 플랜 확인

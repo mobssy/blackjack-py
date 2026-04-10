@@ -21,6 +21,9 @@ from models import (
 
 logger = logging.getLogger(__name__)
 
+# 모듈 로드 시 한 번만 파싱
+_ADMIN_IDS: set = set(filter(None, os.getenv("ADMIN_IDS", "").split(",")))
+
 
 def is_admin(user_id: int) -> bool:
     """
@@ -32,8 +35,7 @@ def is_admin(user_id: int) -> bool:
     Returns:
         bool: 관리자 여부
     """
-    admin_ids = os.getenv("ADMIN_IDS", "").split(",")
-    return str(user_id) in admin_ids
+    return str(user_id) in _ADMIN_IDS
 
 
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,7 +54,7 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 관리자 권한 확인
     if not is_admin(user_tg_id):
-        await update.message.reply_text("관리자 권한이 필요합니다.")
+        await update.message.reply_text("[오류] 관리자 권한이 필요합니다.")
         return
 
     # 서브 명령어 확인
@@ -91,10 +93,10 @@ async def _admin_pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if not pending_approvals:
-            await update.message.reply_text("✅ 대기 중인 승인 요청이 없습니다.")
+            await update.message.reply_text("대기 중인 승인 요청이 없습니다.")
             return
 
-        message = "📋 승인 대기 목록\n\n"
+        message = "승인 대기 목록\n\n"
         for approval in pending_approvals:
             user = approval.user
             message += (
@@ -136,14 +138,14 @@ async def _admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         payout_sum = db.query(func.sum(Round.payout)).scalar() or 0
 
         message = (
-            f"📊 JackPy 전체 통계\n\n"
-            f"👤 사용자\n"
+            f"JackPy 전체 통계\n\n"
+            f"사용자\n"
             f"• 총 사용자: {total_users:,}명\n"
             f"• VIP 사용자: {vip_users:,}명\n\n"
-            f"🏠 그룹\n"
+            f"그룹\n"
             f"• 총 그룹: {total_groups:,}개\n"
             f"• 비즈니스 그룹: {business_groups:,}개\n\n"
-            f"🎰 게임\n"
+            f"게임\n"
             f"• 총 라운드: {total_rounds:,}회\n"
             f"• 총 베팅액: ${bet_sum:,.2f}\n"
             f"• 총 정산액: ${payout_sum:,.2f}\n"
@@ -171,7 +173,7 @@ async def cmd_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "❌ 사용법: /approve [user_id] [days]\n" "예: /approve 123456789 30"
+            "[오류] 사용법: /approve [user_id] [days]\n" "예: /approve 123456789 30"
         )
         return
 
@@ -179,14 +181,14 @@ async def cmd_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         target_user_id = int(context.args[0])
         duration_days = int(context.args[1])
     except ValueError:
-        await update.message.reply_text("❌ 올바른 숫자를 입력해주세요.")
+        await update.message.reply_text("[오류] 올바른 숫자를 입력해주세요.")
         return
 
     with get_db() as db:
         # 사용자 조회
         user = db.query(User).filter(User.tg_user_id == target_user_id).first()
         if not user:
-            await update.message.reply_text("❌ 사용자를 찾을 수 없습니다.")
+            await update.message.reply_text("[오류] 사용자를 찾을 수 없습니다.")
             return
 
         # VIP 부여
@@ -214,9 +216,8 @@ async def cmd_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if approval:
             approval.status = ApprovalStatus.APPROVED
-            approval.approved_by = (
-                db.query(User).filter(User.tg_user_id == user_tg_id).first().id
-            )
+            admin_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+            approval.approved_by = admin_user.id if admin_user else None
             approval.approved_at = datetime.now(timezone.utc)
 
         db.commit()
@@ -226,7 +227,7 @@ async def cmd_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=target_user_id,
                 text=(
-                    f"🎉 VIP 승인 완료!\n\n"
+                    f"VIP 승인 완료!\n\n"
                     f"기간: {duration_days}일\n"
                     f"만료일: {user.vip_expires_at.strftime('%Y-%m-%d %H:%M')}\n\n"
                     f"VIP 혜택을 마음껏 즐기세요!"
@@ -237,7 +238,7 @@ async def cmd_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 관리자에게 확인 메시지
         await update.message.reply_text(
-            f"✅ VIP 승인 완료\n\n"
+            f"VIP 승인 완료\n\n"
             f"사용자: {user.display_name}\n"
             f"기간: {duration_days}일\n"
             f"만료일: {user.vip_expires_at.strftime('%Y-%m-%d %H:%M')}"
@@ -262,7 +263,7 @@ async def cmd_approve_business(update: Update, context: ContextTypes.DEFAULT_TYP
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "❌ 사용법: /approve_business [user_id] [chat_id]\n"
+            "[오류] 사용법: /approve_business [user_id] [chat_id]\n"
             "예: /approve_business 123456789 -100123456789"
         )
         return
@@ -271,14 +272,14 @@ async def cmd_approve_business(update: Update, context: ContextTypes.DEFAULT_TYP
         target_user_id = int(context.args[0])
         chat_id = int(context.args[1])
     except ValueError:
-        await update.message.reply_text("❌ 올바른 숫자를 입력해주세요.")
+        await update.message.reply_text("[오류] 올바른 숫자를 입력해주세요.")
         return
 
     with get_db() as db:
         # 사용자 조회
         user = db.query(User).filter(User.tg_user_id == target_user_id).first()
         if not user:
-            await update.message.reply_text("❌ 사용자를 찾을 수 없습니다.")
+            await update.message.reply_text("[오류] 사용자를 찾을 수 없습니다.")
             return
 
         # 그룹 조회 또는 생성
@@ -313,9 +314,8 @@ async def cmd_approve_business(update: Update, context: ContextTypes.DEFAULT_TYP
 
         if approval:
             approval.status = ApprovalStatus.APPROVED
-            approval.approved_by = (
-                db.query(User).filter(User.tg_user_id == user_tg_id).first().id
-            )
+            admin_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+            approval.approved_by = admin_user.id if admin_user else None
             approval.approved_at = datetime.now(timezone.utc)
 
         db.commit()
@@ -325,7 +325,7 @@ async def cmd_approve_business(update: Update, context: ContextTypes.DEFAULT_TYP
             await context.bot.send_message(
                 chat_id=target_user_id,
                 text=(
-                    f"🎉 Business Plan 승인 완료!\n\n"
+                    f"Business Plan 승인 완료!\n\n"
                     f"그룹 Chat ID: {chat_id}\n"
                     f"만료일: {group.expires_at.strftime('%Y-%m-%d %H:%M')}\n\n"
                     f"커스터마이징 옵션은 별도 안내드립니다."
@@ -336,7 +336,7 @@ async def cmd_approve_business(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # 관리자에게 확인 메시지
         await update.message.reply_text(
-            f"✅ Business Plan 승인 완료\n\n"
+            f"Business Plan 승인 완료\n\n"
             f"사용자: {user.display_name}\n"
             f"그룹 Chat ID: {chat_id}\n"
             f"만료일: {group.expires_at.strftime('%Y-%m-%d %H:%M')}"
@@ -361,7 +361,7 @@ async def cmd_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "❌ 사용법: /reject [user_id] [사유]\n" "예: /reject 123456789 입금 확인 불가"
+            "[오류] 사용법: /reject [user_id] [사유]\n" "예: /reject 123456789 입금 확인 불가"
         )
         return
 
@@ -369,14 +369,14 @@ async def cmd_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         target_user_id = int(context.args[0])
         reason = " ".join(context.args[1:])
     except ValueError:
-        await update.message.reply_text("❌ 올바른 사용자 ID를 입력해주세요.")
+        await update.message.reply_text("[오류] 올바른 사용자 ID를 입력해주세요.")
         return
 
     with get_db() as db:
         # 사용자 조회
         user = db.query(User).filter(User.tg_user_id == target_user_id).first()
         if not user:
-            await update.message.reply_text("❌ 사용자를 찾을 수 없습니다.")
+            await update.message.reply_text("[오류] 사용자를 찾을 수 없습니다.")
             return
 
         # 승인 요청 상태 업데이트
@@ -390,7 +390,7 @@ async def cmd_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if not approval:
-            await update.message.reply_text("❌ 대기 중인 승인 요청이 없습니다.")
+            await update.message.reply_text("[오류] 대기 중인 승인 요청이 없습니다.")
             return
 
         approval.status = ApprovalStatus.REJECTED
@@ -402,7 +402,7 @@ async def cmd_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=target_user_id,
                 text=(
-                    f"❌ 승인 거절\n\n"
+                    f"승인 거절\n\n"
                     f"유형: {approval.type.value}\n"
                     f"사유: {reason}\n\n"
                     f"문의사항이 있으시면 관리자에게 연락해주세요."
@@ -413,7 +413,7 @@ async def cmd_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 관리자에게 확인 메시지
         await update.message.reply_text(
-            f"✅ 승인 거절 완료\n\n" f"사용자: {user.display_name}\n" f"사유: {reason}"
+            f"승인 거절 완료\n\n" f"사용자: {user.display_name}\n" f"사유: {reason}"
         )
 
 
@@ -435,21 +435,21 @@ async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 인자 확인
     if not context.args or len(context.args) < 1:
         await update.message.reply_text(
-            "❌ 사용법: /revoke [user_id]\n" "예: /revoke 123456789"
+            "[오류] 사용법: /revoke [user_id]\n" "예: /revoke 123456789"
         )
         return
 
     try:
         target_user_id = int(context.args[0])
     except ValueError:
-        await update.message.reply_text("❌ 올바른 사용자 ID를 입력해주세요.")
+        await update.message.reply_text("[오류] 올바른 사용자 ID를 입력해주세요.")
         return
 
     with get_db() as db:
         # 사용자 조회
         user = db.query(User).filter(User.tg_user_id == target_user_id).first()
         if not user:
-            await update.message.reply_text("❌ 사용자를 찾을 수 없습니다.")
+            await update.message.reply_text("[오류] 사용자를 찾을 수 없습니다.")
             return
 
         # VIP 해제
@@ -460,13 +460,13 @@ async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 사용자에게 알림
         try:
             await context.bot.send_message(
-                chat_id=target_user_id, text="⚠️ VIP 멤버십이 해제되었습니다."
+                chat_id=target_user_id, text="[경고] VIP 멤버십이 해제되었습니다."
             )
         except Exception as e:
             logger.error(f"사용자 알림 전송 실패: {e}")
 
         # 관리자에게 확인 메시지
-        await update.message.reply_text(f"✅ VIP 해제 완료\n\n" f"사용자: {user.display_name}")
+        await update.message.reply_text(f"VIP 해제 완료\n\n" f"사용자: {user.display_name}")
 
 
 async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -481,7 +481,7 @@ async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 관리자 권한 확인
     if not is_admin(user_tg_id):
-        await update.message.reply_text("관리자 권한이 필요합니다.")
+        await update.message.reply_text("[오류] 관리자 권한이 필요합니다.")
         return
 
     # 인자 확인

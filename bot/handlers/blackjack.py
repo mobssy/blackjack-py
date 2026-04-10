@@ -4,7 +4,8 @@ JackPy - 블랙잭 게임 핸들러
 """
 
 import logging
-from typing import Dict, Optional
+from datetime import datetime, timezone
+from typing import Dict, Tuple
 from io import BytesIO
 from telegram import (
     Update,
@@ -150,29 +151,29 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 베팅 금액 파싱
     if not context.args or len(context.args) == 0:
-        await update.message.reply_text("❌ 사용법: /deal [금액]\n예: /deal 100")
+        await update.message.reply_text("[오류] 사용법: /deal [금액]\n예: /deal 100")
         return
 
     try:
         bet_amount = float(context.args[0])
         if bet_amount <= 0:
-            await update.message.reply_text("❌ 베팅 금액은 0보다 커야 합니다.")
+            await update.message.reply_text("[오류] 베팅 금액은 0보다 커야 합니다.")
             return
     except ValueError:
-        await update.message.reply_text("❌ 올바른 금액을 입력해주세요.")
+        await update.message.reply_text("[오류] 올바른 금액을 입력해주세요.")
         return
 
     # 사용자 조회
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 잔액 확인
         if user.wallet < bet_amount:
             await update.message.reply_text(
-                f"❌ 잔액이 부족합니다.\n"
+                f"[오류] 잔액이 부족합니다.\n"
                 f"현재 잔액: ${user.wallet:,.2f}\n"
                 f"베팅 금액: ${bet_amount:,.2f}"
             )
@@ -181,7 +182,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 이미 게임 중인지 확인
         if user_tg_id in game_sessions:
             await update.message.reply_text(
-                "⚠️ 이미 진행 중인 게임이 있습니다. /stand 또는 /hit으로 진행해주세요."
+                "[경고] 이미 진행 중인 게임이 있습니다. /stand 또는 /hit으로 진행해주세요."
             )
             return
 
@@ -208,7 +209,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             payout = PayoutCalculator.calculate(outcome, bet_amount)
 
         # 게임 종료
-        await _finish_game(update, user_tg_id, game, outcome, payout, db=None)
+        await _finish_game(update, user_tg_id, game, outcome, payout)
         return
 
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
@@ -224,8 +225,8 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     # 이미지 전송
-    theme_name = f" 💎 [{theme.name} 에디션]" if theme.name != "Classic" else " ✨"
-    caption = f"🎰 블랙잭 시작!{theme_name}\n💰 베팅: ${bet_amount:,.2f}"
+    theme_name = f" [{theme.name} 에디션]" if theme.name != "Classic" else ""
+    caption = f"블랙잭 시작!{theme_name}\n베팅: ${bet_amount:,.2f}"
     await update.message.reply_photo(
         photo=BytesIO(image_bytes), caption=caption, reply_markup=_get_game_keyboard()
     )
@@ -244,7 +245,7 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await update.message.reply_text("❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
+        await update.message.reply_text("[오류] 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
         return
 
     game = game_sessions[user_tg_id]
@@ -275,7 +276,7 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 이미지 전송
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
-        caption="✨ 카드를 한 장 더 받았습니다!",
+        caption="카드를 한 장 더 받았습니다!",
         reply_markup=_get_game_keyboard(),
     )
 
@@ -292,7 +293,7 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await update.message.reply_text("❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
+        await update.message.reply_text("[오류] 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
         return
 
     game = game_sessions[user_tg_id]
@@ -307,46 +308,38 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _finish_game(update, user_tg_id, game, outcome, payout)
 
 
-async def _finish_game(
-    update: Update,
+def _build_game_result(
     user_tg_id: int,
     game: BlackjackGame,
     outcome: GameOutcome,
     payout: float,
-    db=None,
-):
+    chat_id: int,
+) -> Tuple[bytes, str, InlineKeyboardMarkup]:
     """
-    게임 종료 처리
+    DB 업데이트 및 게임 결과 이미지/캡션 생성 (공통 로직)
 
     Args:
-        update: 업데이트 객체
         user_tg_id: 사용자 텔레그램 ID
         game: 게임 객체
         outcome: 게임 결과
         payout: 정산 금액
-        db: 데이터베이스 세션 (선택)
-    """
-    chat_id = update.effective_chat.id
+        chat_id: 채팅 ID
 
-    # 최종 카드 값 계산
+    Returns:
+        Tuple[bytes, str, InlineKeyboardMarkup]: (이미지, 캡션, 키보드)
+    """
     player_value = calculate_hand_value(game.player_hand)
     dealer_value = calculate_hand_value(game.dealer_hand)
 
-    # 정산
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         group = db.query(Group).filter(Group.chat_id == chat_id).first()
 
-        # 잔액 업데이트
+        # 잔액 업데이트 (패배는 deal 시점에 이미 차감됨)
         if outcome == GameOutcome.PUSH:
-            # 무승부: 베팅액 반환
             user.add_wallet(game.bet)
-        else:
-            # 승리: 베팅액 + 정산금액
-            # 패배: 정산금액 (음수)
-            if payout > 0:
-                user.add_wallet(game.bet + payout)
-            # 패배는 이미 차감됨
+        elif payout > 0:
+            user.add_wallet(game.bet + payout)
 
         # 통계 업데이트
         user.update_stats(
@@ -358,7 +351,7 @@ async def _finish_game(
         )
 
         # 라운드 기록
-        round_record = Round(
+        db.add(Round(
             user_id=user.id,
             chat_id=chat_id,
             bet=game.bet,
@@ -366,17 +359,15 @@ async def _finish_game(
             dealer_hand=game.dealer_hand,
             outcome=outcome,
             payout=payout,
-        )
-        db.add(round_record)
+        ))
         db.commit()
 
-        # 결과 메시지
-        outcome_msg = PayoutCalculator.get_outcome_message(outcome)
+        # 결과 메시지 생성
         outcome_emoji = PayoutCalculator.get_result_emoji(outcome)
+        outcome_msg = PayoutCalculator.get_outcome_message(outcome)
         payout_str = PayoutCalculator.format_payout(payout)
 
-        # 상세한 결과 메시지 생성
-        result_lines = [
+        result_message = "\n".join([
             "━━━━━━━━━━━━━━━━━━━━",
             f"{outcome_emoji} 게임 결과: {outcome_msg}",
             "━━━━━━━━━━━━━━━━━━━━",
@@ -388,23 +379,17 @@ async def _finish_game(
             f"💵 정산 금액: {payout_str}",
             f"💳 현재 잔액: ${user.wallet:,.2f}",
             "━━━━━━━━━━━━━━━━━━━━",
-        ]
+        ])
 
-        result_message = "\n".join(result_lines)
-
-        # 광고 표시 (무료 플랜만)
         is_free = group.plan == PlanType.FREE if group else True
         if should_show_game_ad(is_free):
             result_message += get_ad_footer(show_ad=True)
 
-        # 사용자 테마 가져오기
         is_vip = user.is_vip_active
         is_business = group.plan == PlanType.BUSINESS if group else False
         theme = ThemeManager.get_theme_by_plan(is_vip, is_business)
 
-        # 럭셔리 최종 카드 이미지 생성
-        card_gen = get_casino_renderer(theme)
-        image_bytes = card_gen.generate_game_image(
+        image_bytes = get_casino_renderer(theme).generate_game_image(
             player_hand=game.player_hand,
             dealer_hand=game.dealer_hand,
             player_value=player_value,
@@ -413,30 +398,48 @@ async def _finish_game(
             message=result_message,
         )
 
-        # 이미지 전송 - 결과에 따라 다른 이모지
-        result_emoji = {
-            GameOutcome.BLACKJACK: "🎉",
-            GameOutcome.WIN: "🏆",
-            GameOutcome.PUSH: "🤝",
-            GameOutcome.LOSS: "😢",
-            GameOutcome.BUST: "💥",
-        }.get(outcome, "🎲")
+        result_text = {
+            GameOutcome.BLACKJACK: "블랙잭!",
+            GameOutcome.WIN: "승리!",
+            GameOutcome.PUSH: "무승부",
+            GameOutcome.LOSS: "패배",
+            GameOutcome.BUST: "버스트",
+        }.get(outcome, "")
 
-        theme_badge = f" 💎 [{theme.name}]" if theme.name != "Classic" else " ✨"
+        theme_badge = f" [{theme.name}]" if theme.name != "Classic" else ""
+        caption = f"{result_text} 게임 종료{theme_badge}"
 
-        # 다시 시작 버튼 추가
-        keyboard = [[InlineKeyboardButton("다시 시작", callback_data="restart_game")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_photo(
-            photo=BytesIO(image_bytes),
-            caption=f"{result_emoji} 게임 종료!{theme_badge}",
-            reply_markup=reply_markup,
+        reply_markup = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("다시 시작", callback_data="restart_game")]]
         )
 
-    # 게임 세션 제거
-    if user_tg_id in game_sessions:
-        del game_sessions[user_tg_id]
+    return image_bytes, caption, reply_markup
+
+
+async def _finish_game(
+    update: Update,
+    user_tg_id: int,
+    game: BlackjackGame,
+    outcome: GameOutcome,
+    payout: float,
+):
+    """
+    /hit, /stand 명령어를 통한 게임 종료 처리
+
+    Args:
+        update: 업데이트 객체
+        user_tg_id: 사용자 텔레그램 ID
+        game: 게임 객체
+        outcome: 게임 결과
+        payout: 정산 금액
+    """
+    image_bytes, caption, reply_markup = _build_game_result(
+        user_tg_id, game, outcome, payout, update.effective_chat.id
+    )
+    await update.message.reply_photo(
+        photo=BytesIO(image_bytes), caption=caption, reply_markup=reply_markup
+    )
+    game_sessions.pop(user_tg_id, None)
 
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -452,15 +455,15 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         stats = user.stats_json or {}
         message = (
-            f"💰 지갑 정보\n\n"
+            f"지갑 정보\n\n"
             f"잔액: ${user.wallet:,.2f}\n"
-            f"VIP: {'✅ 활성' if user.is_vip_active else '❌ 비활성'}\n\n"
-            f"📊 통계\n"
+            f"VIP: {'[활성]' if user.is_vip_active else '[비활성]'}\n\n"
+            f"통계\n"
             f"총 게임: {stats.get('total_games', 0):,}회\n"
             f"승리: {stats.get('wins', 0):,}회\n"
             f"패배: {stats.get('losses', 0):,}회\n"
@@ -482,28 +485,25 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("❌ 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 일일 보상 수령 가능 여부 확인
         if not user.can_claim_daily():
             await update.message.reply_text(
-                "⏰ 일일 보상은 하루에 한 번만 받을 수 있습니다.\n" "내일 다시 시도해주세요!"
+                "일일 보상은 하루에 한 번만 받을 수 있습니다.\n내일 다시 시도해주세요!"
             )
             return
 
         # 보상 지급
         reward = 500.0 if user.is_vip_active else 200.0
         user.add_wallet(reward)
-        user.last_daily_at = (
-            db.query(User).filter(User.id == user.id).first().updated_at
-        )
-
+        user.last_daily_at = datetime.now(timezone.utc)
         db.commit()
 
         vip_bonus = " (VIP 보너스!)" if user.is_vip_active else ""
         await update.message.reply_text(
-            f"🎁 일일 보상 수령!\n\n"
+            f"일일 보상 수령!\n\n"
             f"받은 금액: ${reward:,.2f}{vip_bonus}\n"
             f"현재 잔액: ${user.wallet:,.2f}"
         )
@@ -525,7 +525,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await query.edit_message_caption(caption="❌ 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
+        await query.edit_message_caption(caption="[오류] 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
         return
 
     game = game_sessions[user_tg_id]
@@ -610,7 +610,7 @@ async def _finish_game_callback(
     chat_id: int,
 ):
     """
-    콜백을 통한 게임 종료 처리
+    인라인 버튼을 통한 게임 종료 처리
 
     Args:
         query: 콜백 쿼리 객체
@@ -620,111 +620,11 @@ async def _finish_game_callback(
         payout: 정산 금액
         chat_id: 채팅 ID
     """
-    # 최종 카드 값 계산
-    player_value = calculate_hand_value(game.player_hand)
-    dealer_value = calculate_hand_value(game.dealer_hand)
-
-    # 정산
-    with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-        group = db.query(Group).filter(Group.chat_id == chat_id).first()
-
-        # 잔액 업데이트
-        if outcome == GameOutcome.PUSH:
-            user.add_wallet(game.bet)
-        else:
-            if payout > 0:
-                user.add_wallet(game.bet + payout)
-
-        # 통계 업데이트
-        user.update_stats(
-            total_games=1,
-            wins=1 if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK) else 0,
-            losses=1 if outcome in (GameOutcome.LOSS, GameOutcome.BUST) else 0,
-            total_bet=float(game.bet),
-            total_profit=float(payout),
-        )
-
-        # 라운드 기록
-        round_record = Round(
-            user_id=user.id,
-            chat_id=chat_id,
-            bet=game.bet,
-            player_hand=game.player_hand,
-            dealer_hand=game.dealer_hand,
-            outcome=outcome,
-            payout=payout,
-        )
-        db.add(round_record)
-        db.commit()
-
-        # 결과 메시지
-        outcome_msg = PayoutCalculator.get_outcome_message(outcome)
-        outcome_emoji = PayoutCalculator.get_result_emoji(outcome)
-        payout_str = PayoutCalculator.format_payout(payout)
-
-        # 상세한 결과 메시지 생성
-        result_lines = [
-            "━━━━━━━━━━━━━━━━━━━━",
-            f"{outcome_emoji} 게임 결과: {outcome_msg}",
-            "━━━━━━━━━━━━━━━━━━━━",
-            "",
-            f"🎯 플레이어: {player_value}",
-            f"🤖 딜러: {dealer_value}",
-            "",
-            f"💰 베팅 금액: ${game.bet:,.2f}",
-            f"💵 정산 금액: {payout_str}",
-            f"💳 현재 잔액: ${user.wallet:,.2f}",
-            "━━━━━━━━━━━━━━━━━━━━",
-        ]
-
-        result_message = "\n".join(result_lines)
-
-        # 광고 표시 (무료 플랜만)
-        is_free = group.plan == PlanType.FREE if group else True
-        if should_show_game_ad(is_free):
-            result_message += get_ad_footer(show_ad=True)
-
-        # 사용자 테마 가져오기
-        is_vip = user.is_vip_active
-        is_business = group.plan == PlanType.BUSINESS if group else False
-        theme = ThemeManager.get_theme_by_plan(is_vip, is_business)
-
-        # 최종 카드 이미지 생성
-        card_gen = get_casino_renderer(theme)
-        image_bytes = card_gen.generate_game_image(
-            player_hand=game.player_hand,
-            dealer_hand=game.dealer_hand,
-            player_value=player_value,
-            dealer_value=dealer_value,
-            hide_dealer_first=False,
-            message=result_message,
-        )
-
-        # 결과에 따라 다른 이모지
-        result_emoji = {
-            GameOutcome.BLACKJACK: "🎉",
-            GameOutcome.WIN: "🏆",
-            GameOutcome.PUSH: "🤝",
-            GameOutcome.LOSS: "😢",
-            GameOutcome.BUST: "💥",
-        }.get(outcome, "🎲")
-
-        theme_badge = f" 💎 [{theme.name}]" if theme.name != "Classic" else " ✨"
-
-        # 다시 시작 버튼 추가
-        keyboard = [[InlineKeyboardButton("다시 시작", callback_data="restart_game")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        # 이미지 업데이트 (게임 종료, 다시 시작 버튼 추가)
-        await query.edit_message_media(
-            media=InputMediaPhoto(
-                media=BytesIO(image_bytes),
-                caption=f"{result_emoji} 게임 종료!{theme_badge}",
-            ),
-            reply_markup=reply_markup,
-        )
-
-    # 게임 세션 제거
-    if user_tg_id in game_sessions:
-        del game_sessions[user_tg_id]
+    image_bytes, caption, reply_markup = _build_game_result(
+        user_tg_id, game, outcome, payout, chat_id
+    )
+    await query.edit_message_media(
+        media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
+        reply_markup=reply_markup,
+    )
+    game_sessions.pop(user_tg_id, None)
