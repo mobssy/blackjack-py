@@ -3,7 +3,7 @@
   <h1>Black Jack-py</h1>
   <p>Production-grade Blackjack casino bot for Telegram.</p>
   <p>
-    <img src="https://img.shields.io/badge/Python-3.11-black?style=flat-square" />
+    <img src="https://img.shields.io/badge/Python-3.14-black?style=flat-square" />
     <img src="https://img.shields.io/badge/PostgreSQL-15-black?style=flat-square" />
     <img src="https://img.shields.io/badge/Telegram-Bot-black?style=flat-square" />
     <img src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
@@ -22,12 +22,12 @@ Black Jack-py is a Telegram-based blackjack bot built for real commercial deploy
 
 | Layer | Technology |
 |---|---|
-| Runtime | Python 3.11 |
-| Bot SDK | python-telegram-bot 20.7 |
+| Runtime | Python 3.14 |
+| Bot SDK | python-telegram-bot 22.5 |
 | ORM | SQLAlchemy 2.0 |
-| Database | PostgreSQL 15 |
-| Scheduler | APScheduler |
-| Migrations | Alembic |
+| Database | PostgreSQL |
+| Scheduler | APScheduler 3.11 |
+| Migrations | Alembic 1.17 |
 | CI/CD | GitHub Actions |
 | Process | systemd on Ubuntu 22.04 |
 
