@@ -17,22 +17,6 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 
 ---
 
-## Getting Started
-
-```bash
-git clone https://github.com/mobssy/blackjack-py.git
-cd blackjack-py
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r infra/requirements.txt
-
-cp .env.example .env
-python -m bot.main
-```
-
----
-
 ## Commands
 
 | Command | Description |
