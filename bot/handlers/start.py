@@ -241,8 +241,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             vip_status = "활성" if user.is_vip_active else "비활성"
             vip_expires = ""
             if user.is_vip_active and user.vip_expires_at:
-                from datetime import datetime
-
                 days_left = (user.vip_expires_at - datetime.now(timezone.utc)).days
                 vip_expires = f" ({days_left}일 남음)"
 
