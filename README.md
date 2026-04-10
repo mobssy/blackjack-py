@@ -1,6 +1,6 @@
 <div align="center">
   <img src="assets/21.PNG" alt="JackPy" />
-  <h1>JackPy</h1>
+  <h1>Black Jack-py</h1>
   <p>Production-grade Blackjack casino bot for Telegram.</p>
   <p>
     <img src="https://img.shields.io/badge/Python-3.11-black?style=flat-square" />
@@ -14,7 +14,7 @@
 
 ## Overview
 
-JackPy is a Telegram-based blackjack bot built for real commercial deployment. It features a tiered membership system (Free / VIP / Business), automated scheduling, and a full admin panel — all running on a clean Python + PostgreSQL stack with CI/CD via GitHub Actions.
+Black Jack-py is a Telegram-based blackjack bot built for real commercial deployment. It features a tiered membership system (Free / VIP / Business), automated scheduling, and a full admin panel — all running on a clean Python + PostgreSQL stack with CI/CD via GitHub Actions.
 
 ---
 
@@ -132,4 +132,4 @@ Refer to the [deployment guide](infra/) for full Ubuntu 22.04 setup including Po
 
 ## License
 
-MIT © JackPy
+MIT © Black Jack-py
