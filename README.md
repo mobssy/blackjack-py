@@ -1,10 +1,10 @@
 <div align="center">
   <img src="assets/21.PNG" alt="JackPy" />
   <h1>Black Jack-py</h1>
-  <p>Production-grade Blackjack casino bot for Telegram.</p>
+  <p>A personal Blackjack game bot for Telegram, built as a side project.</p>
   <p>
     <img src="https://img.shields.io/badge/Python-3.14-black?style=flat-square" />
-    <img src="https://img.shields.io/badge/PostgreSQL-15-black?style=flat-square" />
+    <img src="https://img.shields.io/badge/PostgreSQL-black?style=flat-square" />
     <img src="https://img.shields.io/badge/Telegram-Bot-black?style=flat-square" />
     <img src="https://img.shields.io/badge/License-MIT-black?style=flat-square" />
   </p>
@@ -14,7 +14,7 @@
 
 ## Overview
 
-Black Jack-py is a Telegram-based blackjack bot built for real commercial deployment. It features a tiered membership system (Free / VIP / Business), automated scheduling, and a full admin panel — all running on a clean Python + PostgreSQL stack with CI/CD via GitHub Actions.
+Black Jack-py is a Telegram bot I built to play Blackjack from my phone. It persists game stats to a PostgreSQL database, runs scheduled jobs via APScheduler, and is deployed with a CI pipeline through GitHub Actions.
 
 ---
 
@@ -29,22 +29,21 @@ Black Jack-py is a Telegram-based blackjack bot built for real commercial deploy
 | Scheduler | APScheduler 3.11 |
 | Migrations | Alembic 1.17 |
 | CI/CD | GitHub Actions |
-| Process | systemd on Ubuntu 22.04 |
 
 ---
 
 ## Project Structure
 
 ```
-jackpy/
+blackjack-py/
 ├── bot/
 │   ├── handlers/         # Command handlers
-│   ├── utils/            # Deck, payouts, ads, scheduler
-│   ├── middleware/        # Auth & permissions
+│   ├── utils/            # Deck, payouts, scheduler
+│   ├── middleware/        # Auth
 │   └── main.py
 ├── models/               # SQLAlchemy models
-├── infra/                # Requirements, systemd, Alembic
-├── .github/workflows/    # CI & deploy pipelines
+├── infra/                # Requirements, Alembic migrations
+├── .github/workflows/    # CI pipeline
 └── tests/
 ```
 
@@ -53,16 +52,16 @@ jackpy/
 ## Getting Started
 
 ```bash
-git clone https://github.com/yourusername/jackpy.git
-cd jackpy
+git clone https://github.com/mobssy/blackjack-py.git
+cd blackjack-py
 
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 
 pip install -r infra/requirements.txt
 cp .env.example .env
 
-createdb jackpy
+createdb blackjack
 alembic -c infra/alembic.ini upgrade head
 
 python -m bot.main
@@ -72,15 +71,12 @@ python -m bot.main
 
 ```env
 TELEGRAM_TOKEN=your_bot_token
-ADMIN_IDS=your_telegram_id
-DATABASE_URL=postgresql://user:pass@localhost:5432/jackpy
+DATABASE_URL=postgresql://user:pass@localhost:5432/blackjack
 ```
 
 ---
 
 ## Commands
-
-**Game**
 
 | Command | Description |
 |---|---|
@@ -90,33 +86,19 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/jackpy
 | `/daily` | Claim daily reward |
 | `/wallet` | Check balance |
 | `/rank` | Leaderboard |
-
-**Account**
-
-| Command | Description |
-|---|---|
-| `/start` | Onboarding & plan info |
-| `/my` | Profile card |
-| `/stats` | Detailed stats |
-
-**Admin**
-
-| Command | Description |
-|---|---|
-| `/admin pending` | View approval queue |
-| `/admin stats` | Platform statistics |
-| `/approve [id] [days]` | Grant VIP |
-| `/reject [id] [reason]` | Reject request |
-| `/revoke [id]` | Remove VIP |
+| `/my` | Profile & stats |
+| `/stats` | Detailed game stats |
 
 ---
 
-## Deployment
+## Blackjack Rules
 
-Refer to the [deployment guide](infra/) for full Ubuntu 22.04 setup including PostgreSQL, systemd, and GitHub Actions secrets configuration.
+- Blackjack pays 3:2
+- Dealer hits until 17
+- Push returns the bet
 
 ---
 
 ## License
 
-MIT © Black Jack-py
+MIT
