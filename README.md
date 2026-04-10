@@ -111,19 +111,6 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/jackpy
 
 ---
 
-## Plans
-
-| | Free | VIP | Business |
-|---|---|---|---|
-| Price | — | $30/mo | $500/mo |
-| Daily reward | $200 | $500 | $500 |
-| Ads | ✓ | — | — |
-| Custom branding | — | — | ✓ |
-| API / Webhook | — | — | ✓ |
-| Support | Standard | Priority | Dedicated |
-
----
-
 ## Deployment
 
 Refer to the [deployment guide](infra/) for full Ubuntu 22.04 setup including PostgreSQL, systemd, and GitHub Actions secrets configuration.
