@@ -5,7 +5,6 @@
   <p>
     <img src="https://img.shields.io/badge/Python-3.14-black?style=flat-square&logo=python&logoColor=white" />
     <img src="https://img.shields.io/badge/Telegram-Bot-black?style=flat-square&logo=telegram&logoColor=white" />
-    <img src="https://img.shields.io/badge/License-MIT-black?style=flat-square&logo=opensourceinitiative&logoColor=white" />
   </p>
 </div>
 
@@ -40,4 +39,4 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 
 ## License
 
-MIT
+Copyright (c) 2026 David Minkyu Song. All Rights Reserved.
