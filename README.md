@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/21.PNG" alt="JackPy" />
   <h1>Blackjack-py</h1>
-  <p>A personal Blackjack bot for Telegram, built as a side project.</p>
+  <p>A personal Blackjack bot for Telegram.</p>
   <p>
     <img src="https://img.shields.io/badge/Python-3.14-black?style=flat-square&logo=python&logoColor=white" />
     <img src="https://img.shields.io/badge/Telegram-Bot-black?style=flat-square&logo=telegram&logoColor=white" />
