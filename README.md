@@ -39,4 +39,6 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 
 ## License
 
-Copyright (c) 2026 David Minkyu Song. All Rights Reserved.
+Copyright © 2026 David Song. All rights reserved.
+
+This source code is proprietary and confidential. Unauthorized copying, distribution, or use of this software, in whole or in part, is strictly prohibited.
