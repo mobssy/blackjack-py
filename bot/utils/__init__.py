@@ -14,6 +14,7 @@ from bot.utils.deck import (
 )
 from bot.utils.payouts import PayoutCalculator, determine_outcome
 from bot.utils.ads import AdManager, get_ad_footer, should_show_game_ad
+from bot.utils.i18n import t, get_user_lang
 from bot.utils.scheduler import JackPyScheduler
 from bot.utils.themes import Theme, ThemeType, ThemeManager, ColorScheme
 from bot.utils.enhanced_card_image import (
@@ -50,4 +51,6 @@ __all__ = [
     "get_luxury_renderer",
     "CasinoCardRenderer",
     "get_casino_renderer",
+    "t",
+    "get_user_lang",
 ]

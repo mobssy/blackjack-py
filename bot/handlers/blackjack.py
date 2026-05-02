@@ -26,6 +26,8 @@ from bot.utils import (
     PayoutCalculator,
     should_show_game_ad,
     get_ad_footer,
+    t,
+    get_user_lang,
 )
 from bot.utils.card_image import get_card_generator
 from bot.utils.enhanced_card_image import get_enhanced_card_generator
@@ -162,41 +164,40 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # 사용자 언어 조회
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
+
     # 베팅 금액 파싱
     if not context.args or len(context.args) == 0:
-        await update.message.reply_text("[오류] 사용법: /deal [금액]\n예: /deal 100")
+        await update.message.reply_text(t("deal_usage", lang))
         return
 
     try:
         bet_amount = float(context.args[0])
         if bet_amount <= 0:
-            await update.message.reply_text("[오류] 베팅 금액은 0보다 커야 합니다.")
+            await update.message.reply_text(t("deal_positive", lang))
             return
     except ValueError:
-        await update.message.reply_text("[오류] 올바른 금액을 입력해주세요.")
+        await update.message.reply_text(t("deal_invalid", lang))
         return
 
     # 사용자 조회
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text(t("deal_no_user", lang))
             return
 
         # 잔액 확인
         if user.wallet < bet_amount:
-            await update.message.reply_text(
-                f"[오류] 잔액이 부족합니다.\n"
-                f"현재 잔액: ${user.wallet:,.2f}\n"
-                f"베팅 금액: ${bet_amount:,.2f}"
-            )
+            await update.message.reply_text(t("deal_no_balance", lang, balance=float(user.wallet)))
             return
 
         # 이미 게임 중인지 확인
         if user_tg_id in game_sessions:
-            await update.message.reply_text(
-                "[경고] 이미 진행 중인 게임이 있습니다. /stand 또는 /hit으로 진행해주세요."
-            )
+            await update.message.reply_text(t("deal_in_progress", lang))
             return
 
         # 잔액 차감
@@ -256,9 +257,13 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
+
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await update.message.reply_text("[오류] 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
+        await update.message.reply_text(t("no_game", lang))
         return
 
     game = game_sessions[user_tg_id]
@@ -274,22 +279,22 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _finish_game(update, user_tg_id, game, outcome, payout)
         return
 
-    # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
     theme = _get_user_theme(user_tg_id, chat_id)
     card_gen = get_casino_renderer(theme)
+    hit_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
     image_bytes = card_gen.generate_game_image(
         player_hand=game.player_hand,
         dealer_hand=game.dealer_hand,
         player_value=player_value,
         dealer_value=None,
         hide_dealer_first=True,
-        message="명령어: /hit (카드 추가) | /stand (멈춤)",
+        message=hit_msg,
     )
 
-    # 이미지 전송
+    caption = "Card drawn!" if lang == "en" else "카드를 한 장 더 받았습니다!"
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
-        caption="카드를 한 장 더 받았습니다!",
+        caption=caption,
         reply_markup=_get_game_keyboard(),
     )
 
@@ -304,9 +309,13 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     user_tg_id = update.effective_user.id
 
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
+
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await update.message.reply_text("[오류] 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
+        await update.message.reply_text(t("no_game", lang))
         return
 
     game = game_sessions[user_tg_id]
@@ -536,9 +545,13 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     user_tg_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
+
     # 게임 세션 확인
     if user_tg_id not in game_sessions:
-        await query.edit_message_caption(caption="[오류] 진행 중인 게임이 없습니다. /deal [금액]로 시작하세요.")
+        await query.edit_message_caption(caption=t("no_game", lang))
         return
 
     game = game_sessions[user_tg_id]

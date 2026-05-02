@@ -81,15 +81,26 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """데이터베이스 테이블 초기화"""
-    # 모든 모델 import
     from models.user import User
     from models.group import Group
     from models.round import Round
     from models.approval import Approval
     from models.ad_schedule import AdSchedule
 
-    # 테이블 생성
     Base.metadata.create_all(bind=engine)
+
+    # 기존 DB에 language 컬럼이 없으면 추가 (SQLite 마이그레이션)
+    with engine.connect() as conn:
+        try:
+            conn.execute(
+                __import__('sqlalchemy').text(
+                    "ALTER TABLE users ADD COLUMN language VARCHAR(2) NOT NULL DEFAULT 'ko'"
+                )
+            )
+            conn.commit()
+        except Exception:
+            pass  # 이미 컬럼이 있으면 무시
+
     print("✅ 데이터베이스 테이블 초기화 완료")
 
 

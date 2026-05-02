@@ -50,6 +50,9 @@ class User(Base, TimestampMixin):
     # 데일리 보상
     last_daily_at = Column(DateTime, nullable=True)
 
+    # 언어 설정 ('ko' 또는 'en')
+    language = Column(String(2), default='ko', nullable=False, server_default='ko')
+
     # 통계 (JSON 형태)
     # 예: {"total_games": 0, "wins": 0, "losses": 0, "total_bet": 0, "total_profit": 0}
     stats_json = Column(JSON, default=dict, nullable=False)
