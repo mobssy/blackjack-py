@@ -103,11 +103,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type in ("group", "supergroup"):
         bot_username = context.bot.username
         keyboard = [[InlineKeyboardButton(
-            "🎰 JackPy 시작하기",
+            "BlackJack 시작하기",
             url=f"https://t.me/{bot_username}?start=play"
         )]]
         await update.message.reply_text(
-            f"{update.effective_user.first_name}님, 게임은 개인 채팅에서 진행됩니다! 👇",
+            f"{update.effective_user.first_name}님, 게임은 개인 채팅에서 진행됩니다!",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
