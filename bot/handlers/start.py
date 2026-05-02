@@ -99,6 +99,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update: 업데이트 객체
         context: 컨텍스트 객체
     """
+    # 단체방에서 호출된 경우 DM 버튼만 전송
+    if update.effective_chat.type in ("group", "supergroup"):
+        bot_username = context.bot.username
+        keyboard = [[InlineKeyboardButton(
+            "🎰 JackPy 시작하기",
+            url=f"https://t.me/{bot_username}?start=play"
+        )]]
+        await update.message.reply_text(
+            f"{update.effective_user.first_name}님, 게임은 개인 채팅에서 진행됩니다! 👇",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
     user_tg_id = update.effective_user.id
     username = update.effective_user.username
     first_name = update.effective_user.first_name
@@ -125,14 +138,14 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db.add(user)
             db.commit()
             is_new = True
-            user_display_name = user.display_name  # 세션 내에서 로드
+            user_display_name = user.display_name
         else:
             # 기존 사용자 정보 업데이트
             user.username = username
             user.first_name = first_name
             db.commit()
             is_new = False
-            user_display_name = user.display_name  # 세션 내에서 로드
+            user_display_name = user.display_name
 
     # 메시지 및 키보드 생성
     message = _get_start_menu_message(user_display_name, is_new)

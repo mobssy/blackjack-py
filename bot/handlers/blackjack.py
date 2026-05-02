@@ -149,6 +149,19 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
+    # 단체방에서 호출된 경우 DM으로 유도
+    if update.effective_chat.type in ("group", "supergroup"):
+        bot_username = context.bot.username
+        keyboard = [[InlineKeyboardButton(
+            "🎰 JackPy 시작하기",
+            url=f"https://t.me/{bot_username}?start=play"
+        )]]
+        await update.message.reply_text(
+            f"{update.effective_user.first_name}님, 게임은 개인 채팅에서 진행됩니다! 👇",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
     # 베팅 금액 파싱
     if not context.args or len(context.args) == 0:
         await update.message.reply_text("[오류] 사용법: /deal [금액]\n예: /deal 100")
