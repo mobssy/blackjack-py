@@ -45,14 +45,7 @@ from bot.handlers import (
     cmd_stand,
     cmd_wallet,
     cmd_daily,
-    cmd_vip,
-    cmd_business,
-    cmd_confirm,
-    cmd_confirm_business,
     cmd_admin,
-    cmd_approve,
-    cmd_approve_business,
-    cmd_reject,
     cmd_revoke,
     cmd_add_balance,
     cmd_my,
@@ -93,17 +86,8 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("wallet", cmd_wallet))
     app.add_handler(CommandHandler("daily", cmd_daily))
 
-    # VIP & 비즈니스
-    app.add_handler(CommandHandler("vip", cmd_vip))
-    app.add_handler(CommandHandler("business", cmd_business))
-    app.add_handler(CommandHandler("confirm", cmd_confirm))
-    app.add_handler(CommandHandler("confirm_business", cmd_confirm_business))
-
     # 관리자
     app.add_handler(CommandHandler("admin", cmd_admin))
-    app.add_handler(CommandHandler("approve", cmd_approve))
-    app.add_handler(CommandHandler("approve_business", cmd_approve_business))
-    app.add_handler(CommandHandler("reject", cmd_reject))
     app.add_handler(CommandHandler("revoke", cmd_revoke))
     app.add_handler(CommandHandler("add", cmd_add_balance))
 
