@@ -241,6 +241,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message=deal_msg,
         dealer_label=dl,
         player_label=pl,
+        value_label="Total" if lang == "en" else "합",
     )
 
     theme_name = f" [{theme.name}]" if theme.name != "Classic" else ""
@@ -300,6 +301,7 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message=hit_msg,
         dealer_label=dl,
         player_label=pl,
+        value_label="Total" if lang == "en" else "합",
     )
 
     caption = "Card drawn!" if lang == "en" else "카드를 한 장 더 받았습니다!"
@@ -431,6 +433,7 @@ def _build_game_result(
             message=result_message,
             dealer_label=_dl,
             player_label=_pl,
+            value_label="Total" if lang == "en" else "합",
         )
 
         game_over_label = "Game Over" if lang == "en" else "게임 종료"
@@ -591,6 +594,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             message=drawing_msg,
             dealer_label=_dl,
             player_label=_pl,
+            value_label="Total" if lang == "en" else "합",
         )
 
         await query.edit_message_media(
@@ -626,6 +630,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             message=_hit_msg,
             dealer_label=_dl,
             player_label=_pl,
+            value_label="Total" if lang == "en" else "합",
         )
 
         # 앞면 카드로 업데이트

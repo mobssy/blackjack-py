@@ -959,6 +959,7 @@ class CasinoCardRenderer:
         message: str = "",
         dealer_label: str = "🤖 딜러",
         player_label: str = "🎯 플레이어",
+        value_label: str = "합",
     ) -> bytes:
         """카지노급 게임 이미지 생성"""
 
@@ -1140,7 +1141,7 @@ class CasinoCardRenderer:
 
         # 딜러 값
         if dealer_value is not None:
-            chip = self._create_value_chip(f"합: {dealer_value}")
+            chip = self._create_value_chip(f"{value_label}: {dealer_value}")
             chip_x = total_width - chip.width - 120
             chip_y = cards_y + (self.CARD_HEIGHT - chip.height) // 2
             image.paste(chip, (chip_x, chip_y), chip)
@@ -1259,7 +1260,7 @@ class CasinoCardRenderer:
             x_offset += card_visual_width + self.CARD_SPACING
 
         # 플레이어 값
-        chip = self._create_value_chip(f"합: {player_value}")
+        chip = self._create_value_chip(f"{value_label}: {player_value}")
         chip_x = total_width - chip.width - 120
         chip_y = cards_y + (self.CARD_HEIGHT - chip.height) // 2
         image.paste(chip, (chip_x, chip_y), chip)
