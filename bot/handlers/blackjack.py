@@ -336,20 +336,8 @@ def _build_game_result(
     outcome: GameOutcome,
     payout: float,
     chat_id: int,
+    lang: str = "ko",
 ) -> Tuple[bytes, str, InlineKeyboardMarkup]:
-    """
-    DB 업데이트 및 게임 결과 이미지/캡션 생성 (공통 로직)
-
-    Args:
-        user_tg_id: 사용자 텔레그램 ID
-        game: 게임 객체
-        outcome: 게임 결과
-        payout: 정산 금액
-        chat_id: 채팅 ID
-
-    Returns:
-        Tuple[bytes, str, InlineKeyboardMarkup]: (이미지, 캡션, 키보드)
-    """
     player_value = calculate_hand_value(game.player_hand)
     dealer_value = calculate_hand_value(game.dealer_hand)
 
@@ -357,13 +345,11 @@ def _build_game_result(
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         group = db.query(Group).filter(Group.chat_id == chat_id).first()
 
-        # 잔액 업데이트 (패배는 deal 시점에 이미 차감됨)
         if outcome == GameOutcome.PUSH:
             user.add_wallet(game.bet)
         elif payout > 0:
             user.add_wallet(game.bet + payout)
 
-        # 통계 업데이트
         user.update_stats(
             total_games=1,
             wins=1 if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK) else 0,
@@ -372,7 +358,6 @@ def _build_game_result(
             total_profit=float(payout),
         )
 
-        # 라운드 기록
         db.add(Round(
             user_id=user.id,
             chat_id=chat_id,
@@ -384,23 +369,36 @@ def _build_game_result(
         ))
         db.commit()
 
-        # 결과 메시지 생성
         outcome_emoji = PayoutCalculator.get_result_emoji(outcome)
-        outcome_msg = PayoutCalculator.get_outcome_message(outcome)
+        outcome_key = {
+            GameOutcome.BLACKJACK: "result_blackjack",
+            GameOutcome.WIN: "result_win",
+            GameOutcome.PUSH: "result_push",
+            GameOutcome.LOSS: "result_lose",
+            GameOutcome.BUST: "result_bust",
+        }.get(outcome, "result_lose")
+        outcome_msg = t(outcome_key, lang)
         payout_str = PayoutCalculator.format_payout(payout)
 
+        player_label = t("player_label", lang)
+        dealer_label = t("dealer_label", lang)
+        bet_label = "Bet" if lang == "en" else "베팅 금액"
+        payout_label = "Payout" if lang == "en" else "정산 금액"
+        balance_label = "Balance" if lang == "en" else "현재 잔액"
+        result_label = "Result" if lang == "en" else "게임 결과"
+
         result_message = "\n".join([
-            "━━━━━━━━━━━━━━━━━━━━",
-            f"{outcome_emoji} 게임 결과: {outcome_msg}",
-            "━━━━━━━━━━━━━━━━━━━━",
+            "--------------------",
+            f"{outcome_emoji} {result_label}: {outcome_msg}",
+            "--------------------",
             "",
-            f"🎯 플레이어: {player_value}",
-            f"🤖 딜러: {dealer_value}",
+            f"{player_label}: {player_value}",
+            f"{dealer_label}: {dealer_value}",
             "",
-            f"💰 베팅 금액: ${game.bet:,.2f}",
-            f"💵 정산 금액: {payout_str}",
-            f"💳 현재 잔액: ${user.wallet:,.2f}",
-            "━━━━━━━━━━━━━━━━━━━━",
+            f"{bet_label}: ${game.bet:,.2f}",
+            f"{payout_label}: {payout_str}",
+            f"{balance_label}: ${user.wallet:,.2f}",
+            "--------------------",
         ])
 
         is_free = group.plan == PlanType.FREE if group else True
@@ -420,19 +418,13 @@ def _build_game_result(
             message=result_message,
         )
 
-        result_text = {
-            GameOutcome.BLACKJACK: "블랙잭!",
-            GameOutcome.WIN: "승리!",
-            GameOutcome.PUSH: "무승부",
-            GameOutcome.LOSS: "패배",
-            GameOutcome.BUST: "버스트",
-        }.get(outcome, "")
-
+        game_over_label = "Game Over" if lang == "en" else "게임 종료"
         theme_badge = f" [{theme.name}]" if theme.name != "Classic" else ""
-        caption = f"{result_text} 게임 종료{theme_badge}"
+        caption = f"{outcome_msg} {game_over_label}{theme_badge}"
 
+        restart_label = "Play Again" if lang == "en" else "다시 시작"
         reply_markup = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("다시 시작", callback_data="restart_game")]]
+            [[InlineKeyboardButton(restart_label, callback_data="restart_game")]]
         )
 
     return image_bytes, caption, reply_markup
@@ -455,8 +447,11 @@ async def _finish_game(
         outcome: 게임 결과
         payout: 정산 금액
     """
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
     image_bytes, caption, reply_markup = _build_game_result(
-        user_tg_id, game, outcome, payout, update.effective_chat.id
+        user_tg_id, game, outcome, payout, update.effective_chat.id, lang
     )
     await update.message.reply_photo(
         photo=BytesIO(image_bytes), caption=caption, reply_markup=reply_markup
@@ -646,8 +641,11 @@ async def _finish_game_callback(
         payout: 정산 금액
         chat_id: 채팅 ID
     """
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
     image_bytes, caption, reply_markup = _build_game_result(
-        user_tg_id, game, outcome, payout, chat_id
+        user_tg_id, game, outcome, payout, chat_id, lang
     )
     await query.edit_message_media(
         media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
