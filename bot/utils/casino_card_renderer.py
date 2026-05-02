@@ -957,6 +957,8 @@ class CasinoCardRenderer:
         dealer_value: Optional[int] = None,
         hide_dealer_first: bool = True,
         message: str = "",
+        dealer_label: str = "🤖 딜러",
+        player_label: str = "🎯 플레이어",
     ) -> bytes:
         """카지노급 게임 이미지 생성"""
 
@@ -1093,7 +1095,7 @@ class CasinoCardRenderer:
         image.paste(label_bg, (label_x, label_y), label_bg)
 
         # 텍스트 중앙 정렬 계산
-        dealer_text = "🤖 딜러"
+        dealer_text = dealer_label
         temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
         dealer_bbox = temp_draw.textbbox((0, 0), dealer_text, font=self.font_title)
         dealer_text_width = dealer_bbox[2] - dealer_bbox[0]
@@ -1213,7 +1215,7 @@ class CasinoCardRenderer:
         image.paste(label_bg2, (label_x, player_y + 30), label_bg2)
 
         # 텍스트 중앙 정렬 계산
-        player_text = "🎯 플레이어"
+        player_text = player_label
         temp_draw2 = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
         player_bbox = temp_draw2.textbbox((0, 0), player_text, font=self.font_title)
         player_text_width = player_bbox[2] - player_bbox[0]

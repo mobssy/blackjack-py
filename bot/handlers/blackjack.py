@@ -229,18 +229,25 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
     theme = _get_user_theme(user_tg_id, chat_id)
     card_gen = get_casino_renderer(theme)
+    deal_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
+    dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
+    pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
     image_bytes = card_gen.generate_game_image(
         player_hand=game.player_hand,
         dealer_hand=game.dealer_hand,
         player_value=player_value,
         dealer_value=None,
         hide_dealer_first=True,
-        message="명령어: /hit (카드 추가) | /stand (멈춤)",
+        message=deal_msg,
+        dealer_label=dl,
+        player_label=pl,
     )
 
-    # 이미지 전송
-    theme_name = f" [{theme.name} 에디션]" if theme.name != "Classic" else ""
-    caption = f"블랙잭 시작!{theme_name}\n베팅: ${bet_amount:,.2f}"
+    theme_name = f" [{theme.name}]" if theme.name != "Classic" else ""
+    if lang == "en":
+        caption = f"Blackjack!{theme_name}\nBet: ${bet_amount:,.2f}"
+    else:
+        caption = f"블랙잭 시작!{theme_name}\n베팅: ${bet_amount:,.2f}"
     await update.message.reply_photo(
         photo=BytesIO(image_bytes), caption=caption, reply_markup=_get_game_keyboard()
     )
@@ -282,6 +289,8 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     theme = _get_user_theme(user_tg_id, chat_id)
     card_gen = get_casino_renderer(theme)
     hit_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
+    dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
+    pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
     image_bytes = card_gen.generate_game_image(
         player_hand=game.player_hand,
         dealer_hand=game.dealer_hand,
@@ -289,6 +298,8 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         dealer_value=None,
         hide_dealer_first=True,
         message=hit_msg,
+        dealer_label=dl,
+        player_label=pl,
     )
 
     caption = "Card drawn!" if lang == "en" else "카드를 한 장 더 받았습니다!"
@@ -409,6 +420,8 @@ def _build_game_result(
         is_business = group.plan == PlanType.BUSINESS if group else False
         theme = ThemeManager.get_theme_by_plan(is_vip, is_business)
 
+        _dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
+        _pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
         image_bytes = get_casino_renderer(theme).generate_game_image(
             player_hand=game.player_hand,
             dealer_hand=game.dealer_hand,
@@ -416,6 +429,8 @@ def _build_game_result(
             dealer_value=dealer_value,
             hide_dealer_first=False,
             message=result_message,
+            dealer_label=_dl,
+            player_label=_pl,
         )
 
         game_over_label = "Game Over" if lang == "en" else "게임 종료"
@@ -564,19 +579,23 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         temp_hand = game.player_hand + ["BACK"]  # 임시로 뒷면 카드 추가
         temp_value = calculate_hand_value(game.player_hand)
 
+        _dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
+        _pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
+        drawing_msg = "Drawing card..." if lang == "en" else "카드를 뽑는 중..."
         back_image_bytes = card_gen.generate_game_image(
             player_hand=temp_hand,
             dealer_hand=game.dealer_hand,
             player_value=temp_value,
             dealer_value=None,
             hide_dealer_first=True,
-            message="카드를 뽑는 중...",
+            message=drawing_msg,
+            dealer_label=_dl,
+            player_label=_pl,
         )
 
-        # 뒷면 카드 이미지 먼저 표시
         await query.edit_message_media(
             media=InputMediaPhoto(
-                media=BytesIO(back_image_bytes), caption="카드를 뽑는 중..."
+                media=BytesIO(back_image_bytes), caption=drawing_msg
             ),
             reply_markup=_get_game_keyboard(),
         )
@@ -597,14 +616,16 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             )
             return
 
-        # 앞면 카드 이미지 생성
+        _hit_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
         image_bytes = card_gen.generate_game_image(
             player_hand=game.player_hand,
             dealer_hand=game.dealer_hand,
             player_value=player_value,
             dealer_value=None,
             hide_dealer_first=True,
-            message="명령어: /hit (카드 추가) | /stand (멈춤)",
+            message=_hit_msg,
+            dealer_label=_dl,
+            player_label=_pl,
         )
 
         # 앞면 카드로 업데이트
