@@ -47,6 +47,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "surrender_only_first": "[오류] 서렌더는 첫 두 장에서만 가능합니다.",
         "result_surrender": "서렌더 (절반 회수)",
 
+        # 스플릿
+        "split_not_allowed": "[오류] 스플릿은 첫 두 장이 같은 랭크일 때만 가능합니다.",
+        "split_no_balance": "[오류] 스플릿에 필요한 추가 잔액이 부족합니다. 현재 잔액: ${balance:,.2f}",
+        "split_caption": "스플릿! 각 핸드에 베팅 ${bet:,.2f}",
+        "split_aces_note": "에이스 스플릿: 각 핸드에 카드 1장씩만 받고 자동 스탠드합니다.",
+        "hand_label": "핸드",
+        "hand_playing": "핸드 {n}/{total} 플레이 중",
+        "hand_bust_next": "핸드 {n} 버스트! 핸드 {next}/{total} 플레이 중",
+
         # 결과 라벨
         "result_label": "게임 결과",
         "bet_label": "베팅 금액",
@@ -101,6 +110,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/stand - 멈춤\n"
             "/double - 더블 다운 (첫 두 장, 베팅 2배 + 카드 1장)\n"
             "/surrender - 항복 (첫 두 장, 베팅액 절반 회수)\n"
+            "/split - 스플릿 (같은 랭크 2장을 두 핸드로 분리)\n"
             "/wallet - 잔액 확인\n"
             "/daily - 일일 보상\n"
             "/rank - 랭킹 조회\n\n"
@@ -113,6 +123,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "일반 승리: 1:1 배당\n"
             "무승부: 베팅액 반환\n"
             "서렌더: 베팅액 절반 회수\n"
+            "스플릿: 같은 랭크 2장 분리 (추가 베팅, 에이스는 1장씩만)\n"
             "딜러: 17 이상까지 히트"
         ),
 
@@ -164,6 +175,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "double_caption": "Double down! Bet: ${bet:,.2f}",
         "surrender_only_first": "[Error] Surrender is only allowed on your first two cards.",
         "result_surrender": "Surrender (half returned)",
+
+        # 스플릿
+        "split_not_allowed": "[Error] Split is only allowed when your first two cards are the same rank.",
+        "split_no_balance": "[Error] Insufficient balance to split. Current balance: ${balance:,.2f}",
+        "split_caption": "Split! ${bet:,.2f} bet per hand",
+        "split_aces_note": "Split aces receive one card each and stand automatically.",
+        "hand_label": "Hand",
+        "hand_playing": "Playing hand {n}/{total}",
+        "hand_bust_next": "Hand {n} bust! Playing hand {next}/{total}",
 
         # 결과 라벨
         "result_label": "Result",
@@ -219,6 +239,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/stand - Stay\n"
             "/double - Double down (first two cards, 2x bet + one card)\n"
             "/surrender - Surrender (first two cards, half bet returned)\n"
+            "/split - Split a same-rank pair into two hands\n"
             "/wallet - Check balance\n"
             "/daily - Daily reward\n"
             "/rank - Leaderboard\n\n"
@@ -231,6 +252,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Win: 1:1 payout\n"
             "Push: Bet returned\n"
             "Surrender: Half bet returned\n"
+            "Split: Same-rank pair, extra bet (aces get one card each)\n"
             "Dealer hits until 17+"
         ),
 

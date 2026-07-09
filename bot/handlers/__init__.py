@@ -10,6 +10,7 @@ from bot.handlers.blackjack import (
     cmd_stand,
     cmd_double,
     cmd_surrender,
+    cmd_split,
     cmd_wallet,
     cmd_daily,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "cmd_stand",
     "cmd_double",
     "cmd_surrender",
+    "cmd_split",
     "cmd_wallet",
     "cmd_daily",
     # Admin

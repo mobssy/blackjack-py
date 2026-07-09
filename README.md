@@ -24,6 +24,7 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 | `/stand` | End your turn |
 | `/double` | Double down (first two cards only) |
 | `/surrender` | Surrender and get half your bet back |
+| `/split` | Split a same-rank pair into two hands |
 | `/daily` | Claim daily reward |
 | `/wallet` | Check balance |
 | `/my` | Profile & stats |
@@ -37,6 +38,7 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 - Push returns the bet
 - Double down on the first two cards (2x bet, one card, auto-stand)
 - Late surrender returns half the bet
+- Split a same-rank pair into two hands (extra bet; no re-split; split aces get one card each; a two-card 21 after a split counts as 21, not blackjack)
 
 ---
 

@@ -397,3 +397,105 @@ class TestBlackjackGame:
         outcome, payout = game.get_result()
         assert isinstance(outcome, GameOutcome)
         assert isinstance(payout, float)
+
+
+class TestBlackjackGameSplit:
+    """스플릿 기능 테스트"""
+
+    def _make_game(self, hand, bet: float = 100.0):
+        from bot.utils.blackjack_game import BlackjackGame
+
+        game = BlackjackGame(user_id=1, bet=bet)
+        game.deal_initial()
+        game.hands[0] = list(hand)  # 테스트용 핸드 강제 설정
+        return game
+
+    def test_can_split_same_rank(self):
+        """같은 랭크 2장이면 스플릿 가능"""
+        game = self._make_game(["8S", "8H"])
+        assert game.can_split is True
+
+    def test_cannot_split_different_rank(self):
+        """다른 랭크면 스플릿 불가 (같은 값이어도 랭크가 다르면 불가)"""
+        game = self._make_game(["8S", "9H"])
+        assert game.can_split is False
+        game = self._make_game(["10S", "KH"])  # 둘 다 10점이지만 랭크 다름
+        assert game.can_split is False
+
+    def test_cannot_split_after_hit(self):
+        """카드를 받은 후에는 스플릿 불가"""
+        game = self._make_game(["8S", "8H"])
+        game.player_hit()
+        assert game.can_split is False
+
+    def test_split_creates_two_hands(self):
+        """스플릿 시 두 핸드로 분리, 각 핸드 2장 + 동일 베팅"""
+        game = self._make_game(["8S", "8H"], bet=100.0)
+        game.split()
+        assert game.hand_count == 2
+        assert game.hands[0][0] == "8S"
+        assert game.hands[1][0] == "8H"
+        assert len(game.hands[0]) == 2
+        assert len(game.hands[1]) == 2
+        assert game.bets == [100.0, 100.0]
+        assert game.total_bet == 200.0
+        assert game.is_split is True
+        assert game.split_rank == "8"
+
+    def test_no_resplit(self):
+        """스플릿 후 재스플릿 불가"""
+        game = self._make_game(["8S", "8H"])
+        game.split()
+        assert game.can_split is False
+        assert game.is_first_turn is False  # 더블/서렌더도 불가
+
+    def test_advance_hand(self):
+        """핸드 진행: 1번 → 2번 → 종료"""
+        game = self._make_game(["8S", "8H"])
+        game.split()
+        assert game.hand_number == 1
+        assert game.advance_hand() is True
+        assert game.hand_number == 2
+        assert game.advance_hand() is False
+
+    def test_active_hand_bet_setter(self):
+        """활성 핸드의 bet만 변경되는지 (스플릿 후 더블 방지 확인용)"""
+        game = self._make_game(["8S", "8H"], bet=100.0)
+        game.split()
+        game.advance_hand()
+        game.bet = 300.0
+        assert game.bets == [100.0, 300.0]
+
+    def test_split_21_is_not_blackjack(self):
+        """스플릿 후 두 장 21은 블랙잭이 아닌 일반 승/패로 판정"""
+        game = self._make_game(["AS", "AH"])
+        game.split()
+        # 핸드를 A+K(21)로 강제, 딜러는 20으로 강제
+        game.hands[0] = ["AS", "KD"]
+        game.hands[1] = ["AH", "KC"]
+        game.dealer_hand = ["10S", "QH"]
+        results = game.get_results()
+        assert all(outcome == GameOutcome.WIN for outcome, _ in results)
+        # 블랙잭 배당(1.5배)이 아닌 일반 배당(1배)
+        assert all(payout == 100.0 for _, payout in results)
+
+    def test_get_results_per_hand(self):
+        """핸드별로 독립 판정 (한 핸드 승, 한 핸드 패)"""
+        game = self._make_game(["8S", "8H"])
+        game.split()
+        game.hands[0] = ["8S", "KD"]   # 18
+        game.hands[1] = ["8H", "5C"]   # 13
+        game.dealer_hand = ["10S", "7H"]  # 17
+        results = game.get_results()
+        assert results[0][0] == GameOutcome.WIN
+        assert results[1][0] == GameOutcome.LOSS
+
+    def test_any_hand_alive(self):
+        """버스트 여부에 따른 생존 핸드 확인"""
+        game = self._make_game(["8S", "8H"])
+        game.split()
+        game.hands[0] = ["8S", "KD", "9C"]  # 27 버스트
+        game.hands[1] = ["8H", "5C"]
+        assert game.any_hand_alive() is True
+        game.hands[1] = ["8H", "KC", "9D"]  # 27 버스트
+        assert game.any_hand_alive() is False
