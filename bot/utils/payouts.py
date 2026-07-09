@@ -111,6 +111,51 @@ class PayoutCalculator:
         return emojis.get(outcome, "🎲")
 
 
+# ── 연승 스트릭 보너스 ──────────────────────────────────────────
+# 3연승부터 승리 정산액의 10%, 5연승부터 20% 보너스 지급
+STREAK_BONUS_TIERS = [(5, 0.2), (3, 0.1)]
+
+
+def update_streak(current_streak: int, total_payout: float) -> int:
+    """
+    게임 결과에 따른 연승 스트릭 갱신
+
+    게임 전체 정산액(스플릿이면 핸드 합산)이 양수면 +1,
+    음수면 0으로 리셋, 0(푸시)이면 유지한다.
+
+    Args:
+        current_streak: 현재 연승 수
+        total_payout: 게임 전체 정산 금액
+
+    Returns:
+        int: 갱신된 연승 수
+    """
+    if total_payout > 0:
+        return current_streak + 1
+    if total_payout < 0:
+        return 0
+    return current_streak
+
+
+def streak_bonus(streak: int, total_payout: float) -> float:
+    """
+    연승 보너스 금액 계산
+
+    Args:
+        streak: 갱신된 연승 수
+        total_payout: 게임 전체 정산 금액 (양수일 때만 보너스)
+
+    Returns:
+        float: 보너스 금액 (조건 미달이면 0)
+    """
+    if total_payout <= 0:
+        return 0.0
+    for threshold, rate in STREAK_BONUS_TIERS:
+        if streak >= threshold:
+            return total_payout * rate
+    return 0.0
+
+
 def determine_outcome(
     player_value: int,
     dealer_value: int,

@@ -12,7 +12,12 @@ from bot.utils.deck import (
     format_hand,
     get_hand_display,
 )
-from bot.utils.payouts import PayoutCalculator, determine_outcome
+from bot.utils.payouts import (
+    PayoutCalculator,
+    determine_outcome,
+    streak_bonus,
+    update_streak,
+)
 from bot.utils.ads import AdManager, get_ad_footer, should_show_game_ad
 from bot.utils.i18n import t, get_user_lang
 from bot.utils.scheduler import JackPyScheduler
@@ -29,6 +34,8 @@ __all__ = [
     "get_hand_display",
     "PayoutCalculator",
     "determine_outcome",
+    "streak_bonus",
+    "update_streak",
     "AdManager",
     "get_ad_footer",
     "should_show_game_ad",

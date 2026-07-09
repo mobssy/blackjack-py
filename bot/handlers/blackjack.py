@@ -26,6 +26,7 @@ from bot.utils import (
     t,
     get_user_lang,
 )
+from bot.utils.payouts import streak_bonus, update_streak
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.session_store import load_sessions, save_sessions
 from bot.utils.casino_card_renderer import get_casino_renderer
@@ -189,19 +190,23 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 베팅 금액 파싱
+    # 베팅 금액 파싱 ("all" / "올인"은 전액 베팅)
     if not context.args or len(context.args) == 0:
         await update.message.reply_text(t("deal_usage", lang))
         return
 
-    try:
-        bet_amount = float(context.args[0])
-        if bet_amount <= 0:
-            await update.message.reply_text(t("deal_positive", lang))
+    raw_bet = context.args[0].lower()
+    is_all_in = raw_bet in ("all", "올인")
+    bet_amount = 0.0
+    if not is_all_in:
+        try:
+            bet_amount = float(raw_bet)
+            if bet_amount <= 0:
+                await update.message.reply_text(t("deal_positive", lang))
+                return
+        except ValueError:
+            await update.message.reply_text(t("deal_invalid", lang))
             return
-    except ValueError:
-        await update.message.reply_text(t("deal_invalid", lang))
-        return
 
     # 사용자 조회
     with get_db() as db:
@@ -210,8 +215,11 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(t("deal_no_user", lang))
             return
 
+        if is_all_in:
+            bet_amount = float(user.wallet)
+
         # 잔액 확인
-        if user.wallet < bet_amount:
+        if bet_amount <= 0 or user.wallet < bet_amount:
             await update.message.reply_text(
                 t("deal_no_balance", lang, balance=float(user.wallet))
             )
@@ -576,13 +584,26 @@ def _settle_game(
                 )
             )
 
+        # 연승 스트릭 갱신 및 보너스 지급 (게임 전체 정산액 기준)
+        total_payout = float(sum(payout for _, payout in results))
+        prev_streak = (user.stats_json or {}).get("win_streak", 0)
+        streak = update_streak(prev_streak, total_payout)
+        bonus = streak_bonus(streak, total_payout)
+        if bonus > 0:
+            user.add_wallet(bonus)
+
         user.update_stats(
             total_games=len(results),
             wins=wins,
             losses=losses,
             total_bet=float(game.total_bet),
-            total_profit=float(sum(payout for _, payout in results)),
+            total_profit=total_payout + bonus,
         )
+
+        # win_streak은 누적이 아닌 절대값으로 저장
+        stats = dict(user.stats_json or {})
+        stats["win_streak"] = streak
+        user.stats_json = stats
         db.commit()
 
         return {
@@ -590,6 +611,8 @@ def _settle_game(
             "is_free": group.plan == PlanType.FREE if group else True,
             "is_vip": user.is_vip_active,
             "is_business": group.plan == PlanType.BUSINESS if group else False,
+            "streak": streak,
+            "bonus": bonus,
         }
 
 
@@ -657,6 +680,14 @@ def _render_game_result(
         image_hand = [card for hand in game.hands for card in hand]
         image_value = " / ".join(str(v) for v in hand_values)
 
+    streak_lines = []
+    streak = settle_info.get("streak", 0)
+    bonus = settle_info.get("bonus", 0.0)
+    if bonus > 0:
+        streak_lines.append(t("streak_bonus_line", lang, n=streak, bonus=bonus))
+    elif streak >= 2:
+        streak_lines.append(t("streak_line", lang, n=streak))
+
     result_message = "\n".join(
         [
             "--------------------",
@@ -668,6 +699,7 @@ def _render_game_result(
             "",
             f"{t('bet_label', lang)}: ${game.total_bet:,.2f}",
             f"{t('payout_label', lang)}: {payout_str}",
+            *streak_lines,
             f"{t('balance_label', lang)}: ${settle_info['wallet']:,.2f}",
             "--------------------",
         ]
@@ -764,6 +796,7 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
             games=stats.get("total_games", 0),
             wins=stats.get("wins", 0),
             losses=stats.get("losses", 0),
+            streak=stats.get("win_streak", 0),
             profit=stats.get("total_profit", 0),
         )
         await update.message.reply_text(message)

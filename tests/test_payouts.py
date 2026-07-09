@@ -4,7 +4,12 @@ JackPy - Payouts 테스트
 """
 
 import pytest
-from bot.utils.payouts import PayoutCalculator, determine_outcome
+from bot.utils.payouts import (
+    PayoutCalculator,
+    determine_outcome,
+    streak_bonus,
+    update_streak,
+)
 from models.round import GameOutcome
 
 
@@ -164,3 +169,40 @@ class TestDetermineOutcome:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestStreak:
+    """연승 스트릭 보너스 테스트"""
+
+    def test_update_streak_win_increments(self):
+        """승리(정산 양수) 시 연승 +1"""
+        assert update_streak(0, 100.0) == 1
+        assert update_streak(4, 150.0) == 5
+
+    def test_update_streak_loss_resets(self):
+        """패배(정산 음수) 시 연승 리셋"""
+        assert update_streak(7, -100.0) == 0
+
+    def test_update_streak_push_keeps(self):
+        """푸시(정산 0) 시 연승 유지"""
+        assert update_streak(3, 0.0) == 3
+
+    def test_no_bonus_below_three(self):
+        """3연승 미만은 보너스 없음"""
+        assert streak_bonus(1, 100.0) == 0.0
+        assert streak_bonus(2, 100.0) == 0.0
+
+    def test_bonus_at_three_wins(self):
+        """3~4연승: 정산액의 10%"""
+        assert streak_bonus(3, 100.0) == 10.0
+        assert streak_bonus(4, 200.0) == 20.0
+
+    def test_bonus_at_five_wins(self):
+        """5연승 이상: 정산액의 20%"""
+        assert streak_bonus(5, 100.0) == 20.0
+        assert streak_bonus(10, 100.0) == 20.0
+
+    def test_no_bonus_on_loss(self):
+        """정산이 양수가 아니면 연승과 무관하게 보너스 없음"""
+        assert streak_bonus(5, -100.0) == 0.0
+        assert streak_bonus(5, 0.0) == 0.0

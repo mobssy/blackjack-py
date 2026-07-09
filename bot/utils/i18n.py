@@ -19,7 +19,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_daily": "출석 체크",
         "btn_profile": "프로필",
         # /deal
-        "deal_usage": "[오류] 사용법: /deal [금액]\n예: /deal 100",
+        "deal_usage": "[오류] 사용법: /deal [금액]\n예: /deal 100 | 올인: /deal all",
         "deal_positive": "[오류] 베팅 금액은 0보다 커야 합니다.",
         "deal_invalid": "[오류] 올바른 금액을 입력해주세요.",
         "deal_no_user": "[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.",
@@ -50,6 +50,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "hand_label": "핸드",
         "hand_playing": "핸드 {n}/{total} 플레이 중",
         "hand_bust_next": "핸드 {n} 버스트! 핸드 {next}/{total} 플레이 중",
+        # 연승 스트릭
+        "streak_line": "🔥 {n}연승 중!",
+        "streak_bonus_line": "🔥 {n}연승 보너스: +${bonus:,.2f}",
         # 결과 라벨
         "result_label": "게임 결과",
         "bet_label": "베팅 금액",
@@ -83,6 +86,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "총 게임: {games:,}회\n"
             "승리: {wins:,}회\n"
             "패배: {losses:,}회\n"
+            "연승: {streak:,}연승\n"
             "총 수익: ${profit:,.2f}"
         ),
         "vip_active": "[활성]",
@@ -93,7 +97,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "help_text": (
             "JackPy 도움말\n\n"
             "게임 명령어\n"
-            "/deal [금액] - 블랙잭 시작\n"
+            "/deal [금액] - 블랙잭 시작 (/deal all = 올인)\n"
             "/hit - 카드 추가\n"
             "/stand - 멈춤\n"
             "/double - 더블 다운 (첫 두 장, 베팅 2배 + 카드 1장)\n"
@@ -112,6 +116,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "무승부: 베팅액 반환\n"
             "서렌더: 베팅액 절반 회수\n"
             "스플릿: 같은 랭크 2장 분리 (추가 베팅, 에이스는 1장씩만)\n"
+            "연승 보너스: 3연승부터 +10%, 5연승부터 +20%\n"
             "딜러: 17 이상까지 히트"
         ),
         # 단체방
@@ -134,7 +139,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_daily": "Daily Reward",
         "btn_profile": "Profile",
         # /deal
-        "deal_usage": "[Error] Usage: /deal [amount]\nExample: /deal 100",
+        "deal_usage": "[Error] Usage: /deal [amount]\nExample: /deal 100 | All-in: /deal all",
         "deal_positive": "[Error] Bet amount must be greater than 0.",
         "deal_invalid": "[Error] Please enter a valid amount.",
         "deal_no_user": "[Error] User not registered. Please run /start first.",
@@ -165,6 +170,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "hand_label": "Hand",
         "hand_playing": "Playing hand {n}/{total}",
         "hand_bust_next": "Hand {n} bust! Playing hand {next}/{total}",
+        # 연승 스트릭
+        "streak_line": "🔥 {n} win streak!",
+        "streak_bonus_line": "🔥 {n}-win streak bonus: +${bonus:,.2f}",
         # 결과 라벨
         "result_label": "Result",
         "bet_label": "Bet",
@@ -198,6 +206,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Games: {games:,}\n"
             "Wins: {wins:,}\n"
             "Losses: {losses:,}\n"
+            "Win streak: {streak:,}\n"
             "Total profit: ${profit:,.2f}"
         ),
         "vip_active": "[Active]",
@@ -208,7 +217,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "help_text": (
             "JackPy Help\n\n"
             "Game Commands\n"
-            "/deal [amount] - Start blackjack\n"
+            "/deal [amount] - Start blackjack (/deal all = all-in)\n"
             "/hit - Draw a card\n"
             "/stand - Stay\n"
             "/double - Double down (first two cards, 2x bet + one card)\n"
@@ -227,6 +236,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Push: Bet returned\n"
             "Surrender: Half bet returned\n"
             "Split: Same-rank pair, extra bet (aces get one card each)\n"
+            "Streak bonus: +10% from 3 wins, +20% from 5 wins in a row\n"
             "Dealer hits until 17+"
         ),
         # 단체방

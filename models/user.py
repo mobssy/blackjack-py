@@ -3,7 +3,7 @@ JackPy - User 모델
 사용자 정보 및 VIP 상태 관리
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Dict, Any
 from sqlalchemy import (
@@ -17,6 +17,9 @@ from sqlalchemy import (
     Numeric,
 )
 from models.base import Base, TimestampMixin
+
+# 일일 보상 리셋 기준 시간대 (한국 표준시)
+KST = timezone(timedelta(hours=9))
 
 
 class User(Base, TimestampMixin):
@@ -117,9 +120,12 @@ class User(Base, TimestampMixin):
         self.stats_json = new_stats
 
     def can_claim_daily(self) -> bool:
-        """데일리 보상 수령 가능 여부"""
+        """데일리 보상 수령 가능 여부 (KST 자정 기준 리셋)"""
         if self.last_daily_at is None:
             return True
+        last = self.last_daily_at
+        if last.tzinfo is None:
+            # DB에서 naive datetime으로 조회되는 경우 UTC로 간주
+            last = last.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
-        # 마지막 수령일과 현재일이 다르면 수령 가능
-        return self.last_daily_at.date() < now.date()
+        return last.astimezone(KST).date() < now.astimezone(KST).date()

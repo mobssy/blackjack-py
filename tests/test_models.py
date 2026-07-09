@@ -378,3 +378,44 @@ class TestAdScheduleModel:
 
         assert schedule.last_sent_at is not None
         assert before <= schedule.last_sent_at <= after
+
+
+class TestDailyResetKST:
+    """일일 보상 KST 자정 리셋 테스트"""
+
+    def test_can_claim_when_never_claimed(self, db_session):
+        user = User(tg_user_id=123)
+        assert user.can_claim_daily() is True
+
+    def test_cannot_claim_same_kst_day(self, db_session):
+        """오늘(KST) 이미 수령했으면 불가"""
+        from models.user import KST
+
+        user = User(tg_user_id=123)
+        user.last_daily_at = datetime.now(timezone.utc)
+        assert user.can_claim_daily() is False
+
+        # 오늘 KST 자정 직후 수령한 경우도 불가
+        kst_midnight = datetime.now(KST).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        user.last_daily_at = kst_midnight + timedelta(minutes=1)
+        assert user.can_claim_daily() is False
+
+    def test_can_claim_after_kst_midnight(self, db_session):
+        """마지막 수령이 어제(KST)면 UTC 날짜와 무관하게 가능"""
+        from models.user import KST
+
+        user = User(tg_user_id=123)
+        kst_midnight = datetime.now(KST).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        # 어제 KST 23:59 수령 → 오늘 수령 가능
+        user.last_daily_at = kst_midnight - timedelta(minutes=1)
+        assert user.can_claim_daily() is True
+
+    def test_naive_datetime_handled(self, db_session):
+        """DB에서 naive로 조회된 last_daily_at도 크래시 없이 처리"""
+        user = User(tg_user_id=123)
+        user.last_daily_at = datetime.utcnow() - timedelta(days=2)
+        assert user.can_claim_daily() is True
