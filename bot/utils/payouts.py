@@ -16,6 +16,7 @@ class PayoutCalculator:
     - 일반 승리: 베팅액의 1:1 (1배)
     - 푸시: 베팅액 반환 (0)
     - 패배: 베팅액 손실 (-1배)
+    - 서렌더: 베팅액 절반 손실 (-0.5배)
     """
 
     # 정산 배율
@@ -23,6 +24,7 @@ class PayoutCalculator:
     WIN_MULTIPLIER = 1.0
     PUSH_MULTIPLIER = 0.0
     LOSS_MULTIPLIER = -1.0
+    SURRENDER_MULTIPLIER = -0.5
 
     @staticmethod
     def calculate(outcome: GameOutcome, bet_amount: float) -> float:
@@ -44,6 +46,8 @@ class PayoutCalculator:
             return bet_amount * PayoutCalculator.PUSH_MULTIPLIER
         elif outcome in (GameOutcome.LOSS, GameOutcome.BUST):
             return bet_amount * PayoutCalculator.LOSS_MULTIPLIER
+        elif outcome == GameOutcome.SURRENDER:
+            return bet_amount * PayoutCalculator.SURRENDER_MULTIPLIER
         else:
             return 0.0
 
@@ -82,6 +86,7 @@ class PayoutCalculator:
             GameOutcome.PUSH: "무승부 (베팅금 반환)",
             GameOutcome.LOSS: "패배했습니다",
             GameOutcome.BUST: "버스트! (21 초과)",
+            GameOutcome.SURRENDER: "서렌더 (베팅액 절반 회수)",
         }
         return messages.get(outcome, "게임 종료")
 
@@ -102,6 +107,7 @@ class PayoutCalculator:
             GameOutcome.PUSH: "🤝",
             GameOutcome.LOSS: "❌",
             GameOutcome.BUST: "💥",
+            GameOutcome.SURRENDER: "🏳️",
         }
         return emojis.get(outcome, "🎲")
 

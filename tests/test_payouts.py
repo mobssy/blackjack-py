@@ -36,6 +36,11 @@ class TestPayoutCalculator:
         payout = PayoutCalculator.calculate(GameOutcome.BUST, 100)
         assert payout == -100.0
 
+    def test_surrender_payout(self):
+        """서렌더 정산 테스트 (베팅액 절반 손실)"""
+        payout = PayoutCalculator.calculate(GameOutcome.SURRENDER, 100)
+        assert payout == -50.0  # 100 * -0.5
+
     def test_format_payout_positive(self):
         """양수 정산 포맷 테스트"""
         formatted = PayoutCalculator.format_payout(150.0)

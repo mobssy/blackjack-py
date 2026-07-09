@@ -36,8 +36,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "img_player": "🎯 플레이어",
         "img_total": "합",
         "hint_commands": "명령어: /hit (카드 추가) | /stand (멈춤)",
+        "hint_commands_first": "명령어: /hit | /stand | /double (더블) | /surrender (항복)",
         "drawing_card": "카드를 뽑는 중...",
         "card_drawn": "카드를 한 장 더 받았습니다!",
+
+        # 더블 다운 / 서렌더
+        "double_only_first": "[오류] 더블 다운은 첫 두 장에서만 가능합니다.",
+        "double_no_balance": "[오류] 더블 다운에 필요한 추가 잔액이 부족합니다. 현재 잔액: ${balance:,.2f}",
+        "double_caption": "더블 다운! 베팅: ${bet:,.2f}",
+        "surrender_only_first": "[오류] 서렌더는 첫 두 장에서만 가능합니다.",
+        "result_surrender": "서렌더 (절반 회수)",
 
         # 결과 라벨
         "result_label": "게임 결과",
@@ -91,6 +99,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "/deal [금액] - 블랙잭 시작\n"
             "/hit - 카드 추가\n"
             "/stand - 멈춤\n"
+            "/double - 더블 다운 (첫 두 장, 베팅 2배 + 카드 1장)\n"
+            "/surrender - 항복 (첫 두 장, 베팅액 절반 회수)\n"
             "/wallet - 잔액 확인\n"
             "/daily - 일일 보상\n"
             "/rank - 랭킹 조회\n\n"
@@ -102,6 +112,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "블랙잭: 3:2 배당\n"
             "일반 승리: 1:1 배당\n"
             "무승부: 베팅액 반환\n"
+            "서렌더: 베팅액 절반 회수\n"
             "딜러: 17 이상까지 히트"
         ),
 
@@ -143,8 +154,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "img_player": "🎯 Player",
         "img_total": "Total",
         "hint_commands": "Hit: /hit | Stand: /stand",
+        "hint_commands_first": "/hit | /stand | /double | /surrender",
         "drawing_card": "Drawing card...",
         "card_drawn": "Card drawn!",
+
+        # 더블 다운 / 서렌더
+        "double_only_first": "[Error] Double down is only allowed on your first two cards.",
+        "double_no_balance": "[Error] Insufficient balance to double down. Current balance: ${balance:,.2f}",
+        "double_caption": "Double down! Bet: ${bet:,.2f}",
+        "surrender_only_first": "[Error] Surrender is only allowed on your first two cards.",
+        "result_surrender": "Surrender (half returned)",
 
         # 결과 라벨
         "result_label": "Result",
@@ -198,6 +217,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "/deal [amount] - Start blackjack\n"
             "/hit - Draw a card\n"
             "/stand - Stay\n"
+            "/double - Double down (first two cards, 2x bet + one card)\n"
+            "/surrender - Surrender (first two cards, half bet returned)\n"
             "/wallet - Check balance\n"
             "/daily - Daily reward\n"
             "/rank - Leaderboard\n\n"
@@ -209,6 +230,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Blackjack: 3:2 payout\n"
             "Win: 1:1 payout\n"
             "Push: Bet returned\n"
+            "Surrender: Half bet returned\n"
             "Dealer hits until 17+"
         ),
 

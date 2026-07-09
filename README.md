@@ -23,6 +23,8 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 | `/deal [amount]` | Start a blackjack round |
 | `/hit` | Draw a card |
 | `/stand` | End your turn |
+| `/double` | Double down (first two cards only) |
+| `/surrender` | Surrender and get half your bet back |
 | `/daily` | Claim daily reward |
 | `/wallet` | Check balance |
 | `/my` | Profile & stats |
@@ -34,6 +36,8 @@ A Telegram bot I built to play Blackjack from my phone. Tracks game history and 
 - Blackjack pays 3:2
 - Dealer hits until 17
 - Push returns the bet
+- Double down on the first two cards (2x bet, one card, auto-stand)
+- Late surrender returns half the bet
 
 ---
 

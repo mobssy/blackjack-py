@@ -345,3 +345,55 @@ class TestHandDisplay:
         assert "🂠" in display
         # 첫 카드만 계산 (AS = 11)
         assert value == 11
+
+
+class TestBlackjackGame:
+    """BlackjackGame 클래스 테스트 (더블 다운 / 서렌더 포함)"""
+
+    def _make_game(self, bet: float = 100.0):
+        from bot.utils.blackjack_game import BlackjackGame
+
+        game = BlackjackGame(user_id=1, bet=bet)
+        game.deal_initial()
+        return game
+
+    def test_deal_initial(self):
+        """초기 딜: 플레이어/딜러 각 2장"""
+        game = self._make_game()
+        assert len(game.player_hand) == 2
+        assert len(game.dealer_hand) == 2
+
+    def test_is_first_turn(self):
+        """첫 턴 여부는 첫 2장 상태에서만 True"""
+        game = self._make_game()
+        assert game.is_first_turn is True
+        game.player_hit()
+        assert game.is_first_turn is False
+
+    def test_player_double(self):
+        """더블 다운: 베팅 2배 + 카드 1장 추가"""
+        game = self._make_game(bet=100.0)
+        game.player_double()
+        assert game.bet == 200.0
+        assert len(game.player_hand) == 3
+
+    def test_surrender_result(self):
+        """서렌더: SURRENDER 결과와 베팅액 절반 손실"""
+        game = self._make_game(bet=100.0)
+        outcome, payout = game.surrender_result()
+        assert outcome == GameOutcome.SURRENDER
+        assert payout == -50.0
+
+    def test_dealer_play_reaches_17(self):
+        """딜러는 17 이상까지 히트"""
+        game = self._make_game()
+        game.dealer_play()
+        assert calculate_hand_value(game.dealer_hand) >= 17
+
+    def test_get_result_returns_outcome_and_payout(self):
+        """결과 계산은 (outcome, payout) 튜플 반환"""
+        game = self._make_game()
+        game.dealer_play()
+        outcome, payout = game.get_result()
+        assert isinstance(outcome, GameOutcome)
+        assert isinstance(payout, float)

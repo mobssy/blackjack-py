@@ -4,7 +4,15 @@ JackPy - Handlers Package
 """
 
 from bot.handlers.start import cmd_start, cmd_help, button_callback
-from bot.handlers.blackjack import cmd_deal, cmd_hit, cmd_stand, cmd_wallet, cmd_daily
+from bot.handlers.blackjack import (
+    cmd_deal,
+    cmd_hit,
+    cmd_stand,
+    cmd_double,
+    cmd_surrender,
+    cmd_wallet,
+    cmd_daily,
+)
 from bot.handlers.admin import (
     cmd_admin,
     cmd_revoke,
@@ -21,6 +29,8 @@ __all__ = [
     "cmd_deal",
     "cmd_hit",
     "cmd_stand",
+    "cmd_double",
+    "cmd_surrender",
     "cmd_wallet",
     "cmd_daily",
     # Admin

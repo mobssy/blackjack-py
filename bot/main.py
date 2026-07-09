@@ -49,6 +49,8 @@ from bot.handlers import (
     cmd_deal,
     cmd_hit,
     cmd_stand,
+    cmd_double,
+    cmd_surrender,
     cmd_wallet,
     cmd_daily,
     cmd_admin,
@@ -89,6 +91,8 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("deal", cmd_deal))
     app.add_handler(CommandHandler("hit", cmd_hit))
     app.add_handler(CommandHandler("stand", cmd_stand))
+    app.add_handler(CommandHandler("double", cmd_double))
+    app.add_handler(CommandHandler("surrender", cmd_surrender))
     app.add_handler(CommandHandler("wallet", cmd_wallet))
     app.add_handler(CommandHandler("daily", cmd_daily))
 
