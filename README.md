@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="assets/21.PNG" alt="JackPy" />
   <h1>Blackjack-py</h1>
   <p>A personal Blackjack bot for Telegram.</p>
   <p>
