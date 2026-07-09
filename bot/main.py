@@ -6,6 +6,7 @@ JackPy - 메인 봇 파일
 import os
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -18,15 +19,20 @@ from dotenv import load_dotenv
 # 환경변수 로드
 load_dotenv()
 
-# 로깅 설정
+# 로깅 설정 (파일은 10MB × 3개로 로테이션)
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("jackpy.log", encoding="utf-8"),
+        RotatingFileHandler(
+            "jackpy.log", maxBytes=10 * 1024 * 1024, backupCount=3, encoding="utf-8"
+        ),
     ],
 )
+# 폴링/HTTP 요청 로그는 경고 이상만 기록 (로그 파일 비대화 방지)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram.ext.Updater").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # 텔레그램 토큰 확인

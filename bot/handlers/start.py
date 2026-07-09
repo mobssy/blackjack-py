@@ -36,13 +36,18 @@ def _start_menu_keyboard(lang: str) -> InlineKeyboardMarkup:
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 단체방에서 호출된 경우 DM 버튼만 전송
     if update.effective_chat.type in ("group", "supergroup"):
+        with get_db() as db:
+            user = db.query(User).filter(
+                User.tg_user_id == update.effective_user.id
+            ).first()
+            lang = get_user_lang(user)
         bot_username = context.bot.username
         keyboard = [[InlineKeyboardButton(
-            "BlackJack 시작하기",
+            t("btn_start_dm", lang),
             url=f"https://t.me/{bot_username}?start=play"
         )]]
         await update.message.reply_text(
-            f"{update.effective_user.first_name}님, 게임은 개인 채팅에서 진행됩니다!",
+            t("group_redirect", lang, name=update.effective_user.first_name),
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -115,11 +120,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── 게임 시작 안내 ──────────────────────────────────────────
     if query.data == "start_game":
         back = [[InlineKeyboardButton(t("btn_back", lang), callback_data="back_to_start")]]
-        if lang == "en":
-            msg = "Start Game\n\nUse /deal [amount] to start blackjack.\nExample: /deal 100"
-        else:
-            msg = "게임 시작\n\n/deal [금액] 명령어로 블랙잭을 시작하세요.\n예: /deal 100"
-        await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(back))
+        await query.edit_message_text(
+            t("start_game_msg", lang), reply_markup=InlineKeyboardMarkup(back)
+        )
 
     # ── 도움말 ─────────────────────────────────────────────────
     elif query.data == "help":
@@ -142,14 +145,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
 
-            reward = 500.0 if user.is_vip_active else 200.0
+            is_vip = user.is_vip_active
+            reward = 500.0 if is_vip else 200.0
             user.add_wallet(reward)
             user.last_daily_at = datetime.now(timezone.utc)
             db.commit()
             balance = float(user.wallet)
 
+        bonus = t("daily_vip_bonus", lang) if is_vip else ""
         await query.edit_message_text(
-            t("daily_reward", lang, reward=reward, balance=balance),
+            t("daily_reward", lang, reward=reward, bonus=bonus, balance=balance),
             reply_markup=InlineKeyboardMarkup(back)
         )
 
@@ -214,8 +219,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── 게임 재시작 안내 ─────────────────────────────────────────
     elif query.data == "restart_game":
         back = [[InlineKeyboardButton(t("btn_back", lang), callback_data="back_to_start")]]
-        if lang == "en":
-            msg = "Start Game\n\nUse /deal [amount] to start blackjack.\nExample: /deal 100"
-        else:
-            msg = "게임 시작\n\n/deal [금액] 명령어로 블랙잭을 시작하세요.\n예: /deal 100"
-        await query.edit_message_caption(caption=msg, reply_markup=InlineKeyboardMarkup(back))
+        await query.edit_message_caption(
+            caption=t("start_game_msg", lang), reply_markup=InlineKeyboardMarkup(back)
+        )

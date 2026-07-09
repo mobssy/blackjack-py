@@ -29,6 +29,23 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_in_progress": "[오류] 이미 게임이 진행 중입니다. /hit 또는 /stand를 입력하세요.",
         "dealer_label": "딜러",
         "player_label": "플레이어",
+        "deal_caption": "블랙잭 시작!{theme}\n베팅: ${bet:,.2f}",
+
+        # 게임 이미지 라벨
+        "img_dealer": "🤖 딜러",
+        "img_player": "🎯 플레이어",
+        "img_total": "합",
+        "hint_commands": "명령어: /hit (카드 추가) | /stand (멈춤)",
+        "drawing_card": "카드를 뽑는 중...",
+        "card_drawn": "카드를 한 장 더 받았습니다!",
+
+        # 결과 라벨
+        "result_label": "게임 결과",
+        "bet_label": "베팅 금액",
+        "payout_label": "정산 금액",
+        "balance_label": "현재 잔액",
+        "game_over_suffix": "게임 종료",
+        "btn_play_again": "다시 시작",
 
         # 게임 결과
         "result_blackjack": "블랙잭!",
@@ -46,10 +63,26 @@ STRINGS: dict[str, dict[str, str]] = {
 
         # /daily
         "daily_already": "일일 보상은 하루에 한 번만 받을 수 있습니다.\n내일 다시 시도해주세요!",
-        "daily_reward": "일일 보상 수령!\n\n받은 금액: ${reward:,.2f}\n현재 잔액: ${balance:,.2f}",
+        "daily_reward": "일일 보상 수령!\n\n받은 금액: ${reward:,.2f}{bonus}\n현재 잔액: ${balance:,.2f}",
+        "daily_vip_bonus": " (VIP 보너스!)",
 
         # /wallet
         "wallet_info": "잔액: ${balance:,.2f}",
+        "wallet_full": (
+            "지갑 정보\n\n"
+            "잔액: ${balance:,.2f}\n"
+            "VIP: {vip}\n\n"
+            "통계\n"
+            "총 게임: {games:,}회\n"
+            "승리: {wins:,}회\n"
+            "패배: {losses:,}회\n"
+            "총 수익: ${profit:,.2f}"
+        ),
+        "vip_active": "[활성]",
+        "vip_inactive": "[비활성]",
+
+        # 게임 시작 안내
+        "start_game_msg": "게임 시작\n\n/deal [금액] 명령어로 블랙잭을 시작하세요.\n예: /deal 100",
 
         # /help
         "help_text": (
@@ -103,6 +136,23 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_in_progress": "[Error] Game already in progress. Type /hit or /stand.",
         "dealer_label": "Dealer",
         "player_label": "Player",
+        "deal_caption": "Blackjack!{theme}\nBet: ${bet:,.2f}",
+
+        # 게임 이미지 라벨
+        "img_dealer": "🤖 Dealer",
+        "img_player": "🎯 Player",
+        "img_total": "Total",
+        "hint_commands": "Hit: /hit | Stand: /stand",
+        "drawing_card": "Drawing card...",
+        "card_drawn": "Card drawn!",
+
+        # 결과 라벨
+        "result_label": "Result",
+        "bet_label": "Bet",
+        "payout_label": "Payout",
+        "balance_label": "Balance",
+        "game_over_suffix": "Game Over",
+        "btn_play_again": "Play Again",
 
         # 게임 결과
         "result_blackjack": "Blackjack!",
@@ -120,10 +170,26 @@ STRINGS: dict[str, dict[str, str]] = {
 
         # /daily
         "daily_already": "Daily reward can only be claimed once per day.\nTry again tomorrow!",
-        "daily_reward": "Daily reward claimed!\n\nAmount: ${reward:,.2f}\nBalance: ${balance:,.2f}",
+        "daily_reward": "Daily reward claimed!\n\nAmount: ${reward:,.2f}{bonus}\nBalance: ${balance:,.2f}",
+        "daily_vip_bonus": " (VIP bonus!)",
 
         # /wallet
         "wallet_info": "Balance: ${balance:,.2f}",
+        "wallet_full": (
+            "Wallet\n\n"
+            "Balance: ${balance:,.2f}\n"
+            "VIP: {vip}\n\n"
+            "Stats\n"
+            "Games: {games:,}\n"
+            "Wins: {wins:,}\n"
+            "Losses: {losses:,}\n"
+            "Total profit: ${profit:,.2f}"
+        ),
+        "vip_active": "[Active]",
+        "vip_inactive": "[Inactive]",
+
+        # 게임 시작 안내
+        "start_game_msg": "Start Game\n\nUse /deal [amount] to start blackjack.\nExample: /deal 100",
 
         # /help
         "help_text": (

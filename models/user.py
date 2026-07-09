@@ -67,7 +67,11 @@ class User(Base, TimestampMixin):
             return False
         if self.vip_expires_at is None:
             return True  # 무제한 VIP
-        return datetime.now(timezone.utc) < self.vip_expires_at
+        expires_at = self.vip_expires_at
+        if expires_at.tzinfo is None:
+            # DB에서 naive datetime으로 조회되는 경우 UTC로 간주
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) < expires_at
 
     @property
     def display_name(self) -> str:

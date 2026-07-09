@@ -3,9 +3,10 @@ JackPy - 블랙잭 게임 핸들러
 /deal, /hit, /stand 명령어 처리
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 from io import BytesIO
 from telegram import (
     Update,
@@ -21,7 +22,6 @@ from bot.utils import (
     calculate_hand_value,
     is_blackjack,
     is_bust,
-    get_hand_display,
     determine_outcome,
     PayoutCalculator,
     should_show_game_ad,
@@ -29,11 +29,8 @@ from bot.utils import (
     t,
     get_user_lang,
 )
-from bot.utils.card_image import get_card_generator
-from bot.utils.enhanced_card_image import get_enhanced_card_generator
 from bot.utils.casino_card_renderer import get_casino_renderer
 from bot.utils.themes import ThemeManager
-from bot.utils.card_animation import get_animation_generator
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +74,45 @@ def _get_game_keyboard():
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
+
+
+def _render_game_image(
+    game: "BlackjackGame",
+    theme,
+    lang: str,
+    message: str,
+    reveal_dealer: bool = False,
+    player_hand: Optional[List[str]] = None,
+) -> bytes:
+    """
+    게임 상태 이미지 렌더링 (공통 헬퍼)
+
+    Args:
+        game: 게임 객체
+        theme: 카드 테마
+        lang: 언어 코드
+        message: 이미지 하단 메시지
+        reveal_dealer: 딜러 첫 카드 공개 여부
+        player_hand: 플레이어 핸드 오버라이드 (애니메이션용, 예: 뒷면 카드 추가)
+
+    Returns:
+        bytes: 렌더링된 이미지
+    """
+    hand = player_hand if player_hand is not None else game.player_hand
+    dealer_value = (
+        calculate_hand_value(game.dealer_hand) if reveal_dealer else None
+    )
+    return get_casino_renderer(theme).generate_game_image(
+        player_hand=hand,
+        dealer_hand=game.dealer_hand,
+        player_value=calculate_hand_value(game.player_hand),
+        dealer_value=dealer_value,
+        hide_dealer_first=not reveal_dealer,
+        message=message,
+        dealer_label=t("img_dealer", lang),
+        player_label=t("img_player", lang),
+        value_label=t("img_total", lang),
+    )
 
 
 class BlackjackGame:
@@ -151,23 +187,23 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
-    # 단체방에서 호출된 경우 DM으로 유도
-    if update.effective_chat.type in ("group", "supergroup"):
-        bot_username = context.bot.username
-        keyboard = [[InlineKeyboardButton(
-            "BlackJack 시작하기",
-            url=f"https://t.me/{bot_username}?start=play"
-        )]]
-        await update.message.reply_text(
-            f"{update.effective_user.first_name}님, 게임은 개인 채팅에서 진행됩니다!",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return
-
     # 사용자 언어 조회
     with get_db() as db:
         _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         lang = get_user_lang(_u)
+
+    # 단체방에서 호출된 경우 DM으로 유도
+    if update.effective_chat.type in ("group", "supergroup"):
+        bot_username = context.bot.username
+        keyboard = [[InlineKeyboardButton(
+            t("btn_start_dm", lang),
+            url=f"https://t.me/{bot_username}?start=play"
+        )]]
+        await update.message.reply_text(
+            t("group_redirect", lang, name=update.effective_user.first_name),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
 
     # 베팅 금액 파싱
     if not context.args or len(context.args) == 0:
@@ -209,9 +245,6 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game.deal_initial()
     game_sessions[user_tg_id] = game
 
-    # 초기 카드 표시
-    player_value = calculate_hand_value(game.player_hand)
-
     # 블랙잭 체크
     if is_blackjack(game.player_hand):
         # 딜러도 블랙잭인지 확인
@@ -228,27 +261,10 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
     theme = _get_user_theme(user_tg_id, chat_id)
-    card_gen = get_casino_renderer(theme)
-    deal_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
-    dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
-    pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
-    image_bytes = card_gen.generate_game_image(
-        player_hand=game.player_hand,
-        dealer_hand=game.dealer_hand,
-        player_value=player_value,
-        dealer_value=None,
-        hide_dealer_first=True,
-        message=deal_msg,
-        dealer_label=dl,
-        player_label=pl,
-        value_label="Total" if lang == "en" else "합",
-    )
+    image_bytes = _render_game_image(game, theme, lang, t("hint_commands", lang))
 
     theme_name = f" [{theme.name}]" if theme.name != "Classic" else ""
-    if lang == "en":
-        caption = f"Blackjack!{theme_name}\nBet: ${bet_amount:,.2f}"
-    else:
-        caption = f"블랙잭 시작!{theme_name}\n베팅: ${bet_amount:,.2f}"
+    caption = t("deal_caption", lang, theme=theme_name, bet=bet_amount)
     await update.message.reply_photo(
         photo=BytesIO(image_bytes), caption=caption, reply_markup=_get_game_keyboard()
     )
@@ -278,7 +294,6 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 카드 추가
     game.player_hit()
-    player_value = calculate_hand_value(game.player_hand)
 
     # 버스트 체크
     if is_bust(game.player_hand):
@@ -288,23 +303,9 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     theme = _get_user_theme(user_tg_id, chat_id)
-    card_gen = get_casino_renderer(theme)
-    hit_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
-    dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
-    pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
-    image_bytes = card_gen.generate_game_image(
-        player_hand=game.player_hand,
-        dealer_hand=game.dealer_hand,
-        player_value=player_value,
-        dealer_value=None,
-        hide_dealer_first=True,
-        message=hit_msg,
-        dealer_label=dl,
-        player_label=pl,
-        value_label="Total" if lang == "en" else "합",
-    )
+    image_bytes = _render_game_image(game, theme, lang, t("hint_commands", lang))
 
-    caption = "Card drawn!" if lang == "en" else "카드를 한 장 더 받았습니다!"
+    caption = t("card_drawn", lang)
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=caption,
@@ -343,17 +344,26 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _finish_game(update, user_tg_id, game, outcome, payout)
 
 
-def _build_game_result(
+def _settle_game(
     user_tg_id: int,
     game: BlackjackGame,
     outcome: GameOutcome,
     payout: float,
     chat_id: int,
-    lang: str = "ko",
-) -> Tuple[bytes, str, InlineKeyboardMarkup]:
-    player_value = calculate_hand_value(game.player_hand)
-    dealer_value = calculate_hand_value(game.dealer_hand)
+) -> Dict:
+    """
+    게임 결과 DB 정산 (지갑 반영, 통계 갱신, 라운드 기록)
 
+    Args:
+        user_tg_id: 사용자 텔레그램 ID
+        game: 게임 객체
+        outcome: 게임 결과
+        payout: 정산 금액
+        chat_id: 채팅 ID
+
+    Returns:
+        Dict: 렌더링에 필요한 정산 결과 정보
+    """
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         group = db.query(Group).filter(Group.chat_id == chat_id).first()
@@ -382,68 +392,78 @@ def _build_game_result(
         ))
         db.commit()
 
-        outcome_emoji = PayoutCalculator.get_result_emoji(outcome)
-        outcome_key = {
-            GameOutcome.BLACKJACK: "result_blackjack",
-            GameOutcome.WIN: "result_win",
-            GameOutcome.PUSH: "result_push",
-            GameOutcome.LOSS: "result_lose",
-            GameOutcome.BUST: "result_bust",
-        }.get(outcome, "result_lose")
-        outcome_msg = t(outcome_key, lang)
-        payout_str = PayoutCalculator.format_payout(payout)
+        return {
+            "wallet": float(user.wallet),
+            "is_free": group.plan == PlanType.FREE if group else True,
+            "is_vip": user.is_vip_active,
+            "is_business": group.plan == PlanType.BUSINESS if group else False,
+        }
 
-        player_label = t("player_label", lang)
-        dealer_label = t("dealer_label", lang)
-        bet_label = "Bet" if lang == "en" else "베팅 금액"
-        payout_label = "Payout" if lang == "en" else "정산 금액"
-        balance_label = "Balance" if lang == "en" else "현재 잔액"
-        result_label = "Result" if lang == "en" else "게임 결과"
 
-        result_message = "\n".join([
-            "--------------------",
-            f"{outcome_emoji} {result_label}: {outcome_msg}",
-            "--------------------",
-            "",
-            f"{player_label}: {player_value}",
-            f"{dealer_label}: {dealer_value}",
-            "",
-            f"{bet_label}: ${game.bet:,.2f}",
-            f"{payout_label}: {payout_str}",
-            f"{balance_label}: ${user.wallet:,.2f}",
-            "--------------------",
-        ])
+def _render_game_result(
+    game: BlackjackGame,
+    outcome: GameOutcome,
+    payout: float,
+    settle_info: Dict,
+    lang: str = "ko",
+) -> Tuple[bytes, str, InlineKeyboardMarkup]:
+    """
+    게임 결과 이미지/캡션/키보드 생성 (DB 접근 없음)
 
-        is_free = group.plan == PlanType.FREE if group else True
-        if should_show_game_ad(is_free):
-            result_message += get_ad_footer(show_ad=True)
+    Args:
+        game: 게임 객체
+        outcome: 게임 결과
+        payout: 정산 금액
+        settle_info: _settle_game이 반환한 정산 결과 정보
+        lang: 언어 코드
 
-        is_vip = user.is_vip_active
-        is_business = group.plan == PlanType.BUSINESS if group else False
-        theme = ThemeManager.get_theme_by_plan(is_vip, is_business)
+    Returns:
+        Tuple[bytes, str, InlineKeyboardMarkup]: (이미지, 캡션, 키보드)
+    """
+    player_value = calculate_hand_value(game.player_hand)
+    dealer_value = calculate_hand_value(game.dealer_hand)
 
-        _dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
-        _pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
-        image_bytes = get_casino_renderer(theme).generate_game_image(
-            player_hand=game.player_hand,
-            dealer_hand=game.dealer_hand,
-            player_value=player_value,
-            dealer_value=dealer_value,
-            hide_dealer_first=False,
-            message=result_message,
-            dealer_label=_dl,
-            player_label=_pl,
-            value_label="Total" if lang == "en" else "합",
-        )
+    outcome_emoji = PayoutCalculator.get_result_emoji(outcome)
+    outcome_key = {
+        GameOutcome.BLACKJACK: "result_blackjack",
+        GameOutcome.WIN: "result_win",
+        GameOutcome.PUSH: "result_push",
+        GameOutcome.LOSS: "result_lose",
+        GameOutcome.BUST: "result_bust",
+    }.get(outcome, "result_lose")
+    outcome_msg = t(outcome_key, lang)
+    payout_str = PayoutCalculator.format_payout(payout)
 
-        game_over_label = "Game Over" if lang == "en" else "게임 종료"
-        theme_badge = f" [{theme.name}]" if theme.name != "Classic" else ""
-        caption = f"{outcome_msg} {game_over_label}{theme_badge}"
+    result_message = "\n".join([
+        "--------------------",
+        f"{outcome_emoji} {t('result_label', lang)}: {outcome_msg}",
+        "--------------------",
+        "",
+        f"{t('player_label', lang)}: {player_value}",
+        f"{t('dealer_label', lang)}: {dealer_value}",
+        "",
+        f"{t('bet_label', lang)}: ${game.bet:,.2f}",
+        f"{t('payout_label', lang)}: {payout_str}",
+        f"{t('balance_label', lang)}: ${settle_info['wallet']:,.2f}",
+        "--------------------",
+    ])
 
-        restart_label = "Play Again" if lang == "en" else "다시 시작"
-        reply_markup = InlineKeyboardMarkup(
-            [[InlineKeyboardButton(restart_label, callback_data="restart_game")]]
-        )
+    if should_show_game_ad(settle_info["is_free"]):
+        result_message += get_ad_footer(show_ad=True)
+
+    theme = ThemeManager.get_theme_by_plan(
+        settle_info["is_vip"], settle_info["is_business"]
+    )
+    image_bytes = _render_game_image(
+        game, theme, lang, result_message, reveal_dealer=True
+    )
+
+    theme_badge = f" [{theme.name}]" if theme.name != "Classic" else ""
+    caption = f"{outcome_msg} {t('game_over_suffix', lang)}{theme_badge}"
+
+    reply_markup = InlineKeyboardMarkup(
+        [[InlineKeyboardButton(t("btn_play_again", lang), callback_data="restart_game")]]
+    )
 
     return image_bytes, caption, reply_markup
 
@@ -468,13 +488,19 @@ async def _finish_game(
     with get_db() as db:
         _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         lang = get_user_lang(_u)
-    image_bytes, caption, reply_markup = _build_game_result(
-        user_tg_id, game, outcome, payout, update.effective_chat.id, lang
+
+    # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
+    settle_info = _settle_game(
+        user_tg_id, game, outcome, payout, update.effective_chat.id
+    )
+    game_sessions.pop(user_tg_id, None)
+
+    image_bytes, caption, reply_markup = _render_game_result(
+        game, outcome, payout, settle_info, lang
     )
     await update.message.reply_photo(
         photo=BytesIO(image_bytes), caption=caption, reply_markup=reply_markup
     )
-    game_sessions.pop(user_tg_id, None)
 
 
 async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -489,20 +515,22 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(user)
         if not user:
-            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text(t("deal_no_user", lang))
             return
 
         stats = user.stats_json or {}
-        message = (
-            f"지갑 정보\n\n"
-            f"잔액: ${user.wallet:,.2f}\n"
-            f"VIP: {'[활성]' if user.is_vip_active else '[비활성]'}\n\n"
-            f"통계\n"
-            f"총 게임: {stats.get('total_games', 0):,}회\n"
-            f"승리: {stats.get('wins', 0):,}회\n"
-            f"패배: {stats.get('losses', 0):,}회\n"
-            f"총 수익: ${stats.get('total_profit', 0):,.2f}"
+        vip_status = t("vip_active" if user.is_vip_active else "vip_inactive", lang)
+        message = t(
+            "wallet_full",
+            lang,
+            balance=float(user.wallet),
+            vip=vip_status,
+            games=stats.get("total_games", 0),
+            wins=stats.get("wins", 0),
+            losses=stats.get("losses", 0),
+            profit=stats.get("total_profit", 0),
         )
         await update.message.reply_text(message)
 
@@ -519,28 +547,26 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(user)
         if not user:
-            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text(t("deal_no_user", lang))
             return
 
         # 일일 보상 수령 가능 여부 확인
         if not user.can_claim_daily():
-            await update.message.reply_text(
-                "일일 보상은 하루에 한 번만 받을 수 있습니다.\n내일 다시 시도해주세요!"
-            )
+            await update.message.reply_text(t("daily_already", lang))
             return
 
         # 보상 지급
-        reward = 500.0 if user.is_vip_active else 200.0
+        is_vip = user.is_vip_active
+        reward = 500.0 if is_vip else 200.0
         user.add_wallet(reward)
         user.last_daily_at = datetime.now(timezone.utc)
         db.commit()
 
-        vip_bonus = " (VIP 보너스!)" if user.is_vip_active else ""
+        bonus = t("daily_vip_bonus", lang) if is_vip else ""
         await update.message.reply_text(
-            f"일일 보상 수령!\n\n"
-            f"받은 금액: ${reward:,.2f}{vip_bonus}\n"
-            f"현재 잔액: ${user.wallet:,.2f}"
+            t("daily_reward", lang, reward=reward, bonus=bonus, balance=float(user.wallet))
         )
 
 
@@ -571,30 +597,15 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # callback_data에 따라 적절한 명령어 실행
     if query.data == "game_hit":
-        # HIT 로직
-        import asyncio
-
-        # 먼저 뒷면 카드가 추가된 이미지 표시
+        # 먼저 뒷면 카드가 추가된 이미지 표시 (카드 뒤집기 연출)
         theme = _get_user_theme(user_tg_id, chat_id)
-        card_gen = get_casino_renderer(theme)
-
-        # 카드를 추가하기 전 상태 + 뒷면 카드 하나 추가
-        temp_hand = game.player_hand + ["BACK"]  # 임시로 뒷면 카드 추가
-        temp_value = calculate_hand_value(game.player_hand)
-
-        _dl = "🤖 Dealer" if lang == "en" else "🤖 딜러"
-        _pl = "🎯 Player" if lang == "en" else "🎯 플레이어"
-        drawing_msg = "Drawing card..." if lang == "en" else "카드를 뽑는 중..."
-        back_image_bytes = card_gen.generate_game_image(
-            player_hand=temp_hand,
-            dealer_hand=game.dealer_hand,
-            player_value=temp_value,
-            dealer_value=None,
-            hide_dealer_first=True,
-            message=drawing_msg,
-            dealer_label=_dl,
-            player_label=_pl,
-            value_label="Total" if lang == "en" else "합",
+        drawing_msg = t("drawing_card", lang)
+        back_image_bytes = _render_game_image(
+            game,
+            theme,
+            lang,
+            drawing_msg,
+            player_hand=game.player_hand + ["BACK"],
         )
 
         await query.edit_message_media(
@@ -609,7 +620,6 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # 실제 카드 추가
         game.player_hit()
-        player_value = calculate_hand_value(game.player_hand)
 
         # 버스트 체크
         if is_bust(game.player_hand):
@@ -620,23 +630,12 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             )
             return
 
-        _hit_msg = "Hit: /hit | Stand: /stand" if lang == "en" else "명령어: /hit (카드 추가) | /stand (멈춤)"
-        image_bytes = card_gen.generate_game_image(
-            player_hand=game.player_hand,
-            dealer_hand=game.dealer_hand,
-            player_value=player_value,
-            dealer_value=None,
-            hide_dealer_first=True,
-            message=_hit_msg,
-            dealer_label=_dl,
-            player_label=_pl,
-            value_label="Total" if lang == "en" else "합",
-        )
+        image_bytes = _render_game_image(game, theme, lang, t("hint_commands", lang))
 
         # 앞면 카드로 업데이트
         await query.edit_message_media(
             media=InputMediaPhoto(
-                media=BytesIO(image_bytes), caption="카드를 한 장 더 받았습니다!"
+                media=BytesIO(image_bytes), caption=t("card_drawn", lang)
             ),
             reply_markup=_get_game_keyboard(),
         )
@@ -670,11 +669,15 @@ async def _finish_game_callback(
     with get_db() as db:
         _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         lang = get_user_lang(_u)
-    image_bytes, caption, reply_markup = _build_game_result(
-        user_tg_id, game, outcome, payout, chat_id, lang
+
+    # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
+    settle_info = _settle_game(user_tg_id, game, outcome, payout, chat_id)
+    game_sessions.pop(user_tg_id, None)
+
+    image_bytes, caption, reply_markup = _render_game_result(
+        game, outcome, payout, settle_info, lang
     )
     await query.edit_message_media(
         media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
         reply_markup=reply_markup,
     )
-    game_sessions.pop(user_tg_id, None)

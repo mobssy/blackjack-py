@@ -78,6 +78,18 @@ class TestUserModel:
         user.vip_expires_at = datetime.now(timezone.utc) - timedelta(days=1)
         assert user.is_vip_active is False
 
+    def test_vip_active_with_naive_datetime(self, db_session):
+        """DB에서 naive datetime으로 조회된 만료일도 크래시 없이 비교"""
+        user = User(tg_user_id=123, is_vip=True)
+
+        # naive 미래 만료일 (SQLite 등에서 tzinfo 없이 반환되는 경우)
+        user.vip_expires_at = datetime.utcnow() + timedelta(days=30)
+        assert user.is_vip_active is True
+
+        # naive 과거 만료일
+        user.vip_expires_at = datetime.utcnow() - timedelta(days=1)
+        assert user.is_vip_active is False
+
     def test_add_wallet(self, db_session):
         """잔액 추가 테스트"""
         user = User(tg_user_id=123, wallet=Decimal("1000.0"))
