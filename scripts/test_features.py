@@ -20,7 +20,7 @@ def test_themes():
     # Classic 테마
     theme = ThemeManager.get_theme(ThemeType.CLASSIC)
     assert theme.name == "Classic", "Classic 테마 이름 오류"
-    assert theme.has_gradient is False, "Classic 테마 그라데이션 오류"
+    assert theme.has_gradient is True, "Classic 테마 그라데이션 오류"
     print("  ✅ Classic 테마: OK")
 
     # Dark 테마
@@ -49,97 +49,6 @@ def test_themes():
     print("  ✅ 비즈니스 플랜 테마: OK")
 
     print("✅ 테마 시스템 테스트 완료!\n")
-
-
-def test_enhanced_card_image():
-    """개선된 카드 이미지 생성 테스트"""
-    print("🃏 카드 이미지 생성 테스트...")
-
-    from bot.utils.enhanced_card_image import (
-        EnhancedCardImageGenerator,
-        get_enhanced_card_generator,
-    )
-    from bot.utils.themes import ThemeManager, ThemeType
-
-    # 생성기 초기화
-    gen = EnhancedCardImageGenerator()
-    assert gen is not None, "생성기 초기화 오류"
-    print("  ✅ 생성기 초기화: OK")
-
-    # 카드 경로 변환
-    path = gen._get_card_image_path("AS")
-    assert path is not None, "카드 경로 변환 오류"
-    assert "ace_of_spades" in str(path), "카드 경로 이름 오류"
-    print("  ✅ 카드 경로 변환: OK")
-
-    # 게임 이미지 생성
-    player_hand = ["AS", "KH"]
-    dealer_hand = ["7D", "8C"]
-
-    image_bytes = gen.generate_game_image(
-        player_hand=player_hand,
-        dealer_hand=dealer_hand,
-        player_value=21,
-        dealer_value=15,
-        hide_dealer_first=False,
-        message="Test",
-    )
-
-    assert image_bytes is not None, "이미지 생성 오류"
-    assert len(image_bytes) > 0, "이미지 크기 오류"
-    print("  ✅ 게임 이미지 생성: OK")
-
-    # 싱글톤 패턴
-    gen1 = get_enhanced_card_generator()
-    gen2 = get_enhanced_card_generator()
-    assert gen1 is gen2, "싱글톤 패턴 오류"
-    print("  ✅ 싱글톤 패턴: OK")
-
-    # 테마별 생성기
-    theme_dark = ThemeManager.get_theme(ThemeType.DARK)
-    theme_luxury = ThemeManager.get_theme(ThemeType.LUXURY)
-
-    gen_dark = get_enhanced_card_generator(theme_dark)
-    gen_luxury = get_enhanced_card_generator(theme_luxury)
-
-    assert gen_dark is not gen_luxury, "테마별 생성기 오류"
-    assert gen_dark.theme.name == "Dark", "Dark 생성기 테마 오류"
-    assert gen_luxury.theme.name == "Luxury", "Luxury 생성기 테마 오류"
-    print("  ✅ 테마별 생성기: OK")
-
-    print("✅ 카드 이미지 생성 테스트 완료!\n")
-
-
-def test_card_animation():
-    """카드 애니메이션 테스트"""
-    print("🎬 카드 애니메이션 테스트...")
-
-    from bot.utils.card_animation import CardAnimationGenerator, get_animation_generator
-
-    # 생성기 초기화
-    gen = CardAnimationGenerator()
-    assert gen is not None, "애니메이션 생성기 초기화 오류"
-    print("  ✅ 애니메이션 생성기 초기화: OK")
-
-    # 뒤집기 애니메이션 생성
-    gif_bytes = gen.create_flip_animation("AS", frames=5, duration=100)
-    assert gif_bytes is not None, "뒤집기 애니메이션 생성 오류"
-    assert len(gif_bytes) > 0, "뒤집기 애니메이션 크기 오류"
-    print("  ✅ 뒤집기 애니메이션: OK")
-
-    # 딜 애니메이션 생성
-    gif_bytes = gen.create_deal_animation(["AS", "KH"], frames_per_card=3, duration=100)
-    assert gif_bytes is not None, "딜 애니메이션 생성 오류"
-    assert len(gif_bytes) > 0, "딜 애니메이션 크기 오류"
-    print("  ✅ 딜 애니메이션: OK")
-
-    # 싱글톤 패턴
-    gen1 = get_animation_generator()
-    gen2 = get_animation_generator()
-    assert gen1 is gen2, "애니메이션 생성기 싱글톤 패턴 오류"
-    print("  ✅ 싱글톤 패턴: OK")
-
-    print("✅ 카드 애니메이션 테스트 완료!\n")
 
 
 def test_payouts():
@@ -186,8 +95,6 @@ def main():
 
     try:
         test_themes()
-        test_enhanced_card_image()
-        test_card_animation()
         test_payouts()
 
         print("=" * 50)

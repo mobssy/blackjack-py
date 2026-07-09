@@ -79,3 +79,4 @@ htmlcov/
 jackpy.log
 game_sessions.pkl
 jackpy.log.*
+game_sessions.json

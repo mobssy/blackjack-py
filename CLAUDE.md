@@ -15,14 +15,15 @@
     player_hand/bet은 활성 핸드 프로퍼티)
   - `deck.py` — 카드/덱/핸드 계산, `payouts.py` — 배당 계산 및 결과 판정
   - `i18n.py` — ko/en 문자열, `t(key, lang, **kwargs)`. 키는 반드시 양쪽 언어에 추가
-  - `casino_card_renderer.py` — 게임 이미지 렌더러 (실사용).
-    card_image/enhanced_card_image/premium/luxury 렌더러는 레거시 (미사용)
+  - `casino_card_renderer.py` — 게임 이미지 렌더러 (유일한 렌더러)
+  - `session_store.py` — 게임 세션 JSON 영속화 (game_sessions.json, gitignore됨)
 - `models/` — SQLAlchemy 모델 (User, Group, Round, Approval, AdSchedule).
   DB는 `DATABASE_URL` 환경변수 (기본 sqlite:///./jackpy.db), `init_db()`로 create_all
 
 ## 주의사항
 
-- **게임 세션은 메모리 dict** (`game_sessions`) — 봇 재시작 시 진행 중 베팅 유실
+- **게임 세션**: 메모리 dict + JSON 영속화. 상태 변이 시 `_persist_sessions()` 호출
+  필수 (새 변이 지점 추가 시 누락 주의). 재시작 시 module import에서 자동 복원
 - **정산 순서 불변식**: DB 정산 커밋 → 세션 pop → 메시지 전송.
   전송 실패 시에도 이중 정산이 없도록 이 순서를 유지할 것
 - DateTime 컬럼은 naive로 저장됨 — aware datetime과 비교 시 UTC 간주 변환 필요

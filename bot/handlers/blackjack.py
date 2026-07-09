@@ -27,14 +27,20 @@ from bot.utils import (
     get_user_lang,
 )
 from bot.utils.blackjack_game import BlackjackGame
+from bot.utils.session_store import load_sessions, save_sessions
 from bot.utils.casino_card_renderer import get_casino_renderer
 from bot.utils.themes import ThemeManager
 
 logger = logging.getLogger(__name__)
 
-# 게임 상태 저장소 (메모리 기반)
-# 실전에서는 Redis 등 사용 권장
-game_sessions: Dict[int, BlackjackGame] = {}
+# 게임 상태 저장소 (메모리 + JSON 파일 영속화)
+# 봇 재시작 시 진행 중이던 게임(차감된 베팅)이 유실되지 않도록 복원한다
+game_sessions: Dict[int, BlackjackGame] = load_sessions()
+
+
+def _persist_sessions() -> None:
+    """게임 상태 변경 시점마다 세션을 파일에 반영"""
+    save_sessions(game_sessions)
 
 
 def _get_user_theme(user_tg_id: int, chat_id: int):
@@ -224,6 +230,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game = BlackjackGame(user_tg_id, bet_amount)
     game.deal_initial()
     game_sessions[user_tg_id] = game
+    _persist_sessions()
 
     # 블랙잭 체크
     if is_blackjack(game.player_hand):
@@ -276,11 +283,13 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 카드 추가
     game.player_hit()
+    _persist_sessions()
 
     # 버스트 체크
     if is_bust(game.player_hand):
         busted_number = game.hand_number
         if game.advance_hand():
+            _persist_sessions()
             # 스플릿: 다음 핸드로 진행
             caption = t(
                 "hand_bust_next",
@@ -335,6 +344,7 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 스플릿: 다음 핸드가 남아 있으면 이동
     if game.advance_hand():
+        _persist_sessions()
         caption = _hand_progress_caption(game, lang)
         theme = _get_user_theme(user_tg_id, chat_id)
         image_bytes = _render_game_image(game, theme, lang, caption)
@@ -372,6 +382,7 @@ def _try_double(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[str
         db.commit()
 
     game.player_double()
+    _persist_sessions()
     return None
 
 
@@ -411,6 +422,7 @@ def _try_split(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[str]
         db.commit()
 
     game.split()
+    _persist_sessions()
     return None
 
 
@@ -715,6 +727,7 @@ async def _finish_game(
     # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
     settle_info = _settle_game(user_tg_id, game, results, update.effective_chat.id)
     game_sessions.pop(user_tg_id, None)
+    _persist_sessions()
 
     image_bytes, caption, reply_markup = _render_game_result(
         game, results, settle_info, lang
@@ -845,11 +858,13 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # 실제 카드 추가
         game.player_hit()
+        _persist_sessions()
 
         # 버스트 체크
         if is_bust(game.player_hand):
             busted_number = game.hand_number
             if game.advance_hand():
+                _persist_sessions()
                 # 스플릿: 다음 핸드로 진행
                 caption = t(
                     "hand_bust_next",
@@ -882,6 +897,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     elif query.data == "game_stand":
         # STAND 로직: 다음 핸드가 남아 있으면 이동, 아니면 게임 종료
         if game.advance_hand():
+            _persist_sessions()
             caption = _hand_progress_caption(game, lang)
             theme = _get_user_theme(user_tg_id, chat_id)
             image_bytes = _render_game_image(game, theme, lang, caption)
@@ -967,6 +983,7 @@ async def _finish_game_callback(
     # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
     settle_info = _settle_game(user_tg_id, game, results, chat_id)
     game_sessions.pop(user_tg_id, None)
+    _persist_sessions()
 
     image_bytes, caption, reply_markup = _render_game_result(
         game, results, settle_info, lang

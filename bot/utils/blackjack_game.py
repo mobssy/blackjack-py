@@ -42,6 +42,34 @@ class BlackjackGame:
         self.dealer_hand: List[str] = []
         self.is_finished = False
 
+    # ── 직렬화 (세션 영속화용) ──────────────────────────────────
+
+    def to_dict(self) -> dict:
+        """JSON 저장 가능한 상태 dict로 변환"""
+        return {
+            "user_id": self.user_id,
+            "hands": self.hands,
+            "bets": self.bets,
+            "active_index": self.active_index,
+            "is_split": self.is_split,
+            "split_rank": self.split_rank,
+            "dealer_hand": self.dealer_hand,
+            "deck_cards": self.deck.cards,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "BlackjackGame":
+        """to_dict()로 저장된 상태에서 게임 복원"""
+        game = cls(user_id=data["user_id"], bet=0.0)
+        game.hands = [list(hand) for hand in data["hands"]]
+        game.bets = [float(bet) for bet in data["bets"]]
+        game.active_index = int(data["active_index"])
+        game.is_split = bool(data["is_split"])
+        game.split_rank = data.get("split_rank")
+        game.dealer_hand = list(data["dealer_hand"])
+        game.deck.cards = list(data["deck_cards"])
+        return game
+
     # ── 활성 핸드 접근자 ────────────────────────────────────────
 
     @property
