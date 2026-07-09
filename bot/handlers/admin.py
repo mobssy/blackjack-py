@@ -109,9 +109,7 @@ async def _admin_pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             if approval.type == ApprovalType.VIP:
-                message += (
-                    f"승인: /approve {user.tg_user_id} {approval.duration_days}\n"
-                )
+                message += f"승인: /approve {user.tg_user_id} {approval.duration_days}\n"
             else:
                 message += f"승인: /approve_business {user.tg_user_id} [chat_id]\n"
 
@@ -205,9 +203,7 @@ async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"사용자 알림 전송 실패: {e}")
 
         # 관리자에게 확인 메시지
-        await update.message.reply_text(
-            f"VIP 해제 완료\n\n" f"사용자: {user.display_name}"
-        )
+        await update.message.reply_text(f"VIP 해제 완료\n\n" f"사용자: {user.display_name}")
 
 
 async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -261,15 +257,11 @@ async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 target_user_id = int(user_identifier)
                 user = db.query(User).filter(User.tg_user_id == target_user_id).first()
             except ValueError:
-                await update.message.reply_text(
-                    "올바른 사용자 ID 또는 username을 입력해주세요."
-                )
+                await update.message.reply_text("올바른 사용자 ID 또는 username을 입력해주세요.")
                 return
 
         if not user:
-            await update.message.reply_text(
-                f"사용자를 찾을 수 없습니다: {user_identifier}"
-            )
+            await update.message.reply_text(f"사용자를 찾을 수 없습니다: {user_identifier}")
             return
 
         # 이전 잔액 저장

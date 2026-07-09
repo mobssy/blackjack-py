@@ -25,9 +25,7 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 통계 조회
@@ -101,18 +99,14 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 현재 사용자
         current_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not current_user:
-            await update.message.reply_text(
-                "[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 수익 순위 (상위 10명)
         top_users = db.query(User).order_by(desc(User.wallet)).limit(10).all()
 
         # 랭킹 메시지 생성
-        rank_message = (
-            f"JackPy 랭킹\n" f"━━━━━━━━━━━━━━━━━━━\n\n" f"잔액 순위 (Top 10)\n\n"
-        )
+        rank_message = f"JackPy 랭킹\n" f"━━━━━━━━━━━━━━━━━━━\n\n" f"잔액 순위 (Top 10)\n\n"
 
         current_user_rank = None
         for idx, user in enumerate(top_users, 1):
@@ -161,9 +155,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         if not user:
-            await update.message.reply_text(
-                "[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요."
-            )
+            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
             return
 
         # 라운드별 통계 조회
