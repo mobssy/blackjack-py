@@ -3,7 +3,6 @@ JackPy - 블랙잭 게임 로직 테스트
 BlackjackGame 클래스 및 게임 유틸리티 함수 테스트
 """
 
-import pytest
 from bot.utils.deck import (
     Card,
     Deck,
@@ -483,8 +482,8 @@ class TestBlackjackGameSplit:
         """핸드별로 독립 판정 (한 핸드 승, 한 핸드 패)"""
         game = self._make_game(["8S", "8H"])
         game.split()
-        game.hands[0] = ["8S", "KD"]   # 18
-        game.hands[1] = ["8H", "5C"]   # 13
+        game.hands[0] = ["8S", "KD"]  # 18
+        game.hands[1] = ["8H", "5C"]  # 13
         game.dealer_hand = ["10S", "7H"]  # 17
         results = game.get_results()
         assert results[0][0] == GameOutcome.WIN

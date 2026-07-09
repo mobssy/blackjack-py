@@ -3,7 +3,6 @@
 """
 
 import pytest
-from pathlib import Path
 from PIL import Image
 import io
 from bot.utils.enhanced_card_image import (

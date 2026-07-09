@@ -98,6 +98,9 @@ make run
 /deal 100   - $100 베팅으로 블랙잭 시작
 /hit        - 카드 한 장 더
 /stand      - 멈춤
+/double     - 더블 다운 (첫 두 장)
+/surrender  - 서렌더 (베팅액 절반 회수)
+/split      - 스플릿 (같은 랭크 2장)
 /wallet     - 잔액 확인
 /daily      - 일일 보상 ($200)
 ```

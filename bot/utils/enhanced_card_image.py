@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import List, Optional, Tuple
 import io
 from pathlib import Path
-from bot.utils.themes import Theme, ThemeManager, ThemeType
+from bot.utils.themes import Theme, ThemeManager
 
 
 class EnhancedCardImageGenerator:

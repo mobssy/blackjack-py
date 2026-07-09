@@ -3,7 +3,7 @@ JackPy - Round 모델
 블랙잭 게임 라운드 기록
 """
 
-from sqlalchemy import Column, Integer, ForeignKey, Numeric, String, JSON, Enum
+from sqlalchemy import Column, Integer, ForeignKey, Numeric, JSON, Enum
 from sqlalchemy.orm import relationship
 import enum
 from models.base import Base, TimestampMixin

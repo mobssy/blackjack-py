@@ -5,7 +5,6 @@ VIP 만료 체크 및 자동 알림
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import List
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from telegram import Bot
@@ -178,7 +177,9 @@ class JackPyScheduler:
                         await self._send_notification(group.owner.tg_user_id, message)
 
                 db.commit()
-                logger.info(f"✅ 그룹 플랜 만료 체크 완료 (만료: {len(expired_groups)})")
+                logger.info(
+                    f"✅ 그룹 플랜 만료 체크 완료 (만료: {len(expired_groups)})"
+                )
 
         except Exception as e:
             logger.error(f"❌ 그룹 플랜 만료 체크 오류: {e}")
@@ -197,7 +198,9 @@ class JackPyScheduler:
                 logger.warning("⚠️ 관리자 ID가 설정되지 않음")
                 return
 
-            admin_ids = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+            admin_ids = [
+                int(id.strip()) for id in admin_ids_str.split(",") if id.strip()
+            ]
 
             # 지난 7일간 통계 계산
             with get_db() as db:
@@ -210,7 +213,9 @@ class JackPyScheduler:
                 total_users = db.query(func.count(User.id)).scalar()
 
                 # VIP 사용자 수
-                vip_users = db.query(func.count(User.id)).filter(User.is_vip == True).scalar()
+                vip_users = (
+                    db.query(func.count(User.id)).filter(User.is_vip == True).scalar()
+                )
 
                 # 주간 신규 사용자
                 new_users = (

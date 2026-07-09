@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Tuple
 from io import BytesIO
 from telegram import (
     Update,
-    InputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
@@ -35,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 # 게임 상태 저장소 (메모리 기반)
 # 실전에서는 Redis 등 사용 권장
-game_sessions: Dict[int, Dict] = {}
+game_sessions: Dict[int, BlackjackGame] = {}
 
 
 def _get_user_theme(user_tg_id: int, chat_id: int):
@@ -82,9 +81,7 @@ def _get_game_keyboard(first_turn: bool = False, can_split: bool = False):
             InlineKeyboardButton("SURRENDER", callback_data="game_surrender"),
         ]
         if can_split:
-            second_row.append(
-                InlineKeyboardButton("SPLIT", callback_data="game_split")
-            )
+            second_row.append(InlineKeyboardButton("SPLIT", callback_data="game_split"))
         keyboard.append(second_row)
     return InlineKeyboardMarkup(keyboard)
 
@@ -116,9 +113,7 @@ def _render_game_image(
     hand = player_hand if player_hand is not None else game.player_hand
     if player_value is None:
         player_value = calculate_hand_value(game.player_hand)
-    dealer_value = (
-        calculate_hand_value(game.dealer_hand) if reveal_dealer else None
-    )
+    dealer_value = calculate_hand_value(game.dealer_hand) if reveal_dealer else None
     return get_casino_renderer(theme).generate_game_image(
         player_hand=hand,
         dealer_hand=game.dealer_hand,
@@ -174,13 +169,17 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 단체방에서 호출된 경우 DM으로 유도
     if update.effective_chat.type in ("group", "supergroup"):
         bot_username = context.bot.username
-        keyboard = [[InlineKeyboardButton(
-            t("btn_start_dm", lang),
-            url=f"https://t.me/{bot_username}?start=play"
-        )]]
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    t("btn_start_dm", lang),
+                    url=f"https://t.me/{bot_username}?start=play",
+                )
+            ]
+        ]
         await update.message.reply_text(
             t("group_redirect", lang, name=update.effective_user.first_name),
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup(keyboard),
         )
         return
 
@@ -207,7 +206,9 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 잔액 확인
         if user.wallet < bet_amount:
-            await update.message.reply_text(t("deal_no_balance", lang, balance=float(user.wallet)))
+            await update.message.reply_text(
+                t("deal_no_balance", lang, balance=float(user.wallet))
+            )
             return
 
         # 이미 게임 중인지 확인
@@ -282,8 +283,11 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if game.advance_hand():
             # 스플릿: 다음 핸드로 진행
             caption = t(
-                "hand_bust_next", lang,
-                n=busted_number, next=game.hand_number, total=game.hand_count,
+                "hand_bust_next",
+                lang,
+                n=busted_number,
+                next=game.hand_number,
+                total=game.hand_count,
             )
             theme = _get_user_theme(user_tg_id, chat_id)
             image_bytes = _render_game_image(game, theme, lang, caption)
@@ -545,20 +549,20 @@ def _settle_game(
 
             if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK):
                 wins += 1
-            elif outcome in (
-                GameOutcome.LOSS, GameOutcome.BUST, GameOutcome.SURRENDER
-            ):
+            elif outcome in (GameOutcome.LOSS, GameOutcome.BUST, GameOutcome.SURRENDER):
                 losses += 1
 
-            db.add(Round(
-                user_id=user.id,
-                chat_id=chat_id,
-                bet=bet,
-                player_hand=hand,
-                dealer_hand=game.dealer_hand,
-                outcome=outcome,
-                payout=payout,
-            ))
+            db.add(
+                Round(
+                    user_id=user.id,
+                    chat_id=chat_id,
+                    bet=bet,
+                    player_hand=hand,
+                    dealer_hand=game.dealer_hand,
+                    outcome=outcome,
+                    payout=payout,
+                )
+            )
 
         user.update_stats(
             total_games=len(results),
@@ -641,19 +645,21 @@ def _render_game_result(
         image_hand = [card for hand in game.hands for card in hand]
         image_value = " / ".join(str(v) for v in hand_values)
 
-    result_message = "\n".join([
-        "--------------------",
-        header_line,
-        "--------------------",
-        "",
-        *player_lines,
-        f"{t('dealer_label', lang)}: {dealer_value}",
-        "",
-        f"{t('bet_label', lang)}: ${game.total_bet:,.2f}",
-        f"{t('payout_label', lang)}: {payout_str}",
-        f"{t('balance_label', lang)}: ${settle_info['wallet']:,.2f}",
-        "--------------------",
-    ])
+    result_message = "\n".join(
+        [
+            "--------------------",
+            header_line,
+            "--------------------",
+            "",
+            *player_lines,
+            f"{t('dealer_label', lang)}: {dealer_value}",
+            "",
+            f"{t('bet_label', lang)}: ${game.total_bet:,.2f}",
+            f"{t('payout_label', lang)}: {payout_str}",
+            f"{t('balance_label', lang)}: ${settle_info['wallet']:,.2f}",
+            "--------------------",
+        ]
+    )
 
     if should_show_game_ad(settle_info["is_free"]):
         result_message += get_ad_footer(show_ad=True)
@@ -675,7 +681,13 @@ def _render_game_result(
     caption = f"{caption_head} {t('game_over_suffix', lang)}{theme_badge}"
 
     reply_markup = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(t("btn_play_again", lang), callback_data="restart_game")]]
+        [
+            [
+                InlineKeyboardButton(
+                    t("btn_play_again", lang), callback_data="restart_game"
+                )
+            ]
+        ]
     )
 
     return image_bytes, caption, reply_markup
@@ -701,9 +713,7 @@ async def _finish_game(
         lang = get_user_lang(_u)
 
     # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
-    settle_info = _settle_game(
-        user_tg_id, game, results, update.effective_chat.id
-    )
+    settle_info = _settle_game(user_tg_id, game, results, update.effective_chat.id)
     game_sessions.pop(user_tg_id, None)
 
     image_bytes, caption, reply_markup = _render_game_result(
@@ -777,7 +787,13 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         bonus = t("daily_vip_bonus", lang) if is_vip else ""
         await update.message.reply_text(
-            t("daily_reward", lang, reward=reward, bonus=bonus, balance=float(user.wallet))
+            t(
+                "daily_reward",
+                lang,
+                reward=reward,
+                bonus=bonus,
+                balance=float(user.wallet),
+            )
         )
 
 
@@ -820,9 +836,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
         await query.edit_message_media(
-            media=InputMediaPhoto(
-                media=BytesIO(back_image_bytes), caption=drawing_msg
-            ),
+            media=InputMediaPhoto(media=BytesIO(back_image_bytes), caption=drawing_msg),
             reply_markup=_get_game_keyboard(),
         )
 
@@ -838,14 +852,15 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             if game.advance_hand():
                 # 스플릿: 다음 핸드로 진행
                 caption = t(
-                    "hand_bust_next", lang,
-                    n=busted_number, next=game.hand_number, total=game.hand_count,
+                    "hand_bust_next",
+                    lang,
+                    n=busted_number,
+                    next=game.hand_number,
+                    total=game.hand_count,
                 )
                 image_bytes = _render_game_image(game, theme, lang, caption)
                 await query.edit_message_media(
-                    media=InputMediaPhoto(
-                        media=BytesIO(image_bytes), caption=caption
-                    ),
+                    media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
                     reply_markup=_get_game_keyboard(),
                 )
                 return

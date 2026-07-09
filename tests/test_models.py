@@ -313,7 +313,11 @@ class TestApprovalModel:
     def test_approval_status(self, db_session):
         """승인 상태 테스트"""
         approval = Approval(
-            user_id=1, type=ApprovalType.VIP, depositor_name="Test", amount=30, duration_days=30
+            user_id=1,
+            type=ApprovalType.VIP,
+            depositor_name="Test",
+            amount=30,
+            duration_days=30,
         )
 
         # PENDING

@@ -3,7 +3,7 @@
 """
 
 import pytest
-from bot.utils.themes import ThemeManager, ThemeType, Theme
+from bot.utils.themes import ThemeManager, ThemeType
 
 
 class TestThemeManager:

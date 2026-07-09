@@ -3,6 +3,7 @@
 JackPy - 통계 재계산 스크립트
 Round 테이블의 기록을 기반으로 User.stats_json을 재계산합니다.
 """
+
 import sys
 import os
 from dotenv import load_dotenv
@@ -17,7 +18,6 @@ load_dotenv(os.path.join(project_root, ".env"))
 sys.path.insert(0, project_root)
 
 from models import get_db, User, Round, GameOutcome
-from sqlalchemy import func
 
 
 def rebuild_user_stats():

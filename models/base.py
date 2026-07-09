@@ -4,7 +4,7 @@ SQLAlchemy Base 및 Session 관리
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy.ext.declarative import declared_attr
@@ -81,11 +81,11 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """데이터베이스 테이블 초기화"""
-    from models.user import User
-    from models.group import Group
-    from models.round import Round
-    from models.approval import Approval
-    from models.ad_schedule import AdSchedule
+    from models.user import User  # noqa: F401
+    from models.group import Group  # noqa: F401
+    from models.round import Round  # noqa: F401
+    from models.approval import Approval  # noqa: F401
+    from models.ad_schedule import AdSchedule  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 
@@ -93,7 +93,7 @@ def init_db() -> None:
     with engine.connect() as conn:
         try:
             conn.execute(
-                __import__('sqlalchemy').text(
+                __import__("sqlalchemy").text(
                     "ALTER TABLE users ADD COLUMN language VARCHAR(2) NOT NULL DEFAULT 'ko'"
                 )
             )

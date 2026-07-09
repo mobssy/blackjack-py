@@ -40,4 +40,4 @@ pre-commit==3.5.0
 
 # Security (개발용)
 bandit==1.7.5
-safety==2.3.5
+safety>=3.0.1  # 2.x는 packaging<22 요구로 black과 충돌

@@ -5,7 +5,7 @@ JackPy - User 모델
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from sqlalchemy import (
     Column,
     Integer,
@@ -51,7 +51,7 @@ class User(Base, TimestampMixin):
     last_daily_at = Column(DateTime, nullable=True)
 
     # 언어 설정 ('ko' 또는 'en')
-    language = Column(String(2), default='ko', nullable=False, server_default='ko')
+    language = Column(String(2), default="ko", nullable=False, server_default="ko")
 
     # 통계 (JSON 형태)
     # 예: {"total_games": 0, "wins": 0, "losses": 0, "total_bet": 0, "total_profit": 0}

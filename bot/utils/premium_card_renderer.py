@@ -4,7 +4,7 @@ JackPy - 프리미엄 카드 렌더러
 """
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from typing import List, Optional, Tuple
+from typing import List, Optional
 import io
 from pathlib import Path
 from bot.utils.themes import Theme, ThemeManager

@@ -34,4 +34,4 @@ black==23.11.0
 
 # Security (optional)
 bandit==1.7.5
-safety==2.3.5
+safety>=3.0.1  # 2.x는 packaging<22 요구로 black과 충돌

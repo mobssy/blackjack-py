@@ -315,7 +315,7 @@ class CasinoCardRenderer:
 
                 return result
 
-            except Exception as e:
+            except Exception:
                 # 에러 발생 시 None 반환하여 폴백 렌더링 사용
                 return None
 
@@ -368,7 +368,6 @@ class CasinoCardRenderer:
         # 큰 'K' 문자
         bbox = draw.textbbox((0, 0), "K", font=self.font_face_letter)
         text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
         x = (200 - text_width) // 2
         y = 90
 
