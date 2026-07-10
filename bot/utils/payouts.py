@@ -111,6 +111,17 @@ class PayoutCalculator:
         return emojis.get(outcome, "🎲")
 
 
+# ── 결과 enum → i18n 키 매핑 (핸들러 공용) ──────────────────────
+OUTCOME_I18N_KEYS = {
+    GameOutcome.BLACKJACK: "result_blackjack",
+    GameOutcome.WIN: "result_win",
+    GameOutcome.PUSH: "result_push",
+    GameOutcome.LOSS: "result_lose",
+    GameOutcome.BUST: "result_bust",
+    GameOutcome.SURRENDER: "result_surrender",
+}
+
+
 # ── 연승 스트릭 보너스 ──────────────────────────────────────────
 # 3연승부터 승리 정산액의 10%, 5연승부터 20% 보너스 지급
 STREAK_BONUS_TIERS = [(5, 0.2), (3, 0.1)]

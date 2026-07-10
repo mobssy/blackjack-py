@@ -108,6 +108,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "/rank - 랭킹 조회\n\n"
             "사용자 명령어\n"
             "/my - 내 프로필\n"
+            "/stats - 상세 통계\n"
+            "/history - 최근 게임 기록\n"
             "/start - 시작하기\n\n"
             "블랙잭 규칙\n"
             "목표: 21에 가까운 숫자\n"
@@ -124,6 +126,63 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_start_dm": "BlackJack 시작하기",
         # 뒤로가기
         "btn_back": "뒤로가기",
+        # /my 프로필
+        "profile_title": "┏━━━━━━━━━━━━━━━━━━━┓\n┃  프로필 카드       ┃\n┗━━━━━━━━━━━━━━━━━━━┛",
+        "profile_user": "사용자: {name}",
+        "profile_vip": "VIP: {vip}",
+        "profile_vip_expires": "만료일: {date}",
+        "profile_finance": (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "재무 정보\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "잔액: ${balance:,.2f}\n"
+            "총 베팅: ${total_bet:,.2f}\n"
+            "총 수익: ${total_profit:,.2f}"
+        ),
+        "profile_stats": (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "게임 통계\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "총 게임: {games:,}회\n"
+            "승리: {wins:,}회\n"
+            "패배: {losses:,}회\n"
+            "승률: {win_rate:.1f}%"
+        ),
+        "profile_actions": (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "빠른 액션\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "/deal [금액] - 게임 시작\n"
+            "/daily - 일일 보상\n"
+            "/rank - 랭킹 조회"
+        ),
+        # /rank
+        "rank_title": "JackPy 랭킹\n━━━━━━━━━━━━━━━━━━━\n\n잔액 순위 (Top 10)\n",
+        "rank_group_title": "{title} 그룹 랭킹\n━━━━━━━━━━━━━━━━━━━\n\n잔액 순위 (Top 10)\n",
+        "rank_entry": "{marker}{idx}. {name} {vip}\n    잔액: ${balance:,.2f}",
+        "rank_your_rank": "\n━━━━━━━━━━━━━━━━━━━\n당신의 순위: {rank}위\n잔액: ${balance:,.2f}",
+        "rank_footer": "\n━━━━━━━━━━━━━━━━━━━\n더 높은 순위를 노려보세요!",
+        # /stats
+        "stats_message": (
+            "상세 통계\n"
+            "━━━━━━━━━━━━━━━━━━━\n\n"
+            "게임 기록\n"
+            "총 라운드: {rounds:,}회\n"
+            "총 베팅: ${total_bet:,.2f}\n"
+            "순이익: {net_profit}\n\n"
+            "최고 기록\n"
+            "최대 베팅: ${max_bet:,.2f}\n"
+            "최대 승리: ${max_win:,.2f}\n\n"
+            "현재 잔액\n"
+            "${balance:,.2f}"
+        ),
+        # /history
+        "history_title": "최근 게임 기록 (최근 {n}판)\n━━━━━━━━━━━━━━━━━━━",
+        "history_entry": (
+            "{emoji} {date} — {outcome}\n"
+            "    베팅 ${bet:,.2f} | 정산 {payout} | 패: {player} vs {dealer}"
+        ),
+        "history_empty": "아직 게임 기록이 없습니다.\n/deal [금액]으로 첫 게임을 시작하세요!",
     },
     "en": {
         # 언어 선택
@@ -228,6 +287,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "/rank - Leaderboard\n\n"
             "User Commands\n"
             "/my - My profile\n"
+            "/stats - Detailed stats\n"
+            "/history - Recent games\n"
             "/start - Start\n\n"
             "Blackjack Rules\n"
             "Goal: Get closer to 21 than the dealer\n"
@@ -244,6 +305,63 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_start_dm": "Start BlackJack",
         # 뒤로가기
         "btn_back": "Back",
+        # /my 프로필
+        "profile_title": "┏━━━━━━━━━━━━━━━━━━━┓\n┃  Profile Card      ┃\n┗━━━━━━━━━━━━━━━━━━━┛",
+        "profile_user": "User: {name}",
+        "profile_vip": "VIP: {vip}",
+        "profile_vip_expires": "Expires: {date}",
+        "profile_finance": (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "Finance\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "Balance: ${balance:,.2f}\n"
+            "Total bet: ${total_bet:,.2f}\n"
+            "Total profit: ${total_profit:,.2f}"
+        ),
+        "profile_stats": (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "Game Stats\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "Games: {games:,}\n"
+            "Wins: {wins:,}\n"
+            "Losses: {losses:,}\n"
+            "Win rate: {win_rate:.1f}%"
+        ),
+        "profile_actions": (
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "Quick Actions\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "/deal [amount] - Start game\n"
+            "/daily - Daily reward\n"
+            "/rank - Leaderboard"
+        ),
+        # /rank
+        "rank_title": "JackPy Leaderboard\n━━━━━━━━━━━━━━━━━━━\n\nBalance Ranking (Top 10)\n",
+        "rank_group_title": "{title} Group Leaderboard\n━━━━━━━━━━━━━━━━━━━\n\nBalance Ranking (Top 10)\n",
+        "rank_entry": "{marker}{idx}. {name} {vip}\n    Balance: ${balance:,.2f}",
+        "rank_your_rank": "\n━━━━━━━━━━━━━━━━━━━\nYour rank: #{rank}\nBalance: ${balance:,.2f}",
+        "rank_footer": "\n━━━━━━━━━━━━━━━━━━━\nAim for a higher rank!",
+        # /stats
+        "stats_message": (
+            "Detailed Stats\n"
+            "━━━━━━━━━━━━━━━━━━━\n\n"
+            "Game Record\n"
+            "Rounds: {rounds:,}\n"
+            "Total bet: ${total_bet:,.2f}\n"
+            "Net profit: {net_profit}\n\n"
+            "Best Records\n"
+            "Max bet: ${max_bet:,.2f}\n"
+            "Max win: ${max_win:,.2f}\n\n"
+            "Current Balance\n"
+            "${balance:,.2f}"
+        ),
+        # /history
+        "history_title": "Recent Games (last {n})\n━━━━━━━━━━━━━━━━━━━",
+        "history_entry": (
+            "{emoji} {date} — {outcome}\n"
+            "    Bet ${bet:,.2f} | Payout {payout} | Hands: {player} vs {dealer}"
+        ),
+        "history_empty": "No game history yet.\nStart your first game with /deal [amount]!",
     },
 }
 

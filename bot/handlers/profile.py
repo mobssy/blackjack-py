@@ -1,15 +1,29 @@
 """
 JackPy - 프로필 핸들러
-/my, /rank 명령어 처리
+/my, /rank, /stats, /history 명령어 처리
 """
 
 import logging
+from datetime import timezone
+
 from telegram import Update
 from telegram.ext import ContextTypes
+from sqlalchemy import desc, func
+
 from models import get_db, User, Round
-from sqlalchemy import func, desc
+from models.user import KST
+from bot.utils import t, get_user_lang, PayoutCalculator
+from bot.utils.payouts import OUTCOME_I18N_KEYS
 
 logger = logging.getLogger(__name__)
+
+# /history 조회 라운드 수
+HISTORY_LIMIT = 10
+
+
+def _format_kst(dt) -> str:
+    """naive UTC datetime을 KST 표시 문자열로 변환"""
+    return dt.replace(tzinfo=timezone.utc).astimezone(KST).strftime("%m-%d %H:%M")
 
 
 async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -24,70 +38,60 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(user)
         if not user:
-            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text(t("deal_no_user", lang))
             return
 
-        # 통계 조회
         stats = user.stats_json or {}
         total_games = stats.get("total_games", 0)
         wins = stats.get("wins", 0)
-        losses = stats.get("losses", 0)
-        total_bet = stats.get("total_bet", 0)
-        total_profit = stats.get("total_profit", 0)
-
-        # 승률 계산
         win_rate = (wins / total_games * 100) if total_games > 0 else 0
 
-        # VIP 상태
-        vip_status = "[활성]" if user.is_vip_active else "[비활성]"
-        vip_expires = (
-            user.vip_expires_at.strftime("%Y-%m-%d") if user.vip_expires_at else "N/A"
-        )
+        vip_status = t("vip_active" if user.is_vip_active else "vip_inactive", lang)
 
-        # 프로필 카드 (텍스트 기반)
-        profile_card = (
-            f"┏━━━━━━━━━━━━━━━━━━━┓\n"
-            f"┃  프로필 카드       ┃\n"
-            f"┗━━━━━━━━━━━━━━━━━━━┛\n\n"
-            f"사용자: {user.display_name}\n"
-            f"VIP: {vip_status}\n"
-        )
+        lines = [
+            t("profile_title", lang),
+            "",
+            t("profile_user", lang, name=user.display_name),
+            t("profile_vip", lang, vip=vip_status),
+        ]
+        if user.is_vip_active and user.vip_expires_at:
+            lines.append(
+                t(
+                    "profile_vip_expires",
+                    lang,
+                    date=user.vip_expires_at.strftime("%Y-%m-%d"),
+                )
+            )
+        lines += [
+            "",
+            t(
+                "profile_finance",
+                lang,
+                balance=float(user.wallet),
+                total_bet=stats.get("total_bet", 0),
+                total_profit=stats.get("total_profit", 0),
+            ),
+            "",
+            t(
+                "profile_stats",
+                lang,
+                games=total_games,
+                wins=wins,
+                losses=stats.get("losses", 0),
+                win_rate=win_rate,
+            ),
+            "",
+            t("profile_actions", lang),
+        ]
 
-        if user.is_vip_active:
-            profile_card += f"만료일: {vip_expires}\n"
-
-        profile_card += (
-            f"\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"재무 정보\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"잔액: ${user.wallet:,.2f}\n"
-            f"총 베팅: ${total_bet:,.2f}\n"
-            f"총 수익: ${total_profit:,.2f}\n"
-            f"\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"게임 통계\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"총 게임: {total_games:,}회\n"
-            f"승리: {wins:,}회\n"
-            f"패배: {losses:,}회\n"
-            f"승률: {win_rate:.1f}%\n"
-            f"\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"빠른 액션\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"/deal [금액] - 게임 시작\n"
-            f"/daily - 일일 보상\n"
-            f"/rank - 랭킹 조회\n"
-        )
-
-        await update.message.reply_text(profile_card)
+        await update.message.reply_text("\n".join(lines))
 
 
 async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /rank - 랭킹 조회
+    /rank - 랭킹 조회 (전역 잔액 순위 Top 10)
 
     Args:
         update: 업데이트 객체
@@ -96,50 +100,54 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
 
     with get_db() as db:
-        # 현재 사용자
         current_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(current_user)
         if not current_user:
-            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text(t("deal_no_user", lang))
             return
 
-        # 수익 순위 (상위 10명)
         top_users = db.query(User).order_by(desc(User.wallet)).limit(10).all()
+        message = _build_rank_message(
+            db, top_users, current_user, lang, t("rank_title", lang)
+        )
+        await update.message.reply_text(message)
 
-        # 랭킹 메시지 생성
-        rank_message = f"JackPy 랭킹\n" f"━━━━━━━━━━━━━━━━━━━\n\n" f"잔액 순위 (Top 10)\n\n"
 
-        current_user_rank = None
-        for idx, user in enumerate(top_users, 1):
-            # 현재 사용자 표시
-            marker = "> " if user.id == current_user.id else "   "
-            vip_badge = "[VIP]" if user.is_vip_active else ""
+def _build_rank_message(db, top_users, current_user, lang: str, title: str) -> str:
+    """랭킹 목록 메시지 생성 (전역/그룹 공용)"""
+    lines = [title]
 
-            rank_message += (
-                f"{marker}{idx}. {user.display_name} {vip_badge}\n"
-                f"    잔액: ${user.wallet:,.2f}\n"
+    current_user_rank = None
+    for idx, user in enumerate(top_users, 1):
+        marker = "> " if user.id == current_user.id else "   "
+        vip_badge = "[VIP]" if user.is_vip_active else ""
+        lines.append(
+            t(
+                "rank_entry",
+                lang,
+                marker=marker,
+                idx=idx,
+                name=user.display_name,
+                vip=vip_badge,
+                balance=float(user.wallet),
             )
+        )
+        if user.id == current_user.id:
+            current_user_rank = idx
 
-            if user.id == current_user.id:
-                current_user_rank = idx
-
-        # 현재 사용자가 Top 10에 없는 경우
-        if current_user_rank is None:
-            # 현재 사용자 순위 계산
-            higher_users = (
-                db.query(User).filter(User.wallet > current_user.wallet).count()
+    if current_user_rank is None:
+        higher_users = db.query(User).filter(User.wallet > current_user.wallet).count()
+        lines.append(
+            t(
+                "rank_your_rank",
+                lang,
+                rank=higher_users + 1,
+                balance=float(current_user.wallet),
             )
-            current_user_rank = higher_users + 1
+        )
 
-            rank_message += (
-                f"\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"당신의 순위: {current_user_rank}위\n"
-                f"잔액: ${current_user.wallet:,.2f}\n"
-            )
-
-        rank_message += f"\n" f"━━━━━━━━━━━━━━━━━━━\n" f"더 높은 순위를 노려보세요!"
-
-        await update.message.reply_text(rank_message)
+    lines.append(t("rank_footer", lang))
+    return "\n".join(lines)
 
 
 async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -154,52 +162,90 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(user)
         if not user:
-            await update.message.reply_text("[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.")
+            await update.message.reply_text(t("deal_no_user", lang))
             return
 
-        # 라운드별 통계 조회
         total_rounds = db.query(Round).filter(Round.user_id == user.id).count()
         total_bet = (
             db.query(func.sum(Round.bet)).filter(Round.user_id == user.id).scalar() or 0
         )
-        total_payout = (
+        # Round.payout은 라운드별 순손익(승리 +, 패배 -)이므로 합계가 곧 순이익
+        net_profit = (
             db.query(func.sum(Round.payout)).filter(Round.user_id == user.id).scalar()
             or 0
         )
 
-        # 최대 베팅 및 최대 승리
-        max_bet_round = (
+        max_bet = (
+            db.query(func.max(Round.bet)).filter(Round.user_id == user.id).scalar() or 0
+        )
+        max_win = (
+            db.query(func.max(Round.payout))
+            .filter(Round.user_id == user.id, Round.payout > 0)
+            .scalar()
+            or 0
+        )
+
+        message = t(
+            "stats_message",
+            lang,
+            rounds=total_rounds,
+            total_bet=float(total_bet),
+            net_profit=PayoutCalculator.format_payout(float(net_profit)),
+            max_bet=float(max_bet),
+            max_win=float(max_win),
+            balance=float(user.wallet),
+        )
+        await update.message.reply_text(message)
+
+
+async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /history - 최근 게임 기록 조회
+
+    Args:
+        update: 업데이트 객체
+        context: 컨텍스트 객체
+    """
+    user_tg_id = update.effective_user.id
+
+    with get_db() as db:
+        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(user)
+        if not user:
+            await update.message.reply_text(t("deal_no_user", lang))
+            return
+
+        rounds = (
             db.query(Round)
             .filter(Round.user_id == user.id)
-            .order_by(desc(Round.bet))
-            .first()
+            .order_by(desc(Round.id))
+            .limit(HISTORY_LIMIT)
+            .all()
         )
 
-        max_win_round = (
-            db.query(Round)
-            .filter(Round.user_id == user.id, Round.payout > 0)
-            .order_by(desc(Round.payout))
-            .first()
-        )
+        if not rounds:
+            await update.message.reply_text(t("history_empty", lang))
+            return
 
-        max_bet = max_bet_round.bet if max_bet_round else 0
-        max_win = max_win_round.payout if max_win_round else 0
+        lines = [t("history_title", lang, n=len(rounds))]
+        for game_round in rounds:
+            outcome_text = t(
+                OUTCOME_I18N_KEYS.get(game_round.outcome, "result_lose"), lang
+            )
+            lines.append(
+                t(
+                    "history_entry",
+                    lang,
+                    emoji=PayoutCalculator.get_result_emoji(game_round.outcome),
+                    date=_format_kst(game_round.created_at),
+                    outcome=outcome_text,
+                    bet=float(game_round.bet),
+                    payout=PayoutCalculator.format_payout(float(game_round.payout)),
+                    player=game_round.player_hand_str,
+                    dealer=game_round.dealer_hand_str,
+                )
+            )
 
-        # 통계 메시지
-        stats_message = (
-            f"상세 통계\n"
-            f"━━━━━━━━━━━━━━━━━━━\n\n"
-            f"게임 기록\n"
-            f"총 라운드: {total_rounds:,}회\n"
-            f"총 베팅: ${total_bet:,.2f}\n"
-            f"총 정산: ${total_payout:,.2f}\n"
-            f"순이익: ${total_payout:,.2f}\n\n"
-            f"최고 기록\n"
-            f"최대 베팅: ${max_bet:,.2f}\n"
-            f"최대 승리: ${max_win:,.2f}\n\n"
-            f"현재 잔액\n"
-            f"${user.wallet:,.2f}"
-        )
-
-        await update.message.reply_text(stats_message)
+        await update.message.reply_text("\n".join(lines))

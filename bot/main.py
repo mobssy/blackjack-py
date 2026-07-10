@@ -60,6 +60,7 @@ from bot.handlers import (
     cmd_my,
     cmd_rank,
     cmd_stats,
+    cmd_history,
 )
 
 # 미들웨어 import
@@ -107,6 +108,7 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("my", cmd_my))
     app.add_handler(CommandHandler("rank", cmd_rank))
     app.add_handler(CommandHandler("stats", cmd_stats))
+    app.add_handler(CommandHandler("history", cmd_history))
 
     # 인라인 버튼 콜백
     app.add_handler(CallbackQueryHandler(button_callback))

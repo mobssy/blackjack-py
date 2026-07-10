@@ -26,7 +26,7 @@ from bot.utils import (
     t,
     get_user_lang,
 )
-from bot.utils.payouts import streak_bonus, update_streak
+from bot.utils.payouts import OUTCOME_I18N_KEYS, streak_bonus, update_streak
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.session_store import load_sessions, save_sessions
 from bot.utils.casino_card_renderer import get_casino_renderer
@@ -618,15 +618,7 @@ def _settle_game(
 
 def _outcome_text(outcome: GameOutcome, lang: str) -> str:
     """결과 enum에 대응하는 번역 문자열"""
-    outcome_key = {
-        GameOutcome.BLACKJACK: "result_blackjack",
-        GameOutcome.WIN: "result_win",
-        GameOutcome.PUSH: "result_push",
-        GameOutcome.LOSS: "result_lose",
-        GameOutcome.BUST: "result_bust",
-        GameOutcome.SURRENDER: "result_surrender",
-    }.get(outcome, "result_lose")
-    return t(outcome_key, lang)
+    return t(OUTCOME_I18N_KEYS.get(outcome, "result_lose"), lang)
 
 
 def _render_game_result(
