@@ -10,7 +10,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from sqlalchemy import desc, func
 
-from models import get_db, User, Round
+from models import get_db, User, Round, GroupMember
 from models.user import KST
 from bot.utils import t, get_user_lang, PayoutCalculator
 from bot.utils.payouts import OUTCOME_I18N_KEYS
@@ -91,13 +91,17 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /rank - 랭킹 조회 (전역 잔액 순위 Top 10)
+    /rank - 랭킹 조회
+
+    개인 채팅: 전역 잔액 순위 Top 10
+    그룹 채팅: 해당 그룹에서 봇을 사용한 멤버끼리의 순위
 
     Args:
         update: 업데이트 객체
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
+    chat = update.effective_chat
 
     with get_db() as db:
         current_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
@@ -106,15 +110,35 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(t("deal_no_user", lang))
             return
 
-        top_users = db.query(User).order_by(desc(User.wallet)).limit(10).all()
-        message = _build_rank_message(
-            db, top_users, current_user, lang, t("rank_title", lang)
-        )
+        if chat.type in ("group", "supergroup"):
+            user_query = (
+                db.query(User)
+                .join(GroupMember, GroupMember.user_id == User.id)
+                .filter(GroupMember.chat_id == chat.id)
+            )
+            title = t("rank_group_title", lang, title=chat.title or "")
+        else:
+            user_query = db.query(User)
+            title = t("rank_title", lang)
+
+        message = _build_rank_message(user_query, current_user, lang, title)
         await update.message.reply_text(message)
 
 
-def _build_rank_message(db, top_users, current_user, lang: str, title: str) -> str:
-    """랭킹 목록 메시지 생성 (전역/그룹 공용)"""
+def _build_rank_message(user_query, current_user, lang: str, title: str) -> str:
+    """
+    랭킹 목록 메시지 생성 (전역/그룹 공용)
+
+    Args:
+        user_query: 랭킹 대상 User 쿼리 (필터 적용 상태)
+        current_user: 현재 사용자
+        lang: 언어 코드
+        title: 랭킹 제목
+
+    Returns:
+        str: 랭킹 메시지
+    """
+    top_users = user_query.order_by(desc(User.wallet)).limit(10).all()
     lines = [title]
 
     current_user_rank = None
@@ -136,7 +160,7 @@ def _build_rank_message(db, top_users, current_user, lang: str, title: str) -> s
             current_user_rank = idx
 
     if current_user_rank is None:
-        higher_users = db.query(User).filter(User.wallet > current_user.wallet).count()
+        higher_users = user_query.filter(User.wallet > current_user.wallet).count()
         lines.append(
             t(
                 "rank_your_rank",

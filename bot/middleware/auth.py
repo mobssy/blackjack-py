@@ -6,7 +6,7 @@ JackPy - 인증 미들웨어
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from models import get_db, User, Group, PlanType
+from models import get_db, User, Group, GroupMember, PlanType
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +100,31 @@ async def group_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.chat_data["plan"] = group.plan.value
             context.chat_data["is_business"] = group.is_business
 
+            # 그룹 멤버십 기록 (그룹별 랭킹용)
+            _record_group_member(db, chat_id, update)
+
     except Exception as e:
         logger.error(f"그룹 미들웨어 오류: {e}")
+
+
+def _record_group_member(db, chat_id: int, update: Update) -> None:
+    """그룹에서 메시지를 보낸 사용자를 GroupMember로 기록 (중복 무시)"""
+    if not update.effective_user:
+        return
+
+    user = db.query(User).filter(User.tg_user_id == update.effective_user.id).first()
+    if not user:
+        # user_middleware가 아직 등록하지 못한 경우 다음 메시지에서 기록
+        return
+
+    exists = (
+        db.query(GroupMember)
+        .filter(GroupMember.chat_id == chat_id, GroupMember.user_id == user.id)
+        .first()
+    )
+    if not exists:
+        db.add(GroupMember(chat_id=chat_id, user_id=user.id))
+        db.commit()
 
 
 async def logging_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):

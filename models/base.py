@@ -83,6 +83,7 @@ def init_db() -> None:
     """데이터베이스 테이블 초기화"""
     from models.user import User  # noqa: F401
     from models.group import Group  # noqa: F401
+    from models.group_member import GroupMember  # noqa: F401
     from models.round import Round  # noqa: F401
     from models.approval import Approval  # noqa: F401
     from models.ad_schedule import AdSchedule  # noqa: F401

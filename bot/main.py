@@ -81,8 +81,11 @@ def setup_handlers(app: Application):
         app: 텔레그램 Application 객체
     """
     # 미들웨어 등록
-    app.add_handler(MessageHandler(filters.ALL, logging_middleware), group=-2)
-    app.add_handler(MessageHandler(filters.ALL, user_middleware), group=-1)
+    # 주의: PTB는 같은 group 번호에서 첫 매칭 핸들러 하나만 실행하므로
+    # 미들웨어는 각각 다른 group 번호에 등록해야 한다.
+    # group_middleware는 user_middleware가 등록한 User에 의존하므로 뒤에 실행.
+    app.add_handler(MessageHandler(filters.ALL, logging_middleware), group=-3)
+    app.add_handler(MessageHandler(filters.ALL, user_middleware), group=-2)
     app.add_handler(MessageHandler(filters.ALL, group_middleware), group=-1)
 
     # 기본 명령어

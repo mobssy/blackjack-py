@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from models.user import User
 from models.group import Group, PlanType
+from models.group_member import GroupMember
 from models.round import Round, GameOutcome
 from models.approval import Approval, ApprovalType, ApprovalStatus
 from models.ad_schedule import AdSchedule
@@ -204,6 +205,52 @@ class TestGroupModel:
         """커스텀 prefix"""
         group = Group(chat_id=-123, settings_json={"prefix": "!"})
         assert group.get_prefix() == "!"
+
+
+class TestGroupMemberModel:
+    """GroupMember 모델 테스트"""
+
+    def test_create_group_member(self, db_session):
+        """그룹 멤버 기록 생성"""
+        user = User(tg_user_id=123)
+        db_session.add(user)
+        db_session.commit()
+
+        member = GroupMember(chat_id=-100123, user_id=user.id)
+        db_session.add(member)
+        db_session.commit()
+
+        assert member.id is not None
+        assert member.chat_id == -100123
+        assert member.user_id == user.id
+
+    def test_unique_constraint(self, db_session):
+        """같은 (chat_id, user_id) 중복 기록 불가"""
+        from sqlalchemy.exc import IntegrityError
+
+        user = User(tg_user_id=123)
+        db_session.add(user)
+        db_session.commit()
+
+        db_session.add(GroupMember(chat_id=-100123, user_id=user.id))
+        db_session.commit()
+
+        db_session.add(GroupMember(chat_id=-100123, user_id=user.id))
+        with pytest.raises(IntegrityError):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_same_user_multiple_groups(self, db_session):
+        """같은 사용자가 여러 그룹에 기록 가능"""
+        user = User(tg_user_id=123)
+        db_session.add(user)
+        db_session.commit()
+
+        db_session.add(GroupMember(chat_id=-100123, user_id=user.id))
+        db_session.add(GroupMember(chat_id=-100456, user_id=user.id))
+        db_session.commit()
+
+        assert db_session.query(GroupMember).count() == 2
 
 
 class TestRoundModel:

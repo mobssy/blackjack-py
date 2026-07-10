@@ -6,6 +6,7 @@ JackPy - Models Package
 from models.base import Base, get_db, init_db, drop_db
 from models.user import User
 from models.group import Group, PlanType
+from models.group_member import GroupMember
 from models.round import Round, GameOutcome
 from models.approval import Approval, ApprovalType, ApprovalStatus
 from models.ad_schedule import AdSchedule
@@ -18,6 +19,7 @@ __all__ = [
     "User",
     "Group",
     "PlanType",
+    "GroupMember",
     "Round",
     "GameOutcome",
     "Approval",
