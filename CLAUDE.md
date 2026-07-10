@@ -6,8 +6,10 @@
 
 - `bot/main.py` — 봇 진입점 (핸들러 등록, 로깅, 스케줄러)
 - `bot/handlers/` — 텔레그램 명령어/콜백 핸들러
-  - `blackjack.py` — /deal /hit /stand /double /surrender /split /wallet /daily,
-    게임 버튼 콜백, 정산(`_settle_game`)과 렌더링(`_render_game_result`) 분리 구조
+  - `blackjack.py` — /deal /hit /stand /double /surrender /split /insurance
+    /wallet /daily (출석 스트릭·파산 구제 포함), 게임 버튼 콜백,
+    정산(`_settle_game`)과 렌더링(`_render_game_result`) 분리 구조
+  - `profile.py` — /my /rank(그룹에서는 그룹별 랭킹) /stats /history
   - `start.py` — /start /help, 언어 선택, 메뉴 버튼 콜백 라우팅 (game_* 콜백은
     blackjack.game_button_callback으로 위임)
 - `bot/utils/` — 텔레그램 의존성 없는 로직
@@ -16,9 +18,13 @@
   - `deck.py` — 카드/덱/핸드 계산, `payouts.py` — 배당 계산 및 결과 판정
   - `i18n.py` — ko/en 문자열, `t(key, lang, **kwargs)`. 키는 반드시 양쪽 언어에 추가
   - `casino_card_renderer.py` — 게임 이미지 렌더러 (유일한 렌더러)
+  - `rewards.py` — 일일 보상 출석 스트릭 / 파산 구제 계산 (상태는 User.stats_json의
+    daily_streak, last_rescue_at 키에 저장 — 컬럼 추가 마이그레이션 회피)
   - `session_store.py` — 게임 세션 JSON 영속화 (game_sessions.json, gitignore됨)
-- `models/` — SQLAlchemy 모델 (User, Group, Round, Approval, AdSchedule).
+- `models/` — SQLAlchemy 모델 (User, Group, GroupMember, Round, Approval, AdSchedule).
   DB는 `DATABASE_URL` 환경변수 (기본 sqlite:///./jackpy.db), `init_db()`로 create_all
+- 미들웨어(`bot/middleware/auth.py`)는 각각 다른 handler group(-3/-2/-1)에 등록해야
+  함 — PTB는 같은 group에서 첫 매칭 핸들러 하나만 실행
 
 ## 주의사항
 

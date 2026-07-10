@@ -82,6 +82,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "daily_already": "일일 보상은 하루에 한 번만 받을 수 있습니다.\n내일 다시 시도해주세요!",
         "daily_reward": "일일 보상 수령!\n\n받은 금액: ${reward:,.2f}{bonus}\n현재 잔액: ${balance:,.2f}",
         "daily_vip_bonus": " (VIP 보너스!)",
+        "daily_streak_line": "\n📅 {n}일 연속 출석 중! 스트릭 보너스 +${bonus:,.2f}",
+        # 파산 구제
+        "rescue_granted": (
+            "🆘 파산 구제금 ${amount:,.2f} 지급!\n"
+            "현재 잔액: ${balance:,.2f}\n"
+            "(잔액 부족 시 {hours}시간마다 1회 지급됩니다)"
+        ),
         # /wallet
         "wallet_info": "잔액: ${balance:,.2f}",
         "wallet_full": (
@@ -127,6 +134,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "스플릿: 같은 랭크 2장 분리 (추가 베팅, 에이스는 1장씩만)\n"
             "인슈어런스: 딜러 업카드 A일 때 베팅액 절반, 딜러 블랙잭 시 2:1\n"
             "연승 보너스: 3연승부터 +10%, 5연승부터 +20%\n"
+            "출석 보너스: 연속 출석 시 하루 +$25 (최대 +$175)\n"
+            "파산 구제: 잔액 부족 시 4시간마다 $50 지급\n"
             "딜러: 17 이상까지 히트"
         ),
         # 단체방
@@ -269,6 +278,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "daily_already": "Daily reward can only be claimed once per day.\nTry again tomorrow!",
         "daily_reward": "Daily reward claimed!\n\nAmount: ${reward:,.2f}{bonus}\nBalance: ${balance:,.2f}",
         "daily_vip_bonus": " (VIP bonus!)",
+        "daily_streak_line": "\n📅 {n}-day attendance streak! Bonus +${bonus:,.2f}",
+        # 파산 구제
+        "rescue_granted": (
+            "🆘 Bankruptcy rescue: ${amount:,.2f} granted!\n"
+            "Balance: ${balance:,.2f}\n"
+            "(Available once every {hours} hours when you run out of chips)"
+        ),
         # /wallet
         "wallet_info": "Balance: ${balance:,.2f}",
         "wallet_full": (
@@ -314,6 +330,8 @@ STRINGS: dict[str, dict[str, str]] = {
             "Split: Same-rank pair, extra bet (aces get one card each)\n"
             "Insurance: Half bet when dealer shows an Ace, pays 2:1 on dealer blackjack\n"
             "Streak bonus: +10% from 3 wins, +20% from 5 wins in a row\n"
+            "Attendance bonus: +$25 per consecutive day (up to +$175)\n"
+            "Bankruptcy rescue: $50 every 4 hours when you run out of chips\n"
             "Dealer hits until 17+"
         ),
         # 단체방

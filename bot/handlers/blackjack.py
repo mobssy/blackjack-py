@@ -27,6 +27,14 @@ from bot.utils import (
     get_user_lang,
 )
 from bot.utils.payouts import OUTCOME_I18N_KEYS, streak_bonus, update_streak
+from bot.utils.rewards import (
+    RESCUE_AMOUNT,
+    RESCUE_COOLDOWN_HOURS,
+    can_rescue,
+    daily_reward_amount,
+    next_daily_streak,
+    parse_stored_datetime,
+)
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.session_store import load_sessions, save_sessions
 from bot.utils.casino_card_renderer import get_casino_renderer
@@ -168,6 +176,40 @@ def _hand_progress_caption(game: BlackjackGame, lang: str) -> str:
     return t("hand_playing", lang, n=game.hand_number, total=game.hand_count)
 
 
+def _maybe_grant_rescue(db, user: User, lang: str) -> Optional[str]:
+    """
+    잔액 부족 시 파산 구제금 지급 시도
+
+    잔액이 임계값 미만이고 쿨다운이 지났으면 구제금을 지급한다.
+
+    Args:
+        db: DB 세션
+        user: 사용자 객체
+        lang: 언어 코드
+
+    Returns:
+        Optional[str]: 지급 시 안내 메시지, 조건 미달 시 None
+    """
+    stats = user.stats_json or {}
+    last_rescue_at = parse_stored_datetime(stats.get("last_rescue_at"))
+    if not can_rescue(float(user.wallet), last_rescue_at):
+        return None
+
+    user.add_wallet(RESCUE_AMOUNT)
+    new_stats = dict(stats)
+    new_stats["last_rescue_at"] = datetime.now(timezone.utc).isoformat()
+    user.stats_json = new_stats
+    db.commit()
+
+    return t(
+        "rescue_granted",
+        lang,
+        amount=RESCUE_AMOUNT,
+        balance=float(user.wallet),
+        hours=RESCUE_COOLDOWN_HOURS,
+    )
+
+
 async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /deal [금액] - 블랙잭 게임 시작
@@ -229,10 +271,11 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if is_all_in:
             bet_amount = float(user.wallet)
 
-        # 잔액 확인
+        # 잔액 확인 (부족 시 파산 구제 시도)
         if bet_amount <= 0 or user.wallet < bet_amount:
+            rescue_message = _maybe_grant_rescue(db, user, lang)
             await update.message.reply_text(
-                t("deal_no_balance", lang, balance=float(user.wallet))
+                rescue_message or t("deal_no_balance", lang, balance=float(user.wallet))
             )
             return
 
@@ -910,23 +953,31 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(t("daily_already", lang))
             return
 
-        # 보상 지급
+        # 보상 지급 (출석 스트릭 반영)
         is_vip = user.is_vip_active
-        reward = 500.0 if is_vip else 200.0
+        stats = user.stats_json or {}
+        streak = next_daily_streak(user.last_daily_at, stats.get("daily_streak", 0))
+        base_reward, streak_bonus_amount = daily_reward_amount(is_vip, streak)
+        reward = base_reward + streak_bonus_amount
+
         user.add_wallet(reward)
         user.last_daily_at = datetime.now(timezone.utc)
+        new_stats = dict(stats)
+        new_stats["daily_streak"] = streak
+        user.stats_json = new_stats
         db.commit()
 
         bonus = t("daily_vip_bonus", lang) if is_vip else ""
-        await update.message.reply_text(
-            t(
-                "daily_reward",
-                lang,
-                reward=reward,
-                bonus=bonus,
-                balance=float(user.wallet),
-            )
+        message = t(
+            "daily_reward",
+            lang,
+            reward=reward,
+            bonus=bonus,
+            balance=float(user.wallet),
         )
+        if streak_bonus_amount > 0:
+            message += t("daily_streak_line", lang, n=streak, bonus=streak_bonus_amount)
+        await update.message.reply_text(message)
 
 
 async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
