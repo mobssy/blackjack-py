@@ -41,6 +41,8 @@ class BlackjackGame:
         self.split_rank: Optional[str] = None
         self.dealer_hand: List[str] = []
         self.is_finished = False
+        # 인슈어런스 (딜러 업카드 A일 때 베팅액 절반)
+        self.insurance_bet: Optional[float] = None
 
     # ── 직렬화 (세션 영속화용) ──────────────────────────────────
 
@@ -55,6 +57,7 @@ class BlackjackGame:
             "split_rank": self.split_rank,
             "dealer_hand": self.dealer_hand,
             "deck_cards": self.deck.cards,
+            "insurance_bet": self.insurance_bet,
         }
 
     @classmethod
@@ -68,6 +71,8 @@ class BlackjackGame:
         game.split_rank = data.get("split_rank")
         game.dealer_hand = list(data["dealer_hand"])
         game.deck.cards = list(data["deck_cards"])
+        insurance_bet = data.get("insurance_bet")
+        game.insurance_bet = float(insurance_bet) if insurance_bet is not None else None
         return game
 
     # ── 활성 핸드 접근자 ────────────────────────────────────────
@@ -119,6 +124,58 @@ class BlackjackGame:
     def any_hand_alive(self) -> bool:
         """버스트되지 않은 핸드가 하나라도 있는지"""
         return any(not is_bust(hand) for hand in self.hands)
+
+    # ── 인슈어런스 ─────────────────────────────────────────────
+
+    @property
+    def dealer_upcard(self) -> Optional[str]:
+        """딜러 공개 카드 (첫 카드는 뒷면이므로 두 번째 카드)"""
+        if len(self.dealer_hand) < 2:
+            return None
+        return self.dealer_hand[1]
+
+    @property
+    def can_insure(self) -> bool:
+        """인슈어런스 가능 여부 (첫 턴 + 딜러 업카드 A + 미가입)"""
+        if not self.is_first_turn or self.insurance_bet is not None:
+            return False
+        upcard = self.dealer_upcard
+        return upcard is not None and Card(upcard).rank == "A"
+
+    @property
+    def insurance_cost(self) -> float:
+        """인슈어런스 가입 비용 (베팅액 절반)"""
+        return self.bets[0] / 2
+
+    def take_insurance(self) -> float:
+        """
+        인슈어런스 가입 (베팅액 절반)
+
+        호출 전에 can_insure와 잔액 확인 필요
+
+        Returns:
+            float: 가입 금액
+        """
+        self.insurance_bet = self.insurance_cost
+        return self.insurance_bet
+
+    @property
+    def dealer_has_blackjack(self) -> bool:
+        """딜러 블랙잭 여부"""
+        return is_blackjack(self.dealer_hand)
+
+    @property
+    def insurance_net(self) -> float:
+        """
+        인슈어런스 순손익 (2:1 배당)
+
+        딜러 블랙잭이면 +2배, 아니면 가입액 손실. 미가입 시 0.
+        """
+        if self.insurance_bet is None:
+            return 0.0
+        if self.dealer_has_blackjack:
+            return self.insurance_bet * 2
+        return -self.insurance_bet
 
     # ── 플레이 액션 ────────────────────────────────────────────
 

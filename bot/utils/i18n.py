@@ -50,6 +50,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "hand_label": "핸드",
         "hand_playing": "핸드 {n}/{total} 플레이 중",
         "hand_bust_next": "핸드 {n} 버스트! 핸드 {next}/{total} 플레이 중",
+        # 인슈어런스
+        "insurance_not_allowed": "[오류] 인슈어런스는 딜러 업카드가 A인 첫 턴에 한 번만 가능합니다.",
+        "insurance_no_balance": "[오류] 인슈어런스에 필요한 잔액이 부족합니다. 현재 잔액: ${balance:,.2f}",
+        "insurance_no_bj": "딜러는 블랙잭이 아닙니다. 보험금 ${amount:,.2f} 소멸.\n게임을 계속하세요!",
+        "insurance_win_line": "🛡 보험 적중 (2:1): +${amount:,.2f}",
+        "insurance_lost_line": "🛡 보험 소멸: -${amount:,.2f}",
         # 연승 스트릭
         "streak_line": "🔥 {n}연승 중!",
         "streak_bonus_line": "🔥 {n}연승 보너스: +${bonus:,.2f}",
@@ -103,6 +109,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/double - 더블 다운 (첫 두 장, 베팅 2배 + 카드 1장)\n"
             "/surrender - 항복 (첫 두 장, 베팅액 절반 회수)\n"
             "/split - 스플릿 (같은 랭크 2장을 두 핸드로 분리)\n"
+            "/insurance - 인슈어런스 (딜러 업카드 A, 베팅액 절반)\n"
             "/wallet - 잔액 확인\n"
             "/daily - 일일 보상\n"
             "/rank - 랭킹 조회\n\n"
@@ -118,6 +125,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "무승부: 베팅액 반환\n"
             "서렌더: 베팅액 절반 회수\n"
             "스플릿: 같은 랭크 2장 분리 (추가 베팅, 에이스는 1장씩만)\n"
+            "인슈어런스: 딜러 업카드 A일 때 베팅액 절반, 딜러 블랙잭 시 2:1\n"
             "연승 보너스: 3연승부터 +10%, 5연승부터 +20%\n"
             "딜러: 17 이상까지 히트"
         ),
@@ -229,6 +237,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "hand_label": "Hand",
         "hand_playing": "Playing hand {n}/{total}",
         "hand_bust_next": "Hand {n} bust! Playing hand {next}/{total}",
+        # 인슈어런스
+        "insurance_not_allowed": "[Error] Insurance is only available once, on the first turn when the dealer shows an Ace.",
+        "insurance_no_balance": "[Error] Insufficient balance for insurance. Current balance: ${balance:,.2f}",
+        "insurance_no_bj": "Dealer does not have blackjack. Insurance ${amount:,.2f} lost.\nKeep playing!",
+        "insurance_win_line": "🛡 Insurance paid (2:1): +${amount:,.2f}",
+        "insurance_lost_line": "🛡 Insurance lost: -${amount:,.2f}",
         # 연승 스트릭
         "streak_line": "🔥 {n} win streak!",
         "streak_bonus_line": "🔥 {n}-win streak bonus: +${bonus:,.2f}",
@@ -282,6 +296,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/double - Double down (first two cards, 2x bet + one card)\n"
             "/surrender - Surrender (first two cards, half bet returned)\n"
             "/split - Split a same-rank pair into two hands\n"
+            "/insurance - Insurance (dealer shows Ace, half your bet)\n"
             "/wallet - Check balance\n"
             "/daily - Daily reward\n"
             "/rank - Leaderboard\n\n"
@@ -297,6 +312,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Push: Bet returned\n"
             "Surrender: Half bet returned\n"
             "Split: Same-rank pair, extra bet (aces get one card each)\n"
+            "Insurance: Half bet when dealer shows an Ace, pays 2:1 on dealer blackjack\n"
             "Streak bonus: +10% from 3 wins, +20% from 5 wins in a row\n"
             "Dealer hits until 17+"
         ),

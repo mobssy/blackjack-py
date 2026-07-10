@@ -498,3 +498,94 @@ class TestBlackjackGameSplit:
         assert game.any_hand_alive() is True
         game.hands[1] = ["8H", "KC", "9D"]  # 27 버스트
         assert game.any_hand_alive() is False
+
+
+class TestInsurance:
+    """인슈어런스 테스트"""
+
+    def _make_game(self, dealer_hand, bet: float = 100.0):
+        from bot.utils.blackjack_game import BlackjackGame
+
+        game = BlackjackGame(user_id=1, bet=bet)
+        game.deal_initial()
+        game.hands[0] = ["8S", "7H"]  # 블랙잭 아닌 첫 두 장
+        game.dealer_hand = list(dealer_hand)
+        return game
+
+    def test_dealer_upcard_is_second_card(self):
+        """업카드는 딜러의 두 번째 카드 (첫 카드는 뒷면)"""
+        game = self._make_game(["KS", "AH"])
+        assert game.dealer_upcard == "AH"
+
+    def test_can_insure_when_upcard_ace(self):
+        """딜러 업카드 A면 인슈어런스 가능"""
+        game = self._make_game(["KS", "AH"])
+        assert game.can_insure is True
+
+    def test_cannot_insure_when_upcard_not_ace(self):
+        """딜러 업카드가 A가 아니면 불가 (홀카드 A는 무관)"""
+        game = self._make_game(["AS", "KH"])
+        assert game.can_insure is False
+
+    def test_cannot_insure_after_hit(self):
+        """첫 턴이 지나면 불가"""
+        game = self._make_game(["KS", "AH"])
+        game.player_hit()
+        assert game.can_insure is False
+
+    def test_cannot_insure_twice(self):
+        """이미 가입했으면 불가"""
+        game = self._make_game(["KS", "AH"])
+        game.take_insurance()
+        assert game.can_insure is False
+
+    def test_insurance_cost_is_half_bet(self):
+        """가입 비용은 베팅액 절반"""
+        game = self._make_game(["KS", "AH"], bet=100.0)
+        assert game.insurance_cost == 50.0
+        assert game.take_insurance() == 50.0
+
+    def test_insurance_net_dealer_blackjack(self):
+        """딜러 블랙잭이면 2:1 순수익"""
+        game = self._make_game(["KS", "AH"], bet=100.0)
+        game.take_insurance()
+        assert game.dealer_has_blackjack is True
+        assert game.insurance_net == 100.0  # 50 * 2
+
+    def test_insurance_net_no_blackjack(self):
+        """딜러 블랙잭이 아니면 가입액 손실"""
+        game = self._make_game(["9S", "AH"], bet=100.0)
+        game.take_insurance()
+        assert game.dealer_has_blackjack is False
+        assert game.insurance_net == -50.0
+
+    def test_insurance_net_without_insurance(self):
+        """미가입 시 순손익 0"""
+        game = self._make_game(["KS", "AH"])
+        assert game.insurance_net == 0.0
+
+    def test_insurance_cost_fixed_before_double(self):
+        """더블 다운으로 베팅이 늘어도 가입액은 유지"""
+        game = self._make_game(["9S", "AH"], bet=100.0)
+        game.take_insurance()
+        game.player_double()
+        assert game.insurance_bet == 50.0
+
+    def test_insurance_serialization_roundtrip(self):
+        """to_dict/from_dict에 인슈어런스 상태 유지"""
+        from bot.utils.blackjack_game import BlackjackGame
+
+        game = self._make_game(["KS", "AH"], bet=100.0)
+        game.take_insurance()
+        restored = BlackjackGame.from_dict(game.to_dict())
+        assert restored.insurance_bet == 50.0
+
+    def test_serialization_backward_compat(self):
+        """insurance_bet 없는 기존 세션 데이터도 복원 가능"""
+        from bot.utils.blackjack_game import BlackjackGame
+
+        game = self._make_game(["KS", "AH"])
+        data = game.to_dict()
+        del data["insurance_bet"]
+        restored = BlackjackGame.from_dict(data)
+        assert restored.insurance_bet is None

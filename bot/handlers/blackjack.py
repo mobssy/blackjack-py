@@ -65,13 +65,16 @@ def _get_user_theme(user_tg_id: int, chat_id: int):
         return ThemeManager.get_theme_by_plan(is_vip, is_business)
 
 
-def _get_game_keyboard(first_turn: bool = False, can_split: bool = False):
+def _get_game_keyboard(
+    first_turn: bool = False, can_split: bool = False, can_insure: bool = False
+):
     """
     게임 진행 중 사용 가능한 인라인 키보드 생성
 
     Args:
         first_turn: 첫 턴(첫 2장) 여부 — 더블 다운/서렌더 버튼 표시 조건
         can_split: 스플릿 가능 여부 — SPLIT 버튼 표시 조건
+        can_insure: 인슈어런스 가능 여부 — INSURANCE 버튼 표시 조건
 
     Returns:
         InlineKeyboardMarkup: 게임 명령어 버튼 키보드
@@ -90,6 +93,14 @@ def _get_game_keyboard(first_turn: bool = False, can_split: bool = False):
         if can_split:
             second_row.append(InlineKeyboardButton("SPLIT", callback_data="game_split"))
         keyboard.append(second_row)
+        if can_insure:
+            keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        "INSURANCE (2:1)", callback_data="game_insurance"
+                    )
+                ]
+            )
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -263,7 +274,9 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=caption,
-        reply_markup=_get_game_keyboard(first_turn=True, can_split=game.can_split),
+        reply_markup=_get_game_keyboard(
+            first_turn=True, can_split=game.can_split, can_insure=game.can_insure
+        ),
     )
 
 
@@ -434,6 +447,69 @@ def _try_split(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[str]
     return None
 
 
+def _try_insurance(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[str]:
+    """
+    인슈어런스 검증 및 실행 (베팅액 절반 차감)
+
+    Args:
+        user_tg_id: 사용자 텔레그램 ID
+        game: 게임 객체
+        lang: 언어 코드
+
+    Returns:
+        Optional[str]: 실패 시 에러 메시지, 성공 시 None
+    """
+    if not game.can_insure:
+        return t("insurance_not_allowed", lang)
+
+    with get_db() as db:
+        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        if not user or not user.deduct_wallet(game.insurance_cost):
+            balance = float(user.wallet) if user else 0.0
+            return t("insurance_no_balance", lang, balance=balance)
+        db.commit()
+
+    game.take_insurance()
+    _persist_sessions()
+    return None
+
+
+async def cmd_insurance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /insurance - 인슈어런스 (딜러 업카드 A일 때 베팅액 절반, 딜러 블랙잭 시 2:1)
+
+    Args:
+        update: 업데이트 객체
+        context: 컨텍스트 객체
+    """
+    user_tg_id = update.effective_user.id
+
+    with get_db() as db:
+        _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        lang = get_user_lang(_u)
+
+    # 게임 세션 확인
+    if user_tg_id not in game_sessions:
+        await update.message.reply_text(t("no_game", lang))
+        return
+
+    game = game_sessions[user_tg_id]
+
+    error = _try_insurance(user_tg_id, game, lang)
+    if error:
+        await update.message.reply_text(error)
+        return
+
+    # 딜러 블랙잭이면 즉시 게임 종료 (보험 2:1 지급은 정산에서 처리)
+    if game.dealer_has_blackjack:
+        await _finish_game(update, user_tg_id, game, game.get_results())
+        return
+
+    await update.message.reply_text(
+        t("insurance_no_bj", lang, amount=game.insurance_bet)
+    )
+
+
 async def cmd_double(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /double - 더블 다운 (첫 두 장에서만, 베팅 2배 + 카드 1장 후 자동 스탠드)
@@ -584,6 +660,11 @@ def _settle_game(
                 )
             )
 
+        # 인슈어런스 정산 (가입 시 이미 차감됨 — 적중 시 원금 + 2:1 지급)
+        insurance_net = game.insurance_net
+        if game.insurance_bet and insurance_net > 0:
+            user.add_wallet(game.insurance_bet + insurance_net)
+
         # 연승 스트릭 갱신 및 보너스 지급 (게임 전체 정산액 기준)
         total_payout = float(sum(payout for _, payout in results))
         prev_streak = (user.stats_json or {}).get("win_streak", 0)
@@ -597,7 +678,7 @@ def _settle_game(
             wins=wins,
             losses=losses,
             total_bet=float(game.total_bet),
-            total_profit=total_payout + bonus,
+            total_profit=total_payout + bonus + insurance_net,
         )
 
         # win_streak은 누적이 아닌 절대값으로 저장
@@ -613,6 +694,8 @@ def _settle_game(
             "is_business": group.plan == PlanType.BUSINESS if group else False,
             "streak": streak,
             "bonus": bonus,
+            "insurance_bet": game.insurance_bet,
+            "insurance_net": insurance_net,
         }
 
 
@@ -680,6 +763,16 @@ def _render_game_result(
     elif streak >= 2:
         streak_lines.append(t("streak_line", lang, n=streak))
 
+    insurance_lines = []
+    if settle_info.get("insurance_bet"):
+        insurance_net = settle_info.get("insurance_net", 0.0)
+        if insurance_net > 0:
+            insurance_lines.append(t("insurance_win_line", lang, amount=insurance_net))
+        else:
+            insurance_lines.append(
+                t("insurance_lost_line", lang, amount=settle_info["insurance_bet"])
+            )
+
     result_message = "\n".join(
         [
             "--------------------",
@@ -691,6 +784,7 @@ def _render_game_result(
             "",
             f"{t('bet_label', lang)}: ${game.total_bet:,.2f}",
             f"{t('payout_label', lang)}: {payout_str}",
+            *insurance_lines,
             *streak_lines,
             f"{t('balance_label', lang)}: ${settle_info['wallet']:,.2f}",
             "--------------------",
@@ -954,6 +1048,26 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
         await _finish_game_callback(
             query, user_tg_id, game, [game.surrender_result()], chat_id
+        )
+
+    elif query.data == "game_insurance":
+        # INSURANCE 로직 (베팅액 절반, 딜러 블랙잭 시 2:1)
+        error = _try_insurance(user_tg_id, game, lang)
+        if error:
+            await query.message.reply_text(error)
+            return
+
+        # 딜러 블랙잭이면 즉시 게임 종료 (보험 2:1 지급은 정산에서 처리)
+        if game.dealer_has_blackjack:
+            await _finish_game_callback(
+                query, user_tg_id, game, game.get_results(), chat_id
+            )
+            return
+
+        # 보험금 소멸, 게임 계속 (인슈어런스 버튼만 제거)
+        await query.edit_message_caption(
+            caption=t("insurance_no_bj", lang, amount=game.insurance_bet),
+            reply_markup=_get_game_keyboard(first_turn=True, can_split=game.can_split),
         )
 
     elif query.data == "game_split":
