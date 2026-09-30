@@ -15,7 +15,7 @@ from telegram import (
     InputMediaPhoto,
 )
 from telegram.ext import ContextTypes
-from models import get_db, User, Group, Round, GameOutcome, PlanType
+from models import get_db, User, Group, GameOutcome, PlanType
 from bot.utils import (
     calculate_hand_value,
     is_blackjack,
@@ -26,7 +26,8 @@ from bot.utils import (
     t,
     get_user_lang,
 )
-from bot.utils.payouts import OUTCOME_I18N_KEYS, streak_bonus, update_streak
+from bot.utils.payouts import OUTCOME_I18N_KEYS
+from bot.handlers.settlement import settle_game
 from bot.utils.rewards import (
     RESCUE_AMOUNT,
     RESCUE_COOLDOWN_HOURS,
@@ -52,7 +53,7 @@ def _persist_sessions() -> None:
     save_sessions(game_sessions)
 
 
-def _get_user_theme(user_tg_id: int, chat_id: int):
+def get_user_theme(user_tg_id: int, chat_id: int):
     """
     사용자 테마 가져오기
 
@@ -73,8 +74,11 @@ def _get_user_theme(user_tg_id: int, chat_id: int):
         return ThemeManager.get_theme_by_plan(is_vip, is_business)
 
 
-def _get_game_keyboard(
-    first_turn: bool = False, can_split: bool = False, can_insure: bool = False
+def get_game_keyboard(
+    first_turn: bool = False,
+    can_split: bool = False,
+    can_insure: bool = False,
+    prefix: str = "game",
 ):
     """
     게임 진행 중 사용 가능한 인라인 키보드 생성
@@ -83,29 +87,32 @@ def _get_game_keyboard(
         first_turn: 첫 턴(첫 2장) 여부 — 더블 다운/서렌더 버튼 표시 조건
         can_split: 스플릿 가능 여부 — SPLIT 버튼 표시 조건
         can_insure: 인슈어런스 가능 여부 — INSURANCE 버튼 표시 조건
+        prefix: callback_data 접두사 (1인 게임 "game", 멀티 테이블 "tbl")
 
     Returns:
         InlineKeyboardMarkup: 게임 명령어 버튼 키보드
     """
     keyboard = [
         [
-            InlineKeyboardButton("HIT", callback_data="game_hit"),
-            InlineKeyboardButton("STAND", callback_data="game_stand"),
+            InlineKeyboardButton("HIT", callback_data=f"{prefix}_hit"),
+            InlineKeyboardButton("STAND", callback_data=f"{prefix}_stand"),
         ]
     ]
     if first_turn:
         second_row = [
-            InlineKeyboardButton("DOUBLE", callback_data="game_double"),
-            InlineKeyboardButton("SURRENDER", callback_data="game_surrender"),
+            InlineKeyboardButton("DOUBLE", callback_data=f"{prefix}_double"),
+            InlineKeyboardButton("SURRENDER", callback_data=f"{prefix}_surrender"),
         ]
         if can_split:
-            second_row.append(InlineKeyboardButton("SPLIT", callback_data="game_split"))
+            second_row.append(
+                InlineKeyboardButton("SPLIT", callback_data=f"{prefix}_split")
+            )
         keyboard.append(second_row)
         if can_insure:
             keyboard.append(
                 [
                     InlineKeyboardButton(
-                        "INSURANCE (2:1)", callback_data="game_insurance"
+                        "INSURANCE (2:1)", callback_data=f"{prefix}_insurance"
                     )
                 ]
             )
@@ -309,7 +316,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
-    theme = _get_user_theme(user_tg_id, chat_id)
+    theme = get_user_theme(user_tg_id, chat_id)
     image_bytes = _render_game_image(game, theme, lang, t("hint_commands_first", lang))
 
     theme_name = f" [{theme.name}]" if theme.name != "Classic" else ""
@@ -317,7 +324,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=caption,
-        reply_markup=_get_game_keyboard(
+        reply_markup=get_game_keyboard(
             first_turn=True, can_split=game.can_split, can_insure=game.can_insure
         ),
     )
@@ -362,25 +369,25 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 next=game.hand_number,
                 total=game.hand_count,
             )
-            theme = _get_user_theme(user_tg_id, chat_id)
+            theme = get_user_theme(user_tg_id, chat_id)
             image_bytes = _render_game_image(game, theme, lang, caption)
             await update.message.reply_photo(
                 photo=BytesIO(image_bytes),
                 caption=caption,
-                reply_markup=_get_game_keyboard(),
+                reply_markup=get_game_keyboard(),
             )
             return
         await _finish_game(update, user_tg_id, game, _all_hands_results(game))
         return
 
-    theme = _get_user_theme(user_tg_id, chat_id)
+    theme = get_user_theme(user_tg_id, chat_id)
     image_bytes = _render_game_image(game, theme, lang, t("hint_commands", lang))
 
     caption = t("card_drawn", lang)
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=caption,
-        reply_markup=_get_game_keyboard(),
+        reply_markup=get_game_keyboard(),
     )
 
 
@@ -410,12 +417,12 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if game.advance_hand():
         _persist_sessions()
         caption = _hand_progress_caption(game, lang)
-        theme = _get_user_theme(user_tg_id, chat_id)
+        theme = get_user_theme(user_tg_id, chat_id)
         image_bytes = _render_game_image(game, theme, lang, caption)
         await update.message.reply_photo(
             photo=BytesIO(image_bytes),
             caption=caption,
-            reply_markup=_get_game_keyboard(),
+            reply_markup=get_game_keyboard(),
         )
         return
 
@@ -645,101 +652,13 @@ async def cmd_split(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 핸드 1부터 플레이
     caption = _hand_progress_caption(game, lang)
-    theme = _get_user_theme(user_tg_id, chat_id)
+    theme = get_user_theme(user_tg_id, chat_id)
     image_bytes = _render_game_image(game, theme, lang, caption)
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=t("split_caption", lang, bet=game.bet) + "\n" + caption,
-        reply_markup=_get_game_keyboard(),
+        reply_markup=get_game_keyboard(),
     )
-
-
-def _settle_game(
-    user_tg_id: int,
-    game: BlackjackGame,
-    results: List[Tuple[GameOutcome, float]],
-    chat_id: int,
-) -> Dict:
-    """
-    게임 결과 DB 정산 (지갑 반영, 통계 갱신, 핸드별 라운드 기록)
-
-    Args:
-        user_tg_id: 사용자 텔레그램 ID
-        game: 게임 객체
-        results: 핸드별 (outcome, payout) 리스트
-        chat_id: 채팅 ID
-
-    Returns:
-        Dict: 렌더링에 필요한 정산 결과 정보
-    """
-    with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-        group = db.query(Group).filter(Group.chat_id == chat_id).first()
-
-        wins = losses = 0
-        for (outcome, payout), hand, bet in zip(results, game.hands, game.bets):
-            if outcome == GameOutcome.PUSH:
-                user.add_wallet(bet)
-            elif outcome == GameOutcome.SURRENDER:
-                # 베팅액 절반 회수 (payout = -bet/2)
-                user.add_wallet(bet + payout)
-            elif payout > 0:
-                user.add_wallet(bet + payout)
-
-            if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK):
-                wins += 1
-            elif outcome in (GameOutcome.LOSS, GameOutcome.BUST, GameOutcome.SURRENDER):
-                losses += 1
-
-            db.add(
-                Round(
-                    user_id=user.id,
-                    chat_id=chat_id,
-                    bet=bet,
-                    player_hand=hand,
-                    dealer_hand=game.dealer_hand,
-                    outcome=outcome,
-                    payout=payout,
-                )
-            )
-
-        # 인슈어런스 정산 (가입 시 이미 차감됨 — 적중 시 원금 + 2:1 지급)
-        insurance_net = game.insurance_net
-        if game.insurance_bet and insurance_net > 0:
-            user.add_wallet(game.insurance_bet + insurance_net)
-
-        # 연승 스트릭 갱신 및 보너스 지급 (게임 전체 정산액 기준)
-        total_payout = float(sum(payout for _, payout in results))
-        prev_streak = (user.stats_json or {}).get("win_streak", 0)
-        streak = update_streak(prev_streak, total_payout)
-        bonus = streak_bonus(streak, total_payout)
-        if bonus > 0:
-            user.add_wallet(bonus)
-
-        user.update_stats(
-            total_games=len(results),
-            wins=wins,
-            losses=losses,
-            total_bet=float(game.total_bet),
-            total_profit=total_payout + bonus + insurance_net,
-        )
-
-        # win_streak은 누적이 아닌 절대값으로 저장
-        stats = dict(user.stats_json or {})
-        stats["win_streak"] = streak
-        user.stats_json = stats
-        db.commit()
-
-        return {
-            "wallet": float(user.wallet),
-            "is_free": group.plan == PlanType.FREE if group else True,
-            "is_vip": user.is_vip_active,
-            "is_business": group.plan == PlanType.BUSINESS if group else False,
-            "streak": streak,
-            "bonus": bonus,
-            "insurance_bet": game.insurance_bet,
-            "insurance_net": insurance_net,
-        }
 
 
 def _outcome_text(outcome: GameOutcome, lang: str) -> str:
@@ -886,7 +805,7 @@ async def _finish_game(
         lang = get_user_lang(_u)
 
     # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
-    settle_info = _settle_game(user_tg_id, game, results, update.effective_chat.id)
+    settle_info = settle_game(user_tg_id, game, results, update.effective_chat.id)
     game_sessions.pop(user_tg_id, None)
     _persist_sessions()
 
@@ -1008,7 +927,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     # callback_data에 따라 적절한 명령어 실행
     if query.data == "game_hit":
         # 먼저 뒷면 카드가 추가된 이미지 표시 (카드 뒤집기 연출)
-        theme = _get_user_theme(user_tg_id, chat_id)
+        theme = get_user_theme(user_tg_id, chat_id)
         drawing_msg = t("drawing_card", lang)
         back_image_bytes = _render_game_image(
             game,
@@ -1020,7 +939,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
         await query.edit_message_media(
             media=InputMediaPhoto(media=BytesIO(back_image_bytes), caption=drawing_msg),
-            reply_markup=_get_game_keyboard(),
+            reply_markup=get_game_keyboard(),
         )
 
         # 짧은 딜레이 (카드 뒤집기 효과)
@@ -1046,7 +965,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
                 image_bytes = _render_game_image(game, theme, lang, caption)
                 await query.edit_message_media(
                     media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
-                    reply_markup=_get_game_keyboard(),
+                    reply_markup=get_game_keyboard(),
                 )
                 return
             await _finish_game_callback(
@@ -1061,7 +980,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             media=InputMediaPhoto(
                 media=BytesIO(image_bytes), caption=t("card_drawn", lang)
             ),
-            reply_markup=_get_game_keyboard(),
+            reply_markup=get_game_keyboard(),
         )
 
     elif query.data == "game_stand":
@@ -1069,11 +988,11 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         if game.advance_hand():
             _persist_sessions()
             caption = _hand_progress_caption(game, lang)
-            theme = _get_user_theme(user_tg_id, chat_id)
+            theme = get_user_theme(user_tg_id, chat_id)
             image_bytes = _render_game_image(game, theme, lang, caption)
             await query.edit_message_media(
                 media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
-                reply_markup=_get_game_keyboard(),
+                reply_markup=get_game_keyboard(),
             )
             return
         await _finish_game_callback(
@@ -1118,7 +1037,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         # 보험금 소멸, 게임 계속 (인슈어런스 버튼만 제거)
         await query.edit_message_caption(
             caption=t("insurance_no_bj", lang, amount=game.insurance_bet),
-            reply_markup=_get_game_keyboard(first_turn=True, can_split=game.can_split),
+            reply_markup=get_game_keyboard(first_turn=True, can_split=game.can_split),
         )
 
     elif query.data == "game_split":
@@ -1138,14 +1057,14 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # 핸드 1부터 플레이
         caption = _hand_progress_caption(game, lang)
-        theme = _get_user_theme(user_tg_id, chat_id)
+        theme = get_user_theme(user_tg_id, chat_id)
         image_bytes = _render_game_image(game, theme, lang, caption)
         await query.edit_message_media(
             media=InputMediaPhoto(
                 media=BytesIO(image_bytes),
                 caption=t("split_caption", lang, bet=game.bet) + "\n" + caption,
             ),
-            reply_markup=_get_game_keyboard(),
+            reply_markup=get_game_keyboard(),
         )
 
 
@@ -1171,7 +1090,7 @@ async def _finish_game_callback(
         lang = get_user_lang(_u)
 
     # 정산이 커밋된 직후 세션 제거 (전송 실패 시 이중 정산 방지)
-    settle_info = _settle_game(user_tg_id, game, results, chat_id)
+    settle_info = settle_game(user_tg_id, game, results, chat_id)
     game_sessions.pop(user_tg_id, None)
     _persist_sessions()
 

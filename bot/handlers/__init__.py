@@ -15,6 +15,13 @@ from bot.handlers.blackjack import (
     cmd_wallet,
     cmd_daily,
 )
+from bot.handlers.table import (
+    cmd_table,
+    cmd_join,
+    cmd_leave,
+    table_button_callback,
+    resume_tables,
+)
 from bot.handlers.admin import (
     cmd_admin,
     cmd_revoke,
@@ -37,6 +44,12 @@ __all__ = [
     "cmd_insurance",
     "cmd_wallet",
     "cmd_daily",
+    # Multiplayer Table
+    "cmd_table",
+    "cmd_join",
+    "cmd_leave",
+    "table_button_callback",
+    "resume_tables",
     # Admin
     "cmd_admin",
     "cmd_revoke",

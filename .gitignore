@@ -80,3 +80,4 @@ jackpy.log
 game_sessions.pkl
 jackpy.log.*
 game_sessions.json
+table_sessions.json

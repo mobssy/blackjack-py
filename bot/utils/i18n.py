@@ -120,6 +120,11 @@ STRINGS: dict[str, dict[str, str]] = {
             "/wallet - 잔액 확인\n"
             "/daily - 일일 보상\n"
             "/rank - 랭킹 조회\n\n"
+            "멀티 테이블 (그룹 채팅)\n"
+            "/table - 테이블 열기 (최대 7명, 딜러 1명과 함께 플레이)\n"
+            "/join [금액] - 착석 및 베팅 (/join all = 올인)\n"
+            "/leave - 딜 전 퇴장 (베팅 반환)\n"
+            "차례마다 30초, 시간 초과 시 자동 스탠드\n\n"
             "사용자 명령어\n"
             "/my - 내 프로필\n"
             "/stats - 상세 통계\n"
@@ -139,8 +144,45 @@ STRINGS: dict[str, dict[str, str]] = {
             "딜러: 17 이상까지 히트"
         ),
         # 단체방
-        "group_redirect": "{name}님, 게임은 개인 채팅에서 진행됩니다!",
+        "group_redirect": (
+            "{name}님, 1인 게임은 개인 채팅에서 진행됩니다!\n" "이 방에서 다 같이 하려면 /table 로 테이블을 여세요."
+        ),
         "btn_start_dm": "BlackJack 시작하기",
+        # 멀티 테이블
+        "table_group_only": "[오류] 멀티 테이블은 그룹 채팅에서만 열 수 있습니다.",
+        "table_opened": (
+            "🎰 블랙잭 테이블 오픈! (최대 {max}명)\n"
+            "/join [금액] 으로 착석하세요. 예: /join 100 | 올인: /join all\n"
+            "{seconds}초 뒤 자동으로 딜을 시작합니다. (호스트는 버튼으로 바로 시작)"
+        ),
+        "table_seats_header": "💺 착석 ({n}/{max})",
+        "table_seat_bet": "• {name} — ${bet:,.2f}",
+        "btn_table_deal": "🃏 딜 시작",
+        "btn_table_new": "🔁 새 테이블",
+        "table_none": "[오류] 열린 테이블이 없습니다. /table 로 테이블을 여세요.",
+        "table_join_usage": "[오류] 사용법: /join [금액]\n예: /join 100 | 올인: /join all",
+        "table_joined": "💺 {name}님 착석! 베팅 ${bet:,.2f} ({n}명)",
+        "table_left": "👋 {name}님 퇴장. 베팅 ${bet:,.2f} 반환",
+        "table_not_betting": "[오류] 이미 라운드가 진행 중입니다. 다음 라운드에 참가하세요.",
+        "table_already_seated": "[오류] 이미 착석해 있습니다.",
+        "table_full": "[오류] 테이블이 가득 찼습니다. (최대 {max}명)",
+        "table_not_seated": "[오류] 테이블에 앉아 있지 않습니다.",
+        "table_leave_playing": "[오류] 라운드 진행 중에는 나갈 수 없습니다.",
+        "table_empty": "[오류] 착석한 플레이어가 없습니다.",
+        "table_host_only": "호스트만 딜을 시작할 수 있습니다.",
+        "table_not_your_turn": "지금은 당신 차례가 아닙니다.",
+        "table_closed_empty": "참가자가 없어 테이블을 닫았습니다. /table 로 다시 열 수 있어요.",
+        "table_playing_title": "🎰 블랙잭 테이블 ({n}/{max})",
+        "table_dealer_line": "🤖 딜러: {cards}",
+        "table_turn": "👉 {name}님 차례! ({seconds}초 안에 선택하지 않으면 자동 스탠드)",
+        "table_img_hint": "{name}님 차례",
+        "table_timeout": "⏰ {name}님 시간 초과 — 자동 스탠드",
+        "table_action_bust": "💥 {name}님 버스트!",
+        "table_action_double": "💰 {name}님 더블 다운! 베팅 ${bet:,.2f}",
+        "table_action_surrender": "🏳️ {name}님 서렌더",
+        "table_insured": "🛡 {name}님 보험 가입 (${amount:,.2f}) — 결과는 라운드 종료 시 공개",
+        "table_result_title": "🏁 라운드 결과",
+        "table_result_footer": "새 라운드는 /table 또는 아래 버튼으로!",
         # 뒤로가기
         "btn_back": "뒤로가기",
         # /my 프로필
@@ -316,6 +358,11 @@ STRINGS: dict[str, dict[str, str]] = {
             "/wallet - Check balance\n"
             "/daily - Daily reward\n"
             "/rank - Leaderboard\n\n"
+            "Multiplayer Table (group chats)\n"
+            "/table - Open a table (up to 7 players vs one dealer)\n"
+            "/join [amount] - Take a seat and bet (/join all = all-in)\n"
+            "/leave - Leave before the deal (bet returned)\n"
+            "30 seconds per turn, auto-stand on timeout\n\n"
             "User Commands\n"
             "/my - My profile\n"
             "/stats - Detailed stats\n"
@@ -335,8 +382,46 @@ STRINGS: dict[str, dict[str, str]] = {
             "Dealer hits until 17+"
         ),
         # 단체방
-        "group_redirect": "{name}, please play in private chat!",
+        "group_redirect": (
+            "{name}, solo games are played in private chat!\n"
+            "To play together in this group, open a table with /table."
+        ),
         "btn_start_dm": "Start BlackJack",
+        # 멀티 테이블
+        "table_group_only": "[Error] Multiplayer tables can only be opened in group chats.",
+        "table_opened": (
+            "🎰 Blackjack table is open! (up to {max} players)\n"
+            "Take a seat with /join [amount]. Example: /join 100 | All-in: /join all\n"
+            "Dealing starts automatically in {seconds}s. (The host can start now with the button)"
+        ),
+        "table_seats_header": "💺 Seated ({n}/{max})",
+        "table_seat_bet": "• {name} — ${bet:,.2f}",
+        "btn_table_deal": "🃏 Deal",
+        "btn_table_new": "🔁 New table",
+        "table_none": "[Error] No table is open. Open one with /table.",
+        "table_join_usage": "[Error] Usage: /join [amount]\nExample: /join 100 | All-in: /join all",
+        "table_joined": "💺 {name} sat down! Bet ${bet:,.2f} ({n} seated)",
+        "table_left": "👋 {name} left. Bet ${bet:,.2f} returned",
+        "table_not_betting": "[Error] A round is already in progress. Join the next one.",
+        "table_already_seated": "[Error] You are already seated.",
+        "table_full": "[Error] The table is full. (max {max} players)",
+        "table_not_seated": "[Error] You are not seated at this table.",
+        "table_leave_playing": "[Error] You can't leave during a round.",
+        "table_empty": "[Error] No players are seated.",
+        "table_host_only": "Only the host can start the deal.",
+        "table_not_your_turn": "It's not your turn.",
+        "table_closed_empty": "No one joined, so the table was closed. Open a new one with /table.",
+        "table_playing_title": "🎰 Blackjack table ({n}/{max})",
+        "table_dealer_line": "🤖 Dealer: {cards}",
+        "table_turn": "👉 {name}'s turn! (auto-stand if no choice within {seconds}s)",
+        "table_img_hint": "{name}'s turn",
+        "table_timeout": "⏰ {name} ran out of time — auto-stand",
+        "table_action_bust": "💥 {name} busts!",
+        "table_action_double": "💰 {name} doubles down! Bet ${bet:,.2f}",
+        "table_action_surrender": "🏳️ {name} surrenders",
+        "table_insured": "🛡 {name} took insurance (${amount:,.2f}) — revealed at the end of the round",
+        "table_result_title": "🏁 Round results",
+        "table_result_footer": "Start a new round with /table or the button below!",
         # 뒤로가기
         "btn_back": "Back",
         # /my 프로필

@@ -9,18 +9,26 @@
   - `blackjack.py` — /deal /hit /stand /double /surrender /split /insurance
     /wallet /daily (출석 스트릭·파산 구제 포함), 게임 버튼 콜백,
     정산(`_settle_game`)과 렌더링(`_render_game_result`) 분리 구조
+  - `table.py` — 그룹 멀티 테이블 /table /join /leave, tbl_* 버튼 콜백.
+    채팅방별 asyncio.Lock으로 상태 변경 직렬화, 베팅 마감/턴 타임아웃은 asyncio 태스크
+    (재시작 시 post_init의 `resume_tables`가 메시지·타이머 재개)
+  - `settlement.py` — 1인 게임/테이블 공용 DB 정산 (`apply_settlement`는 커밋 안 함 →
+    테이블은 전 좌석을 한 트랜잭션으로 정산)
   - `profile.py` — /my /rank(그룹에서는 그룹별 랭킹) /stats /history
   - `start.py` — /start /help, 언어 선택, 메뉴 버튼 콜백 라우팅 (game_* 콜백은
     blackjack.game_button_callback으로 위임)
 - `bot/utils/` — 텔레그램 의존성 없는 로직
   - `blackjack_game.py` — BlackjackGame (멀티 핸드: hands/bets 리스트,
     player_hand/bet은 활성 핸드 프로퍼티)
+  - `table.py` — BlackjackTable (좌석마다 덱/딜러 핸드를 공유하는 BlackjackGame 주입,
+    공유 `dealer_hand`는 재할당 금지·제자리 변경만), `table_view.py` — 테이블 HTML 캡션
   - `deck.py` — 카드/덱/핸드 계산, `payouts.py` — 배당 계산 및 결과 판정
   - `i18n.py` — ko/en 문자열, `t(key, lang, **kwargs)`. 키는 반드시 양쪽 언어에 추가
   - `casino_card_renderer.py` — 게임 이미지 렌더러 (유일한 렌더러)
   - `rewards.py` — 일일 보상 출석 스트릭 / 파산 구제 계산 (상태는 User.stats_json의
     daily_streak, last_rescue_at 키에 저장 — 컬럼 추가 마이그레이션 회피)
-  - `session_store.py` — 게임 세션 JSON 영속화 (game_sessions.json, gitignore됨)
+  - `session_store.py` — 게임 세션/멀티 테이블 JSON 영속화 (game_sessions.json,
+    table_sessions.json, gitignore됨)
 - `models/` — SQLAlchemy 모델 (User, Group, GroupMember, Round, Approval, AdSchedule).
   DB는 `DATABASE_URL` 환경변수 (기본 sqlite:///./jackpy.db), `init_db()`로 create_all
 - 미들웨어(`bot/middleware/auth.py`)는 각각 다른 handler group(-3/-2/-1)에 등록해야

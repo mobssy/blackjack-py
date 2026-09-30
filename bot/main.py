@@ -55,6 +55,11 @@ from bot.handlers import (
     cmd_insurance,
     cmd_wallet,
     cmd_daily,
+    cmd_table,
+    cmd_join,
+    cmd_leave,
+    table_button_callback,
+    resume_tables,
     cmd_admin,
     cmd_revoke,
     cmd_add_balance,
@@ -104,6 +109,11 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("wallet", cmd_wallet))
     app.add_handler(CommandHandler("daily", cmd_daily))
 
+    # 멀티 테이블 (그룹 채팅)
+    app.add_handler(CommandHandler("table", cmd_table))
+    app.add_handler(CommandHandler("join", cmd_join))
+    app.add_handler(CommandHandler("leave", cmd_leave))
+
     # 관리자
     app.add_handler(CommandHandler("admin", cmd_admin))
     app.add_handler(CommandHandler("revoke", cmd_revoke))
@@ -116,6 +126,8 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("history", cmd_history))
 
     # 인라인 버튼 콜백
+    # 멀티 테이블(tbl_*)을 먼저 등록 — 같은 group에서는 첫 매칭 핸들러만 실행됨
+    app.add_handler(CallbackQueryHandler(table_button_callback, pattern=r"^tbl_"))
     app.add_handler(CallbackQueryHandler(button_callback))
 
     logger.info("✅ 핸들러 등록 완료")
@@ -137,6 +149,9 @@ async def post_init(app: Application):
     scheduler = JackPyScheduler(app.bot)
     scheduler.start()
     app.bot_data["scheduler"] = scheduler
+
+    # 재시작 전 진행 중이던 멀티 테이블 재개 (메시지 재표시 + 타이머 재예약)
+    await resume_tables(app.bot)
 
     logger.info("✅ JackPy 봇 초기화 완료")
 

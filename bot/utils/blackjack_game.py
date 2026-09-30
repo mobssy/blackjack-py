@@ -24,53 +24,79 @@ class BlackjackGame:
     현재 플레이 중인(활성) 핸드를 가리킨다.
     """
 
-    def __init__(self, user_id: int, bet: float):
+    def __init__(
+        self,
+        user_id: int,
+        bet: float,
+        deck: Optional[Deck] = None,
+        dealer_hand: Optional[List[str]] = None,
+    ):
         """
         게임 초기화
 
         Args:
             user_id: 사용자 ID
             bet: 베팅 금액
+            deck: 공유 슈 (멀티 테이블에서 주입, 없으면 6덱 새로 생성)
+            dealer_hand: 공유 딜러 핸드 (멀티 테이블에서 주입 — 제자리 변경만 할 것)
         """
         self.user_id = user_id
-        self.deck = Deck(num_decks=6)  # 6덱 사용
+        self.deck = deck if deck is not None else Deck(num_decks=6)
         self.hands: List[List[str]] = [[]]
         self.bets: List[float] = [bet]
         self.active_index = 0
         self.is_split = False
         self.split_rank: Optional[str] = None
-        self.dealer_hand: List[str] = []
+        self.dealer_hand: List[str] = dealer_hand if dealer_hand is not None else []
         self.is_finished = False
         # 인슈어런스 (딜러 업카드 A일 때 베팅액 절반)
         self.insurance_bet: Optional[float] = None
 
     # ── 직렬화 (세션 영속화용) ──────────────────────────────────
 
-    def to_dict(self) -> dict:
-        """JSON 저장 가능한 상태 dict로 변환"""
-        return {
+    def to_dict(self, include_shared: bool = True) -> dict:
+        """
+        JSON 저장 가능한 상태 dict로 변환
+
+        Args:
+            include_shared: 덱/딜러 핸드 포함 여부 (멀티 테이블 좌석은 테이블이 저장)
+        """
+        data = {
             "user_id": self.user_id,
             "hands": self.hands,
             "bets": self.bets,
             "active_index": self.active_index,
             "is_split": self.is_split,
             "split_rank": self.split_rank,
-            "dealer_hand": self.dealer_hand,
-            "deck_cards": self.deck.cards,
             "insurance_bet": self.insurance_bet,
         }
+        if include_shared:
+            data["dealer_hand"] = self.dealer_hand
+            data["deck_cards"] = self.deck.cards
+        return data
 
     @classmethod
-    def from_dict(cls, data: dict) -> "BlackjackGame":
-        """to_dict()로 저장된 상태에서 게임 복원"""
-        game = cls(user_id=data["user_id"], bet=0.0)
+    def from_dict(
+        cls,
+        data: dict,
+        deck: Optional[Deck] = None,
+        dealer_hand: Optional[List[str]] = None,
+    ) -> "BlackjackGame":
+        """
+        to_dict()로 저장된 상태에서 게임 복원
+
+        deck/dealer_hand를 주입하면(멀티 테이블) 저장된 값 대신 공유 객체를 사용한다.
+        """
+        game = cls(user_id=data["user_id"], bet=0.0, deck=deck, dealer_hand=dealer_hand)
         game.hands = [list(hand) for hand in data["hands"]]
         game.bets = [float(bet) for bet in data["bets"]]
         game.active_index = int(data["active_index"])
         game.is_split = bool(data["is_split"])
         game.split_rank = data.get("split_rank")
-        game.dealer_hand = list(data["dealer_hand"])
-        game.deck.cards = list(data["deck_cards"])
+        if dealer_hand is None:
+            game.dealer_hand = list(data["dealer_hand"])
+        if deck is None:
+            game.deck.cards = list(data["deck_cards"])
         insurance_bet = data.get("insurance_bet")
         game.insurance_bet = float(insurance_bet) if insurance_bet is not None else None
         return game
@@ -182,7 +208,8 @@ class BlackjackGame:
     def deal_initial(self):
         """초기 카드 2장씩 딜"""
         self.hands[0] = self.deck.draw_multiple(2)
-        self.dealer_hand = self.deck.draw_multiple(2)
+        # 공유 딜러 핸드 참조가 끊기지 않도록 제자리 교체
+        self.dealer_hand[:] = self.deck.draw_multiple(2)
 
     def player_hit(self):
         """플레이어 히트 (활성 핸드에 카드 추가)"""
