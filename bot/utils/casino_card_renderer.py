@@ -948,6 +948,18 @@ class CasinoCardRenderer:
 
         return bg.convert("RGBA")
 
+    # ── 다른 렌더러(멀티 테이블)에서 재사용하는 공개 API ─────────────
+
+    def card_image(self, card_str: str, face_down: bool = False) -> Image.Image:
+        """카드 한 장 이미지 (CARD_WIDTH × CARD_HEIGHT, RGBA)"""
+        if face_down:
+            return self._create_casino_card_back()
+        return self._create_casino_card_front(card_str)
+
+    def background(self, width: int, height: int) -> Image.Image:
+        """테마 배경 (RGBA)"""
+        return self._create_velvet_background(width, height)
+
     def generate_game_image(
         self,
         player_hand: List[str],

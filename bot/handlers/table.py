@@ -26,8 +26,8 @@ from telegram.ext import ContextTypes
 from models import get_db, User, Group
 from bot.handlers.blackjack import get_game_keyboard, get_user_theme
 from bot.handlers.settlement import apply_settlement
-from bot.utils.casino_card_renderer import get_casino_renderer
-from bot.utils.deck import calculate_hand_value, is_bust
+from bot.utils.table_renderer import get_table_renderer
+from bot.utils.deck import is_bust
 from bot.utils.i18n import t, get_user_lang
 from bot.utils.session_store import load_tables, save_tables
 from bot.utils.table import (
@@ -40,7 +40,12 @@ from bot.utils.table import (
     TableError,
     TablePhase,
 )
-from bot.utils.table_view import betting_caption, result_text, turn_caption
+from bot.utils.table_view import (
+    betting_caption,
+    result_text,
+    seat_views,
+    turn_caption,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +63,8 @@ _NO_BALANCE_KEYS = {
     TableAction.INSURANCE: "insurance_no_balance",
 }
 
-# 이미지 라벨 박스에 들어가는 이름 길이
-_IMAGE_NAME_MAX = 10
+# 텔레그램 사진 캡션 최대 길이
+_CAPTION_LIMIT = 1024
 
 
 # ── 공통 헬퍼 ──────────────────────────────────────────────────
@@ -203,24 +208,30 @@ async def _show_betting(
     _persist_tables()
 
 
-def _render_turn_image(table: BlackjackTable, seat: Seat) -> bytes:
-    """딜러(홀 카드 가림) + 현재 차례 좌석 핸드 이미지"""
-    hands = seat.game.hands
-    if len(hands) == 1:
-        player_value = calculate_hand_value(hands[0])
+def _render_table_image(
+    table: BlackjackTable, seat_results: Optional[SeatResults] = None
+) -> bytes:
+    """
+    딜러 + 전체 좌석 이미지
+
+    seat_results가 없으면 플레이 중(홀 카드 가림, 현재 차례 강조),
+    있으면 결과 모드(홀 카드 공개, 좌석별 정산 결과)로 그린다.
+    테마는 호스트 기준 (테이블 전체가 같은 테마를 쓰도록).
+    """
+    theme = get_user_theme(table.host_id, table.chat_id)
+    current = table.current_seat
+    if seat_results is not None:
+        footer = t("img_table_result", table.lang)
+    elif current is not None:
+        footer = t("table_img_hint", table.lang, name=current.name)
     else:
-        player_value = " / ".join(str(calculate_hand_value(h)) for h in hands)
-    theme = get_user_theme(seat.user_id, table.chat_id)
-    return get_casino_renderer(theme).generate_game_image(
-        player_hand=[card for hand in hands for card in hand],
+        footer = ""
+    return get_table_renderer(theme).render(
         dealer_hand=table.dealer_hand,
-        player_value=player_value,
-        dealer_value=None,
-        hide_dealer_first=True,
-        message=t("table_img_hint", table.lang, name=seat.name),
-        dealer_label=t("img_dealer", table.lang),
-        player_label=seat.name[:_IMAGE_NAME_MAX],
-        value_label=t("img_total", table.lang),
+        seats=seat_views(table, seat_results),
+        hide_dealer_first=seat_results is None,
+        dealer_label=t("img_table_dealer", table.lang),
+        footer=footer,
     )
 
 
@@ -240,7 +251,7 @@ async def _show_turn(
     if seat is None:
         return
     caption = turn_caption(table, notice)
-    image_bytes = _render_turn_image(table, seat)
+    image_bytes = _render_table_image(table)
     game = seat.game
     keyboard = get_game_keyboard(
         first_turn=game.is_first_turn,
@@ -380,6 +391,23 @@ async def _finish_round(
                 )
             ]
         ]
+    )
+    image_bytes = _render_table_image(table, seat_results)
+
+    # 캡션 한도를 넘으면(좌석이 많을 때) 이미지와 상세 결과를 나눠 보낸다
+    if len(text) <= _CAPTION_LIMIT:
+        await bot.send_photo(
+            table.chat_id,
+            photo=BytesIO(image_bytes),
+            caption=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboard,
+        )
+        return
+    await bot.send_photo(
+        table.chat_id,
+        photo=BytesIO(image_bytes),
+        caption=t("table_result_title", table.lang),
     )
     await bot.send_message(
         table.chat_id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard

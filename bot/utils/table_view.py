@@ -1,12 +1,13 @@
 """
 JackPy - 멀티 테이블 메시지 포맷
-테이블 상태를 텔레그램 HTML 캡션 문자열로 변환 (텔레그램/DB 의존성 없음)
+테이블 상태를 텔레그램 HTML 캡션 문자열과 이미지용 좌석 정보(SeatView)로 변환
+(텔레그램/DB 의존성 없음)
 """
 
 from html import escape
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
-from bot.utils.deck import Card, calculate_hand_value, format_hand
+from bot.utils.deck import Card, calculate_hand_value, format_hand, is_blackjack
 from bot.utils.i18n import t
 from bot.utils.payouts import OUTCOME_I18N_KEYS, PayoutCalculator
 from bot.utils.table import (
@@ -17,6 +18,14 @@ from bot.utils.table import (
     Seat,
     SeatResults,
 )
+from bot.utils.table_renderer import Color, SeatView
+
+# 이미지 좌석 상태 문구 색상
+COLOR_TURN: Color = (255, 215, 0)
+COLOR_WIN: Color = (90, 220, 130)
+COLOR_LOSS: Color = (240, 95, 95)
+COLOR_NEUTRAL: Color = (200, 200, 210)
+COLOR_BLACKJACK: Color = (255, 190, 60)
 
 
 def mention(seat: Seat) -> str:
@@ -147,3 +156,73 @@ def result_text(
         lines.append(f"   {t('balance_label', lang)}: ${settle_info['wallet']:,.2f}")
     lines += ["", t("table_result_footer", lang)]
     return "\n".join(lines)
+
+
+# ── 이미지용 좌석 정보 ────────────────────────────────────────
+
+
+def _playing_status(table: BlackjackTable, seat: Seat) -> Tuple[str, Color]:
+    """플레이 중 좌석 상태 문구와 색상"""
+    lang = table.lang
+    game = seat.game
+    if seat is table.current_seat:
+        return t("img_status_turn", lang), COLOR_TURN
+    if seat.surrendered:
+        return t("img_status_surrender", lang), COLOR_NEUTRAL
+    if not game.any_hand_alive():
+        return t("result_bust", lang), COLOR_LOSS
+    if not game.is_split and is_blackjack(game.hands[0]):
+        return t("result_blackjack", lang), COLOR_BLACKJACK
+    if seat.done:
+        return t("img_status_stand", lang), COLOR_NEUTRAL
+    return t("img_status_waiting", lang), COLOR_NEUTRAL
+
+
+def _result_status(results, lang: str) -> Tuple[str, Color]:
+    """정산 결과 문구 (핸드별 결과 + 합계 정산액)와 색상"""
+    outcomes = " / ".join(
+        t(OUTCOME_I18N_KEYS.get(outcome, "result_lose"), lang) for outcome, _ in results
+    )
+    total = sum(payout for _, payout in results)
+    if total > 0:
+        color = COLOR_WIN
+    elif total < 0:
+        color = COLOR_LOSS
+    else:
+        color = COLOR_NEUTRAL
+    return f"{outcomes} {PayoutCalculator.format_payout(total)}", color
+
+
+def seat_views(
+    table: BlackjackTable, seat_results: Optional[SeatResults] = None
+) -> List[SeatView]:
+    """
+    테이블 이미지에 그릴 좌석 정보
+
+    Args:
+        table: 테이블
+        seat_results: 라운드 결과 (주면 결과 모드, 없으면 플레이 중 모드)
+    """
+    results_by_user = (
+        {seat.user_id: results for seat, results in seat_results}
+        if seat_results is not None
+        else None
+    )
+    current = table.current_seat
+    views = []
+    for seat in table.seats:
+        if results_by_user is not None:
+            status, color = _result_status(results_by_user[seat.user_id], table.lang)
+        else:
+            status, color = _playing_status(table, seat)
+        views.append(
+            SeatView(
+                name=seat.name,
+                hands=[list(hand) for hand in seat.game.hands],
+                bet=seat.game.total_bet,
+                active=seat is current and results_by_user is None,
+                status=status,
+                status_color=color,
+            )
+        )
+    return views
