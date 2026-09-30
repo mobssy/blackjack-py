@@ -27,6 +27,7 @@ from models import get_db, User
 from bot.handlers.blackjack import get_game_keyboard
 from bot.handlers.settlement import apply_settlement
 from bot.utils.table_renderer import get_table_renderer
+from bot.utils.betting import BetError, is_valid_amount, parse_bet
 from bot.utils.deck import is_bust
 from bot.utils.i18n import t, get_user_lang
 from bot.utils.session_store import load_tables, save_tables
@@ -494,18 +495,11 @@ async def cmd_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(t("table_join_usage", lang))
         return
 
-    raw_bet = context.args[0].lower()
-    is_all_in = raw_bet in ("all", "올인")
-    bet_amount = 0.0
-    if not is_all_in:
-        try:
-            bet_amount = float(raw_bet)
-        except ValueError:
-            await update.message.reply_text(t("deal_invalid", lang))
-            return
-        if bet_amount <= 0:
-            await update.message.reply_text(t("deal_positive", lang))
-            return
+    try:
+        bet_request = parse_bet(context.args[0])
+    except BetError as e:
+        await update.message.reply_text(t(e.key, lang, **e.kwargs))
+        return
 
     chat_id = update.effective_chat.id
     async with _lock(chat_id):
@@ -525,9 +519,8 @@ async def cmd_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not user:
                 await update.message.reply_text(t("deal_no_user", lang))
                 return
-            if is_all_in:
-                bet_amount = float(user.wallet)
-            if bet_amount <= 0 or not user.deduct_wallet(bet_amount):
+            bet_amount = bet_request.resolve(user.wallet)
+            if not is_valid_amount(bet_amount) or not user.deduct_wallet(bet_amount):
                 await update.message.reply_text(
                     t("deal_no_balance", lang, balance=float(user.wallet))
                 )

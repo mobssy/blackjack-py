@@ -22,6 +22,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_usage": "[오류] 사용법: /deal [금액]\n예: /deal 100 | 올인: /deal all",
         "deal_positive": "[오류] 베팅 금액은 0보다 커야 합니다.",
         "deal_invalid": "[오류] 올바른 금액을 입력해주세요.",
+        "bet_min": "[오류] 최소 베팅 금액은 ${min:,.2f}입니다.",
+        "bet_decimals": "[오류] 베팅 금액은 소수점 둘째 자리까지만 입력할 수 있습니다.",
         "deal_no_user": "[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.",
         "deal_no_balance": "[오류] 잔액이 부족합니다. 현재 잔액: ${balance:.2f}",
         "deal_in_progress": "[오류] 이미 게임이 진행 중입니다. /hit 또는 /stand를 입력하세요.",
@@ -127,6 +129,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/history - 최근 게임 기록\n"
             "/start - 시작하기\n\n"
             "블랙잭 규칙\n"
+            "최소 베팅: $1 (소수점 둘째 자리까지)\n"
             "목표: 21에 가까운 숫자\n"
             "블랙잭: 3:2 배당\n"
             "일반 승리: 1:1 배당\n"
@@ -281,6 +284,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_usage": "[Error] Usage: /deal [amount]\nExample: /deal 100 | All-in: /deal all",
         "deal_positive": "[Error] Bet amount must be greater than 0.",
         "deal_invalid": "[Error] Please enter a valid amount.",
+        "bet_min": "[Error] The minimum bet is ${min:,.2f}.",
+        "bet_decimals": "[Error] Bets can have at most two decimal places.",
         "deal_no_user": "[Error] User not registered. Please run /start first.",
         "deal_no_balance": "[Error] Insufficient balance. Current balance: ${balance:.2f}",
         "deal_in_progress": "[Error] Game already in progress. Type /hit or /stand.",
@@ -386,6 +391,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/history - Recent games\n"
             "/start - Start\n\n"
             "Blackjack Rules\n"
+            "Minimum bet: $1 (up to two decimal places)\n"
             "Goal: Get closer to 21 than the dealer\n"
             "Blackjack: 3:2 payout\n"
             "Win: 1:1 payout\n"

@@ -35,6 +35,7 @@ from bot.utils.rewards import (
     parse_stored_datetime,
 )
 from bot.utils.blackjack_game import BlackjackGame
+from bot.utils.betting import BetError, is_valid_amount, parse_bet
 from bot.utils.session_store import load_sessions, save_sessions
 from bot.utils.casino_card_renderer import get_casino_renderer
 
@@ -228,18 +229,11 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(t("deal_usage", lang))
         return
 
-    raw_bet = context.args[0].lower()
-    is_all_in = raw_bet in ("all", "올인")
-    bet_amount = 0.0
-    if not is_all_in:
-        try:
-            bet_amount = float(raw_bet)
-            if bet_amount <= 0:
-                await update.message.reply_text(t("deal_positive", lang))
-                return
-        except ValueError:
-            await update.message.reply_text(t("deal_invalid", lang))
-            return
+    try:
+        bet_request = parse_bet(context.args[0])
+    except BetError as e:
+        await update.message.reply_text(t(e.key, lang, **e.kwargs))
+        return
 
     # 사용자 조회
     with get_db() as db:
@@ -248,11 +242,10 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(t("deal_no_user", lang))
             return
 
-        if is_all_in:
-            bet_amount = float(user.wallet)
+        bet_amount = bet_request.resolve(user.wallet)
 
-        # 잔액 확인 (부족 시 파산 구제 시도)
-        if bet_amount <= 0 or user.wallet < bet_amount:
+        # 잔액 확인 (부족 시 파산 구제 시도, 올인 금액도 최소 베팅 이상이어야 함)
+        if not is_valid_amount(bet_amount) or user.wallet < bet_amount:
             rescue_message = _maybe_grant_rescue(db, user, lang)
             await update.message.reply_text(
                 rescue_message or t("deal_no_balance", lang, balance=float(user.wallet))

@@ -57,7 +57,7 @@
 
 ### 칩
 
-- 시작 칩 $1,000
+- 시작 칩 $1,000, 최소 베팅 $1 (소수점 둘째 자리까지)
 - 일일 보상 $200 + 연속 출석 시 하루 $25씩 추가 (최대 +$175)
 - 연승 보너스: 3연승부터 승리 정산액의 +10%, 5연승부터 +20%
 - 파산 구제: 잔액이 $10 미만이면 4시간마다 $50
@@ -146,7 +146,7 @@ The Telegram `/` menu is registered automatically on startup for each chat type 
 
 ### Chips
 
-- Start with $1,000
+- Start with $1,000; minimum bet $1 (up to two decimal places)
 - Daily reward $200, plus $25 per consecutive day (up to +$175)
 - Win streak bonus: +10% of winnings from 3 wins in a row, +20% from 5
 - Bankruptcy rescue: $50 every 4 hours when your balance is below $10

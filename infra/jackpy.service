@@ -22,6 +22,8 @@ Type=simple
 User=jackpy
 WorkingDirectory=/home/jackpy/jackpy
 ExecStart=/home/jackpy/jackpy/venv/bin/python3 -m bot.main
+# 봇이 만드는 파일(DB 저널, 세션 JSON, 로그)을 소유자만 읽도록
+UMask=0077
 Restart=always
 RestartSec=15
 StandardOutput=append:/var/log/jackpy.log

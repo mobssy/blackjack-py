@@ -126,15 +126,19 @@ def _record_group_member(db, chat_id: int, update: Update) -> None:
 
 async def logging_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    로깅 미들웨어
+    명령어 로깅 미들웨어
+
+    봇이 그룹의 일반 대화까지 수신할 수 있으므로(개인정보), 대화 내용은 기록하지
+    않고 `/`로 시작하는 명령어만 기록한다.
 
     Args:
         update: 업데이트 객체
         context: 컨텍스트 객체
     """
-    if update.message and update.message.text:
-        user_id = update.effective_user.id if update.effective_user else "unknown"
-        chat_id = update.effective_chat.id if update.effective_chat else "unknown"
-        text = update.message.text
+    message = update.message
+    if not message or not message.text or not message.text.startswith("/"):
+        return
 
-        logger.info(f"Message: user={user_id}, chat={chat_id}, text={text}")
+    user_id = update.effective_user.id if update.effective_user else "unknown"
+    chat_id = update.effective_chat.id if update.effective_chat else "unknown"
+    logger.info(f"Command: user={user_id}, chat={chat_id}, text={message.text}")
