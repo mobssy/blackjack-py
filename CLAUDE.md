@@ -54,6 +54,10 @@
 - **명령어 추가/삭제 시** `bot/utils/bot_commands.py` 메뉴 목록과 `cmd_desc_<명령어>`
   i18n 키도 함께 수정 (tests/test_bot_commands.py가 main.py 등록 목록과 대조해 강제)
 - 텔레그램 메뉴는 BotFather에서 수정하지 말 것 — 재시작 시 코드 정의로 덮어써짐
+- 문서는 README.md(한/영) 하나로 관리 — 명령어·규칙·보상 수치·파일 구조를 바꾸면
+  README의 한국어/영어 섹션과 Project structure를 함께 갱신
+- 라이선스: 공개 저장소지만 열람만 허용(All rights reserved, LICENSE 파일).
+  서드파티 에셋(카드 이미지 MIT, Poppins OFL)은 LICENSE 하단에 명시
 
 ## 개발 명령어
 
