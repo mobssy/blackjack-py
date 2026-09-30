@@ -1,10 +1,11 @@
 """
 JackPy - 관리자 핸들러
-/admin, /approve, /reject, /revoke 명령어 처리
+/admin, /revoke, /add 명령어 처리
 """
 
 import logging
 import os
+from typing import List
 from telegram import Update
 from telegram.ext import ContextTypes
 from models import (
@@ -37,6 +38,16 @@ def is_admin(user_id: int) -> bool:
     return str(user_id) in _ADMIN_IDS
 
 
+def admin_ids() -> List[int]:
+    """
+    설정된 관리자 텔레그램 ID 목록 (숫자가 아닌 항목은 무시)
+
+    Returns:
+        List[int]: 관리자 ID (정렬됨)
+    """
+    return sorted(int(uid) for uid in _ADMIN_IDS if uid.strip().isdigit())
+
+
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /admin [command] - 관리자 명령어
@@ -62,11 +73,8 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "관리자 명령어\n\n"
             "• /admin pending - 승인 대기 목록\n"
             "• /admin stats - 전체 통계\n"
-            "• /approve [user_id] [days] - VIP 승인\n"
-            "• /approve_business [user_id] [chat_id] - 비즈니스 승인\n"
-            "• /reject [user_id] [사유] - 승인 거절\n"
             "• /revoke [user_id] - VIP 해제\n"
-            "• /add_balance [user_id 또는 @username] [금액] - 잔액 추가"
+            "• /add [user_id 또는 @username] [금액] - 잔액 추가"
         )
         await update.message.reply_text(message)
         return
@@ -208,7 +216,7 @@ async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /add_balance [user_id 또는 @username] [금액] - 사용자 잔액 추가
+    /add [user_id 또는 @username] [금액] - 사용자 잔액 추가
 
     Args:
         update: 업데이트 객체
@@ -224,9 +232,9 @@ async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 인자 확인
     if not context.args or len(context.args) < 2:
         await update.message.reply_text(
-            "사용법: /add_balance [user_id 또는 @username] [금액]\n"
-            "예: /add_balance 123456789 1000\n"
-            "예: /add_balance @username 1000"
+            "사용법: /add [user_id 또는 @username] [금액]\n"
+            "예: /add 123456789 1000\n"
+            "예: /add @username 1000"
         )
         return
 

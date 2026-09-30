@@ -69,6 +69,8 @@ from bot.handlers import (
     cmd_history,
 )
 
+from bot.handlers.menu import sync_command_menu
+
 # 미들웨어 import
 from bot.middleware.auth import user_middleware, group_middleware, logging_middleware
 
@@ -152,6 +154,9 @@ async def post_init(app: Application):
 
     # 재시작 전 진행 중이던 멀티 테이블 재개 (메시지 재표시 + 타이머 재예약)
     await resume_tables(app.bot)
+
+    # `/` 명령어 메뉴를 코드 정의(bot_commands)와 동기화
+    await sync_command_menu(app.bot)
 
     logger.info("✅ JackPy 봇 초기화 완료")
 

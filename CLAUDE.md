@@ -14,6 +14,8 @@
     (재시작 시 post_init의 `resume_tables`가 메시지·타이머 재개)
   - `settlement.py` — 1인 게임/테이블 공용 DB 정산 (`apply_settlement`는 커밋 안 함 →
     테이블은 전 좌석을 한 트랜잭션으로 정산)
+  - `menu.py` — 봇 시작 시 `/` 명령어 메뉴를 스코프(개인/그룹/그룹관리자/봇관리자 DM)·
+    언어(ko/en)별로 동기화. 옛 목록이 남지 않도록 넓은 스코프까지 모두 덮어씀
   - `profile.py` — /my /rank(그룹에서는 그룹별 랭킹) /stats /history
   - `start.py` — /start /help, 언어 선택, 메뉴 버튼 콜백 라우팅 (game_* 콜백은
     blackjack.game_button_callback으로 위임)
@@ -45,6 +47,9 @@
 - DateTime 컬럼은 naive로 저장됨 — aware datetime과 비교 시 UTC 간주 변환 필요
   (`User.is_vip_active` 참고)
 - 사용자에게 보이는 문자열은 하드코딩 금지, `i18n.py`의 `t()` 사용
+- **명령어 추가/삭제 시** `bot/utils/bot_commands.py` 메뉴 목록과 `cmd_desc_<명령어>`
+  i18n 키도 함께 수정 (tests/test_bot_commands.py가 main.py 등록 목록과 대조해 강제)
+- 텔레그램 메뉴는 BotFather에서 수정하지 말 것 — 재시작 시 코드 정의로 덮어써짐
 
 ## 개발 명령어
 
