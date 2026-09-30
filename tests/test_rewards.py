@@ -10,7 +10,6 @@ from bot.utils.rewards import (
     DAILY_BASE_REWARD,
     DAILY_STREAK_BONUS_CAP_DAYS,
     DAILY_STREAK_BONUS_PER_DAY,
-    DAILY_VIP_REWARD,
     RESCUE_COOLDOWN_HOURS,
     RESCUE_THRESHOLD,
     can_rescue,
@@ -62,24 +61,19 @@ class TestDailyRewardAmount:
 
     def test_base_reward_first_day(self):
         """1일차는 기본 보상만"""
-        base, bonus = daily_reward_amount(False, 1)
+        base, bonus = daily_reward_amount(1)
         assert base == DAILY_BASE_REWARD
         assert bonus == 0.0
 
-    def test_vip_base_reward(self):
-        """VIP는 기본 보상 상향"""
-        base, _ = daily_reward_amount(True, 1)
-        assert base == DAILY_VIP_REWARD
-
     def test_streak_bonus_grows(self):
         """스트릭에 따라 보너스 증가"""
-        _, bonus = daily_reward_amount(False, 3)
+        _, bonus = daily_reward_amount(3)
         assert bonus == 2 * DAILY_STREAK_BONUS_PER_DAY
 
     def test_streak_bonus_capped(self):
         """보너스는 상한 일수까지만 증가"""
-        _, bonus_at_cap = daily_reward_amount(False, DAILY_STREAK_BONUS_CAP_DAYS + 1)
-        _, bonus_over_cap = daily_reward_amount(False, 30)
+        _, bonus_at_cap = daily_reward_amount(DAILY_STREAK_BONUS_CAP_DAYS + 1)
+        _, bonus_over_cap = daily_reward_amount(30)
         assert bonus_at_cap == DAILY_STREAK_BONUS_CAP_DAYS * DAILY_STREAK_BONUS_PER_DAY
         assert bonus_over_cap == bonus_at_cap
 

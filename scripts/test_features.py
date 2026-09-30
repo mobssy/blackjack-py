@@ -23,31 +23,6 @@ def test_themes():
     assert theme.has_gradient is True, "Classic 테마 그라데이션 오류"
     print("  ✅ Classic 테마: OK")
 
-    # Dark 테마
-    theme = ThemeManager.get_theme(ThemeType.DARK)
-    assert theme.name == "Dark", "Dark 테마 이름 오류"
-    assert theme.has_gradient is True, "Dark 테마 그라데이션 오류"
-    print("  ✅ Dark 테마: OK")
-
-    # Luxury 테마
-    theme = ThemeManager.get_theme(ThemeType.LUXURY)
-    assert theme.name == "Luxury", "Luxury 테마 이름 오류"
-    assert theme.has_gradient is True, "Luxury 테마 그라데이션 오류"
-    print("  ✅ Luxury 테마: OK")
-
-    # 플랜별 테마
-    theme = ThemeManager.get_theme_by_plan(False, False)
-    assert theme.name == "Classic", "무료 플랜 테마 오류"
-    print("  ✅ 무료 플랜 테마: OK")
-
-    theme = ThemeManager.get_theme_by_plan(True, False)
-    assert theme.name == "Dark", "VIP 플랜 테마 오류"
-    print("  ✅ VIP 플랜 테마: OK")
-
-    theme = ThemeManager.get_theme_by_plan(False, True)
-    assert theme.name == "Luxury", "비즈니스 플랜 테마 오류"
-    print("  ✅ 비즈니스 플랜 테마: OK")
-
     print("✅ 테마 시스템 테스트 완료!\n")
 
 

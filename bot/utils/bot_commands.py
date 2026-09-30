@@ -46,7 +46,7 @@ GROUP_COMMANDS: Tuple[str, ...] = (
 )
 
 # 관리자 전용 (관리자 본인의 개인 채팅에만 노출)
-ADMIN_ONLY_COMMANDS: Tuple[str, ...] = ("admin", "revoke", "add")
+ADMIN_ONLY_COMMANDS: Tuple[str, ...] = ("admin", "add")
 ADMIN_COMMANDS: Tuple[str, ...] = PRIVATE_COMMANDS + ADMIN_ONLY_COMMANDS
 
 

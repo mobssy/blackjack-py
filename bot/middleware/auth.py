@@ -6,7 +6,7 @@ JackPy - 인증 미들웨어
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from models import get_db, User, Group, GroupMember, PlanType
+from models import get_db, User, Group, GroupMember
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,6 @@ async def user_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # 컨텍스트에 사용자 정보 저장
             context.user_data["user_id"] = user.id
             context.user_data["user_tg_id"] = user_tg_id
-            context.user_data["is_vip"] = user.is_vip_active
 
     except Exception as e:
         logger.error(f"사용자 미들웨어 오류: {e}")
@@ -83,8 +82,8 @@ async def group_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
             group = db.query(Group).filter(Group.chat_id == chat_id).first()
 
             if not group:
-                # 그룹 자동 등록 (무료 플랜)
-                group = Group(chat_id=chat_id, title=title, plan=PlanType.FREE)
+                # 그룹 자동 등록
+                group = Group(chat_id=chat_id, title=title)
                 db.add(group)
                 db.commit()
                 logger.info(f"신규 그룹 자동 등록: {title} ({chat_id})")
@@ -97,8 +96,6 @@ async def group_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # 컨텍스트에 그룹 정보 저장
             context.chat_data["group_id"] = group.id
             context.chat_data["chat_id"] = chat_id
-            context.chat_data["plan"] = group.plan.value
-            context.chat_data["is_business"] = group.is_business
 
             # 그룹 멤버십 기록 (그룹별 랭킹용)
             _record_group_member(db, chat_id, update)

@@ -27,7 +27,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_in_progress": "[오류] 이미 게임이 진행 중입니다. /hit 또는 /stand를 입력하세요.",
         "dealer_label": "딜러",
         "player_label": "플레이어",
-        "deal_caption": "블랙잭 시작!{theme}\n베팅: ${bet:,.2f}",
+        "deal_caption": "블랙잭 시작!\n베팅: ${bet:,.2f}",
         # 게임 이미지 라벨
         "img_dealer": "🤖 딜러",
         "img_player": "🎯 플레이어",
@@ -80,8 +80,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_stand": "Stand",
         # /daily
         "daily_already": "일일 보상은 하루에 한 번만 받을 수 있습니다.\n내일 다시 시도해주세요!",
-        "daily_reward": "일일 보상 수령!\n\n받은 금액: ${reward:,.2f}{bonus}\n현재 잔액: ${balance:,.2f}",
-        "daily_vip_bonus": " (VIP 보너스!)",
+        "daily_reward": "일일 보상 수령!\n\n받은 금액: ${reward:,.2f}\n현재 잔액: ${balance:,.2f}",
         "daily_streak_line": "\n📅 {n}일 연속 출석 중! 스트릭 보너스 +${bonus:,.2f}",
         # 파산 구제
         "rescue_granted": (
@@ -93,8 +92,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "wallet_info": "잔액: ${balance:,.2f}",
         "wallet_full": (
             "지갑 정보\n\n"
-            "잔액: ${balance:,.2f}\n"
-            "VIP: {vip}\n\n"
+            "잔액: ${balance:,.2f}\n\n"
             "통계\n"
             "총 게임: {games:,}회\n"
             "승리: {wins:,}회\n"
@@ -102,8 +100,6 @@ STRINGS: dict[str, dict[str, str]] = {
             "연승: {streak:,}연승\n"
             "총 수익: ${profit:,.2f}"
         ),
-        "vip_active": "[활성]",
-        "vip_inactive": "[비활성]",
         # 게임 시작 안내
         "start_game_msg": "게임 시작\n\n/deal [금액] 명령어로 블랙잭을 시작하세요.\n예: /deal 100",
         # /help
@@ -194,8 +190,6 @@ STRINGS: dict[str, dict[str, str]] = {
         # /my 프로필
         "profile_title": "┏━━━━━━━━━━━━━━━━━━━┓\n┃  프로필 카드       ┃\n┗━━━━━━━━━━━━━━━━━━━┛",
         "profile_user": "사용자: {name}",
-        "profile_vip": "VIP: {vip}",
-        "profile_vip_expires": "만료일: {date}",
         "profile_finance": (
             "━━━━━━━━━━━━━━━━━━━\n"
             "재무 정보\n"
@@ -224,7 +218,7 @@ STRINGS: dict[str, dict[str, str]] = {
         # /rank
         "rank_title": "JackPy 랭킹\n━━━━━━━━━━━━━━━━━━━\n\n잔액 순위 (Top 10)\n",
         "rank_group_title": "{title} 그룹 랭킹\n━━━━━━━━━━━━━━━━━━━\n\n잔액 순위 (Top 10)\n",
-        "rank_entry": "{marker}{idx}. {name} {vip}\n    잔액: ${balance:,.2f}",
+        "rank_entry": "{marker}{idx}. {name}\n    잔액: ${balance:,.2f}",
         "rank_your_rank": "\n━━━━━━━━━━━━━━━━━━━\n당신의 순위: {rank}위\n잔액: ${balance:,.2f}",
         "rank_footer": "\n━━━━━━━━━━━━━━━━━━━\n더 높은 순위를 노려보세요!",
         # /stats
@@ -267,8 +261,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "cmd_desc_table": "멀티 테이블 열기 (최대 7명)",
         "cmd_desc_join": "테이블 착석 및 베팅 — /join 100",
         "cmd_desc_leave": "딜 전 테이블 퇴장 (베팅 반환)",
-        "cmd_desc_admin": "[관리자] 승인 대기 / 전체 통계",
-        "cmd_desc_revoke": "[관리자] VIP 해제 — /revoke [user_id]",
+        "cmd_desc_admin": "[관리자] 전체 통계 — /admin stats",
         "cmd_desc_add": "[관리자] 잔액 지급 — /add [user_id|@username] [금액]",
     },
     "en": {
@@ -293,7 +286,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_in_progress": "[Error] Game already in progress. Type /hit or /stand.",
         "dealer_label": "Dealer",
         "player_label": "Player",
-        "deal_caption": "Blackjack!{theme}\nBet: ${bet:,.2f}",
+        "deal_caption": "Blackjack!\nBet: ${bet:,.2f}",
         # 게임 이미지 라벨
         "img_dealer": "🤖 Dealer",
         "img_player": "🎯 Player",
@@ -346,8 +339,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_stand": "Stand",
         # /daily
         "daily_already": "Daily reward can only be claimed once per day.\nTry again tomorrow!",
-        "daily_reward": "Daily reward claimed!\n\nAmount: ${reward:,.2f}{bonus}\nBalance: ${balance:,.2f}",
-        "daily_vip_bonus": " (VIP bonus!)",
+        "daily_reward": "Daily reward claimed!\n\nAmount: ${reward:,.2f}\nBalance: ${balance:,.2f}",
         "daily_streak_line": "\n📅 {n}-day attendance streak! Bonus +${bonus:,.2f}",
         # 파산 구제
         "rescue_granted": (
@@ -359,8 +351,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "wallet_info": "Balance: ${balance:,.2f}",
         "wallet_full": (
             "Wallet\n\n"
-            "Balance: ${balance:,.2f}\n"
-            "VIP: {vip}\n\n"
+            "Balance: ${balance:,.2f}\n\n"
             "Stats\n"
             "Games: {games:,}\n"
             "Wins: {wins:,}\n"
@@ -368,8 +359,6 @@ STRINGS: dict[str, dict[str, str]] = {
             "Win streak: {streak:,}\n"
             "Total profit: ${profit:,.2f}"
         ),
-        "vip_active": "[Active]",
-        "vip_inactive": "[Inactive]",
         # 게임 시작 안내
         "start_game_msg": "Start Game\n\nUse /deal [amount] to start blackjack.\nExample: /deal 100",
         # /help
@@ -461,8 +450,6 @@ STRINGS: dict[str, dict[str, str]] = {
         # /my 프로필
         "profile_title": "┏━━━━━━━━━━━━━━━━━━━┓\n┃  Profile Card      ┃\n┗━━━━━━━━━━━━━━━━━━━┛",
         "profile_user": "User: {name}",
-        "profile_vip": "VIP: {vip}",
-        "profile_vip_expires": "Expires: {date}",
         "profile_finance": (
             "━━━━━━━━━━━━━━━━━━━\n"
             "Finance\n"
@@ -491,7 +478,7 @@ STRINGS: dict[str, dict[str, str]] = {
         # /rank
         "rank_title": "JackPy Leaderboard\n━━━━━━━━━━━━━━━━━━━\n\nBalance Ranking (Top 10)\n",
         "rank_group_title": "{title} Group Leaderboard\n━━━━━━━━━━━━━━━━━━━\n\nBalance Ranking (Top 10)\n",
-        "rank_entry": "{marker}{idx}. {name} {vip}\n    Balance: ${balance:,.2f}",
+        "rank_entry": "{marker}{idx}. {name}\n    Balance: ${balance:,.2f}",
         "rank_your_rank": "\n━━━━━━━━━━━━━━━━━━━\nYour rank: #{rank}\nBalance: ${balance:,.2f}",
         "rank_footer": "\n━━━━━━━━━━━━━━━━━━━\nAim for a higher rank!",
         # /stats
@@ -534,8 +521,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "cmd_desc_table": "Open a multiplayer table (up to 7)",
         "cmd_desc_join": "Take a seat and bet — /join 100",
         "cmd_desc_leave": "Leave the table before the deal (bet returned)",
-        "cmd_desc_admin": "[Admin] Pending approvals / global stats",
-        "cmd_desc_revoke": "[Admin] Revoke VIP — /revoke [user_id]",
+        "cmd_desc_admin": "[Admin] Global stats — /admin stats",
         "cmd_desc_add": "[Admin] Add balance — /add [user_id|@username] [amount]",
     },
 }

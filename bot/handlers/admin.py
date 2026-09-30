@@ -1,6 +1,6 @@
 """
 JackPy - 관리자 핸들러
-/admin, /revoke, /add 명령어 처리
+/admin (전체 통계), /add (잔액 지급) 명령어 처리
 """
 
 import logging
@@ -8,16 +8,7 @@ import os
 from typing import List
 from telegram import Update
 from telegram.ext import ContextTypes
-from models import (
-    get_db,
-    User,
-    Group,
-    Approval,
-    Round,
-    ApprovalStatus,
-    ApprovalType,
-    PlanType,
-)
+from models import get_db, User, Group, Round
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +44,6 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     /admin [command] - 관리자 명령어
 
     서브 명령어:
-    - pending: 대기 중인 승인 요청 조회
     - stats: 전체 통계 조회
 
     Args:
@@ -71,9 +61,7 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args or len(context.args) == 0:
         message = (
             "관리자 명령어\n\n"
-            "• /admin pending - 승인 대기 목록\n"
             "• /admin stats - 전체 통계\n"
-            "• /revoke [user_id] - VIP 해제\n"
             "• /add [user_id 또는 @username] [금액] - 잔액 추가"
         )
         await update.message.reply_text(message)
@@ -81,64 +69,20 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     subcommand = context.args[0].lower()
 
-    if subcommand == "pending":
-        await _admin_pending(update, context)
-    elif subcommand == "stats":
+    if subcommand == "stats":
         await _admin_stats(update, context)
     else:
         await update.message.reply_text("알 수 없는 명령어입니다.")
-
-
-async def _admin_pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """승인 대기 목록 조회"""
-    with get_db() as db:
-        pending_approvals = (
-            db.query(Approval)
-            .filter(Approval.status == ApprovalStatus.PENDING)
-            .order_by(Approval.created_at.desc())
-            .all()
-        )
-
-        if not pending_approvals:
-            await update.message.reply_text("대기 중인 승인 요청이 없습니다.")
-            return
-
-        message = "승인 대기 목록\n\n"
-        for approval in pending_approvals:
-            user = approval.user
-            message += (
-                f"ID: {approval.id}\n"
-                f"유형: {approval.type.value}\n"
-                f"사용자: {user.display_name} ({user.tg_user_id})\n"
-                f"입금자: {approval.depositor_name}\n"
-                f"금액: ${approval.amount:,.2f}\n"
-                f"기간: {approval.duration_days}일\n"
-                f"요청일: {approval.created_at.strftime('%Y-%m-%d %H:%M')}\n"
-            )
-
-            if approval.type == ApprovalType.VIP:
-                message += f"승인: /approve {user.tg_user_id} {approval.duration_days}\n"
-            else:
-                message += f"승인: /approve_business {user.tg_user_id} [chat_id]\n"
-
-            message += f"거절: /reject {user.tg_user_id} [사유]\n"
-            message += "───────────────\n\n"
-
-        await update.message.reply_text(message)
 
 
 async def _admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """전체 통계 조회"""
     with get_db() as db:
         total_users = db.query(User).count()
-        vip_users = db.query(User).filter(User.is_vip == True).count()
         total_groups = db.query(Group).count()
-        business_groups = (
-            db.query(Group).filter(Group.plan == PlanType.BUSINESS).count()
-        )
         total_rounds = db.query(Round).count()
 
-        # 총 베팅액 및 정산액 계산
+        # 총 베팅액 및 플레이어 순손익 (Round.payout은 플레이어 기준 순손익)
         from sqlalchemy import func
 
         bet_sum = db.query(func.sum(Round.bet)).scalar() or 0
@@ -147,71 +91,17 @@ async def _admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = (
             f"JackPy 전체 통계\n\n"
             f"사용자\n"
-            f"• 총 사용자: {total_users:,}명\n"
-            f"• VIP 사용자: {vip_users:,}명\n\n"
+            f"• 총 사용자: {total_users:,}명\n\n"
             f"그룹\n"
-            f"• 총 그룹: {total_groups:,}개\n"
-            f"• 비즈니스 그룹: {business_groups:,}개\n\n"
+            f"• 총 그룹: {total_groups:,}개\n\n"
             f"게임\n"
             f"• 총 라운드: {total_rounds:,}회\n"
             f"• 총 베팅액: ${bet_sum:,.2f}\n"
-            f"• 총 정산액: ${payout_sum:,.2f}\n"
-            f"• 하우스 엣지: ${bet_sum - payout_sum:,.2f}"
+            f"• 플레이어 순손익: ${payout_sum:,.2f}\n"
+            f"• 하우스 수익: ${-payout_sum:,.2f}"
         )
 
         await update.message.reply_text(message)
-
-
-async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    /revoke [user_id] - VIP 해제
-
-    Args:
-        update: 업데이트 객체
-        context: 컨텍스트 객체
-    """
-    user_tg_id = update.effective_user.id
-
-    # 관리자 권한 확인
-    if not is_admin(user_tg_id):
-        await update.message.reply_text("❌ 관리자 권한이 필요합니다.")
-        return
-
-    # 인자 확인
-    if not context.args or len(context.args) < 1:
-        await update.message.reply_text(
-            "[오류] 사용법: /revoke [user_id]\n" "예: /revoke 123456789"
-        )
-        return
-
-    try:
-        target_user_id = int(context.args[0])
-    except ValueError:
-        await update.message.reply_text("[오류] 올바른 사용자 ID를 입력해주세요.")
-        return
-
-    with get_db() as db:
-        # 사용자 조회
-        user = db.query(User).filter(User.tg_user_id == target_user_id).first()
-        if not user:
-            await update.message.reply_text("[오류] 사용자를 찾을 수 없습니다.")
-            return
-
-        # VIP 해제
-        user.is_vip = False
-        user.vip_expires_at = None
-        db.commit()
-
-        # 사용자에게 알림
-        try:
-            await context.bot.send_message(
-                chat_id=target_user_id, text="[경고] VIP 멤버십이 해제되었습니다."
-            )
-        except Exception as e:
-            logger.error(f"사용자 알림 전송 실패: {e}")
-
-        # 관리자에게 확인 메시지
-        await update.message.reply_text(f"VIP 해제 완료\n\n" f"사용자: {user.display_name}")
 
 
 async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):

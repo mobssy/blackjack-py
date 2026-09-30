@@ -48,22 +48,11 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
         wins = stats.get("wins", 0)
         win_rate = (wins / total_games * 100) if total_games > 0 else 0
 
-        vip_status = t("vip_active" if user.is_vip_active else "vip_inactive", lang)
-
         lines = [
             t("profile_title", lang),
             "",
             t("profile_user", lang, name=user.display_name),
-            t("profile_vip", lang, vip=vip_status),
         ]
-        if user.is_vip_active and user.vip_expires_at:
-            lines.append(
-                t(
-                    "profile_vip_expires",
-                    lang,
-                    date=user.vip_expires_at.strftime("%Y-%m-%d"),
-                )
-            )
         lines += [
             "",
             t(
@@ -144,7 +133,6 @@ def _build_rank_message(user_query, current_user, lang: str, title: str) -> str:
     current_user_rank = None
     for idx, user in enumerate(top_users, 1):
         marker = "> " if user.id == current_user.id else "   "
-        vip_badge = "[VIP]" if user.is_vip_active else ""
         lines.append(
             t(
                 "rank_entry",
@@ -152,7 +140,6 @@ def _build_rank_message(user_query, current_user, lang: str, title: str) -> str:
                 marker=marker,
                 idx=idx,
                 name=user.display_name,
-                vip=vip_badge,
                 balance=float(user.wallet),
             )
         )

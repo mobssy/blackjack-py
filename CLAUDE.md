@@ -1,10 +1,11 @@
 # JackPy - Telegram Blackjack Bot
 
-텔레그램 블랙잭 봇. Python 3.12 + python-telegram-bot 20.7 + SQLAlchemy 2.0 + Pillow.
+클럽하우스에서 모인 사람들이 텔레그램 그룹에서 같이 하는 블랙잭 게임 봇
+(수익화 없는 순수 게임 — VIP/구독/광고 기능 추가하지 말 것). Python 3.12 + python-telegram-bot 20.7 + SQLAlchemy 2.0 + Pillow.
 
 ## 아키텍처
 
-- `bot/main.py` — 봇 진입점 (핸들러 등록, 로깅, 스케줄러)
+- `bot/main.py` — 봇 진입점 (핸들러 등록, 로깅, 테이블 재개·메뉴 동기화)
 - `bot/handlers/` — 텔레그램 명령어/콜백 핸들러
   - `blackjack.py` — /deal /hit /stand /double /surrender /split /insurance
     /wallet /daily (출석 스트릭·파산 구제 포함), 게임 버튼 콜백,
@@ -33,7 +34,10 @@
     daily_streak, last_rescue_at 키에 저장 — 컬럼 추가 마이그레이션 회피)
   - `session_store.py` — 게임 세션/멀티 테이블 JSON 영속화 (game_sessions.json,
     table_sessions.json, gitignore됨)
-- `models/` — SQLAlchemy 모델 (User, Group, GroupMember, Round, Approval, AdSchedule).
+- `models/` — SQLAlchemy 모델 (User, Group, GroupMember, Round).
+  수익화(VIP/플랜) 기능은 제거됨 — User.is_vip 등 레거시 컬럼은 기존 DB의 NOT NULL
+  제약 때문에 정의만 유지 (삭제하면 신규 INSERT 실패). 운영 DB에 approvals/ad_schedules
+  테이블도 남아 있지만 미사용.
   DB는 `DATABASE_URL` 환경변수 (기본 sqlite:///./jackpy.db), `init_db()`로 create_all
 - 미들웨어(`bot/middleware/auth.py`)는 각각 다른 handler group(-3/-2/-1)에 등록해야
   함 — PTB는 같은 group에서 첫 매칭 핸들러 하나만 실행
@@ -45,7 +49,7 @@
 - **정산 순서 불변식**: DB 정산 커밋 → 세션 pop → 메시지 전송.
   전송 실패 시에도 이중 정산이 없도록 이 순서를 유지할 것
 - DateTime 컬럼은 naive로 저장됨 — aware datetime과 비교 시 UTC 간주 변환 필요
-  (`User.is_vip_active` 참고)
+  (`User.can_claim_daily` 참고)
 - 사용자에게 보이는 문자열은 하드코딩 금지, `i18n.py`의 `t()` 사용
 - **명령어 추가/삭제 시** `bot/utils/bot_commands.py` 메뉴 목록과 `cmd_desc_<명령어>`
   i18n 키도 함께 수정 (tests/test_bot_commands.py가 main.py 등록 목록과 대조해 강제)

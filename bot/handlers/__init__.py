@@ -24,7 +24,6 @@ from bot.handlers.table import (
 )
 from bot.handlers.admin import (
     cmd_admin,
-    cmd_revoke,
     cmd_add_balance,
 )
 from bot.handlers.profile import cmd_my, cmd_rank, cmd_stats, cmd_history
@@ -52,7 +51,6 @@ __all__ = [
     "resume_tables",
     # Admin
     "cmd_admin",
-    "cmd_revoke",
     "cmd_add_balance",
     # Profile
     "cmd_my",

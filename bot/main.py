@@ -61,7 +61,6 @@ from bot.handlers import (
     table_button_callback,
     resume_tables,
     cmd_admin,
-    cmd_revoke,
     cmd_add_balance,
     cmd_my,
     cmd_rank,
@@ -76,9 +75,6 @@ from bot.middleware.auth import user_middleware, group_middleware, logging_middl
 
 # 모델 import
 from models import init_db
-
-# 스케줄러 import
-from bot.utils.scheduler import JackPyScheduler
 
 
 def setup_handlers(app: Application):
@@ -118,7 +114,6 @@ def setup_handlers(app: Application):
 
     # 관리자
     app.add_handler(CommandHandler("admin", cmd_admin))
-    app.add_handler(CommandHandler("revoke", cmd_revoke))
     app.add_handler(CommandHandler("add", cmd_add_balance))
 
     # 프로필
@@ -147,11 +142,6 @@ async def post_init(app: Application):
     # 데이터베이스 초기화
     init_db()
 
-    # 스케줄러 시작
-    scheduler = JackPyScheduler(app.bot)
-    scheduler.start()
-    app.bot_data["scheduler"] = scheduler
-
     # 재시작 전 진행 중이던 멀티 테이블 재개 (메시지 재표시 + 타이머 재예약)
     await resume_tables(app.bot)
 
@@ -169,10 +159,6 @@ async def post_shutdown(app: Application):
         app: 텔레그램 Application 객체
     """
     logger.info("⏹ JackPy 봇 종료 중...")
-
-    # 스케줄러 중지
-    if "scheduler" in app.bot_data:
-        app.bot_data["scheduler"].stop()
 
     logger.info("✅ JackPy 봇 종료 완료")
 

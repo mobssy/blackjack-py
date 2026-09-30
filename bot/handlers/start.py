@@ -4,7 +4,6 @@ JackPy - 시작 및 기본 명령어 핸들러
 """
 
 import logging
-from datetime import datetime, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from models import get_db, User
@@ -152,30 +151,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         back = [
             [InlineKeyboardButton(t("btn_back", lang), callback_data="back_to_start")]
         ]
+        from bot.handlers.blackjack import claim_daily_reward
+
         with get_db() as db:
             user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
             if not user:
                 await query.edit_message_text(t("deal_no_user", lang))
                 return
+            # /daily와 같은 로직 (출석 스트릭 반영)
+            message = claim_daily_reward(db, user, lang)
 
-            if not user.can_claim_daily():
-                await query.edit_message_text(
-                    t("daily_already", lang), reply_markup=InlineKeyboardMarkup(back)
-                )
-                return
-
-            is_vip = user.is_vip_active
-            reward = 500.0 if is_vip else 200.0
-            user.add_wallet(reward)
-            user.last_daily_at = datetime.now(timezone.utc)
-            db.commit()
-            balance = float(user.wallet)
-
-        bonus = t("daily_vip_bonus", lang) if is_vip else ""
-        await query.edit_message_text(
-            t("daily_reward", lang, reward=reward, bonus=bonus, balance=balance),
-            reply_markup=InlineKeyboardMarkup(back),
-        )
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(back))
 
     # ── 프로필 ─────────────────────────────────────────────────
     elif query.data == "my_profile":

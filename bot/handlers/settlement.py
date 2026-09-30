@@ -3,9 +3,9 @@ JackPy - 게임 정산
 1인 게임과 멀티 테이블이 공유하는 DB 정산 로직 (지갑 반영, 통계, 라운드 기록)
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
-from models import get_db, User, Group, Round, GameOutcome, PlanType
+from models import get_db, User, Round, GameOutcome
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.payouts import streak_bonus, update_streak
 
@@ -13,7 +13,6 @@ from bot.utils.payouts import streak_bonus, update_streak
 def apply_settlement(
     db,
     user: User,
-    group: Optional[Group],
     game: BlackjackGame,
     results: List[Tuple[GameOutcome, float]],
     chat_id: int,
@@ -26,7 +25,6 @@ def apply_settlement(
     Args:
         db: DB 세션
         user: 정산 대상 사용자
-        group: 게임이 진행된 그룹 (DM이면 None)
         game: 게임 객체
         results: 핸드별 (outcome, payout) 리스트
         chat_id: 채팅 ID
@@ -89,9 +87,6 @@ def apply_settlement(
 
     return {
         "wallet": float(user.wallet),
-        "is_free": group.plan == PlanType.FREE if group else True,
-        "is_vip": user.is_vip_active,
-        "is_business": group.plan == PlanType.BUSINESS if group else False,
         "streak": streak,
         "bonus": bonus,
         "insurance_bet": game.insurance_bet,
@@ -119,7 +114,6 @@ def settle_game(
     """
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-        group = db.query(Group).filter(Group.chat_id == chat_id).first()
-        settle_info = apply_settlement(db, user, group, game, results, chat_id)
+        settle_info = apply_settlement(db, user, game, results, chat_id)
         db.commit()
         return settle_info

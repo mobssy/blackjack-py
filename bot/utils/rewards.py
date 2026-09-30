@@ -10,7 +10,6 @@ from models.user import KST
 
 # 일일 보상
 DAILY_BASE_REWARD = 200.0
-DAILY_VIP_REWARD = 500.0
 # 출석 스트릭: 2일차부터 하루당 +$25, 최대 7일치(+$175)까지 증가
 DAILY_STREAK_BONUS_PER_DAY = 25.0
 DAILY_STREAK_BONUS_CAP_DAYS = 7
@@ -58,20 +57,18 @@ def next_daily_streak(
     return 1
 
 
-def daily_reward_amount(is_vip: bool, streak: int) -> Tuple[float, float]:
+def daily_reward_amount(streak: int) -> Tuple[float, float]:
     """
     일일 보상 금액 계산
 
     Args:
-        is_vip: VIP 여부
         streak: 출석 스트릭 (1 이상)
 
     Returns:
         Tuple[float, float]: (기본 보상, 스트릭 보너스)
     """
-    base = DAILY_VIP_REWARD if is_vip else DAILY_BASE_REWARD
     bonus_days = min(max(streak - 1, 0), DAILY_STREAK_BONUS_CAP_DAYS)
-    return base, bonus_days * DAILY_STREAK_BONUS_PER_DAY
+    return DAILY_BASE_REWARD, bonus_days * DAILY_STREAK_BONUS_PER_DAY
 
 
 def can_rescue(

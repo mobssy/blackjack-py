@@ -18,45 +18,9 @@ class TestThemeManager:
         assert theme.colors.background == (15, 15, 20)  # 모던 다크로 업데이트됨
         assert theme.has_gradient is True  # 그라데이션 활성화됨
 
-    def test_get_dark_theme(self):
-        """다크 테마 가져오기 테스트"""
-        theme = ThemeManager.get_theme(ThemeType.DARK)
-
-        assert theme is not None
-        assert theme.name == "Dark"
-        assert theme.colors.background == (18, 18, 18)
-        assert theme.has_gradient is True
-
-    def test_get_luxury_theme(self):
-        """럭셔리 테마 가져오기 테스트"""
-        theme = ThemeManager.get_theme(ThemeType.LUXURY)
-
-        assert theme is not None
-        assert theme.name == "Luxury"
-        assert theme.colors.background == (10, 10, 30)
-        assert theme.has_gradient is True
-
-    def test_get_theme_by_plan_free(self):
-        """무료 플랜 테마 테스트"""
-        theme = ThemeManager.get_theme_by_plan(is_vip=False, is_business=False)
-
-        assert theme.name == "Classic"
-
-    def test_get_theme_by_plan_vip(self):
-        """VIP 플랜 테마 테스트"""
-        theme = ThemeManager.get_theme_by_plan(is_vip=True, is_business=False)
-
-        assert theme.name == "Dark"
-
-    def test_get_theme_by_plan_business(self):
-        """비즈니스 플랜 테마 테스트"""
-        theme = ThemeManager.get_theme_by_plan(is_vip=False, is_business=True)
-
-        assert theme.name == "Luxury"
-
     def test_theme_colors_are_rgb_tuples(self):
         """테마 색상이 RGB 튜플인지 테스트"""
-        for theme_type in [ThemeType.CLASSIC, ThemeType.DARK, ThemeType.LUXURY]:
+        for theme_type in ThemeType:
             theme = ThemeManager.get_theme(theme_type)
 
             assert isinstance(theme.colors.background, tuple)

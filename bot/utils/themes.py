@@ -1,6 +1,6 @@
 """
 JackPy - 테마 시스템
-다크 모드, 럭셔리 모드 등 다양한 테마 지원
+카드 이미지 색상 테마 (현재 Classic 하나 — 확장 시 ThemeType/ThemeManager에 추가)
 """
 
 from enum import Enum
@@ -12,8 +12,6 @@ class ThemeType(Enum):
     """테마 타입"""
 
     CLASSIC = "classic"
-    DARK = "dark"
-    LUXURY = "luxury"
 
 
 @dataclass
@@ -77,38 +75,6 @@ class ThemeManager:
         has_gradient=True,
     )
 
-    # 다크 테마
-    DARK = Theme(
-        name="Dark",
-        colors=ColorScheme(
-            background=(18, 18, 18),  # 다크 그레이
-            table_color=(28, 28, 30),  # 조금 밝은 그레이
-            text_color=(255, 255, 255),
-            border_color=(142, 142, 147),  # 미디엄 그레이
-            accent_color=(94, 92, 230),  # 보라색 액센트
-            card_shadow=(0, 0, 0, 150),
-        ),
-        card_style="modern",
-        font_name="Arial",
-        has_gradient=True,
-    )
-
-    # 럭셔리 테마
-    LUXURY = Theme(
-        name="Luxury",
-        colors=ColorScheme(
-            background=(10, 10, 30),  # 딥 네이비
-            table_color=(25, 25, 60),  # 로얄 블루
-            text_color=(255, 223, 186),  # 크림 골드
-            border_color=(212, 175, 55),  # 골드
-            accent_color=(255, 215, 0),  # 브라이트 골드
-            card_shadow=(212, 175, 55, 80),  # 골드 섀도우
-        ),
-        card_style="luxury",
-        font_name="Arial",
-        has_gradient=True,
-    )
-
     @staticmethod
     def get_theme(theme_type: ThemeType) -> Theme:
         """
@@ -122,26 +88,5 @@ class ThemeManager:
         """
         themes = {
             ThemeType.CLASSIC: ThemeManager.CLASSIC,
-            ThemeType.DARK: ThemeManager.DARK,
-            ThemeType.LUXURY: ThemeManager.LUXURY,
         }
         return themes.get(theme_type, ThemeManager.CLASSIC)
-
-    @staticmethod
-    def get_theme_by_plan(is_vip: bool, is_business: bool) -> Theme:
-        """
-        플랜에 따른 테마 자동 선택
-
-        Args:
-            is_vip: VIP 여부
-            is_business: 비즈니스 플랜 여부
-
-        Returns:
-            Theme: 테마 객체
-        """
-        if is_business:
-            return ThemeManager.LUXURY
-        elif is_vip:
-            return ThemeManager.DARK
-        else:
-            return ThemeManager.CLASSIC

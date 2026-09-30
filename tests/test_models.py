@@ -1,6 +1,6 @@
 """
 JackPy - Models 테스트
-User, Group, Round, Approval 모델 테스트
+User, Group, GroupMember, Round 모델 테스트
 """
 
 import pytest
@@ -10,11 +10,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from models.user import User
-from models.group import Group, PlanType
+from models.group import Group
 from models.group_member import GroupMember
 from models.round import Round, GameOutcome
-from models.approval import Approval, ApprovalType, ApprovalStatus
-from models.ad_schedule import AdSchedule
 
 
 @pytest.fixture
@@ -63,33 +61,6 @@ class TestUserModel:
         """아무것도 없는 경우 표시 이름"""
         user = User(tg_user_id=123)
         assert user.display_name == "User#123"
-
-    def test_vip_active_status(self, db_session):
-        """VIP 활성 상태 확인"""
-        user = User(tg_user_id=123, is_vip=True)
-
-        # VIP이지만 만료일 없음 (무제한)
-        assert user.is_vip_active is True
-
-        # VIP이고 미래 만료일
-        user.vip_expires_at = datetime.now(timezone.utc) + timedelta(days=30)
-        assert user.is_vip_active is True
-
-        # VIP이지만 만료됨
-        user.vip_expires_at = datetime.now(timezone.utc) - timedelta(days=1)
-        assert user.is_vip_active is False
-
-    def test_vip_active_with_naive_datetime(self, db_session):
-        """DB에서 naive datetime으로 조회된 만료일도 크래시 없이 비교"""
-        user = User(tg_user_id=123, is_vip=True)
-
-        # naive 미래 만료일 (SQLite 등에서 tzinfo 없이 반환되는 경우)
-        user.vip_expires_at = datetime.utcnow() + timedelta(days=30)
-        assert user.is_vip_active is True
-
-        # naive 과거 만료일
-        user.vip_expires_at = datetime.utcnow() - timedelta(days=1)
-        assert user.is_vip_active is False
 
     def test_add_wallet(self, db_session):
         """잔액 추가 테스트"""
@@ -141,70 +112,34 @@ class TestGroupModel:
 
     def test_create_group(self, db_session):
         """그룹 생성 테스트"""
-        group = Group(chat_id=-123456789, title="Test Group", plan=PlanType.FREE)
+        group = Group(chat_id=-123456789, title="Test Group")
         db_session.add(group)
         db_session.commit()
 
         assert group.id is not None
         assert group.chat_id == -123456789
-        assert group.plan == PlanType.FREE
 
-    def test_plan_active_free(self, db_session):
-        """무료 플랜은 항상 활성"""
-        group = Group(chat_id=-123, plan=PlanType.FREE)
-        assert group.is_plan_active is True
 
-    def test_plan_active_vip_no_expiry(self, db_session):
-        """VIP 플랜 무제한"""
-        group = Group(chat_id=-123, plan=PlanType.VIP, expires_at=None)
-        assert group.is_plan_active is True
+class TestLegacyColumns:
+    """
+    제거된 VIP/플랜 기능의 NOT NULL 컬럼이 기본값으로 채워지는지 검증
 
-    def test_plan_active_vip_not_expired(self, db_session):
-        """VIP 플랜 활성"""
-        group = Group(
-            chat_id=-123,
-            plan=PlanType.VIP,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        )
-        assert group.is_plan_active is True
+    운영 DB 구조는 유지하므로, 코드에서 값을 지정하지 않아도
+    신규 사용자/그룹 INSERT가 실패하지 않아야 한다.
+    """
 
-    def test_plan_active_vip_expired(self, db_session):
-        """VIP 플랜 만료"""
-        group = Group(
-            chat_id=-123,
-            plan=PlanType.VIP,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
-        )
-        assert group.is_plan_active is False
+    def test_new_user_insert_without_vip_fields(self, db_session):
+        user = User(tg_user_id=555)
+        db_session.add(user)
+        db_session.commit()
+        assert user.is_vip is False
 
-    def test_is_business(self, db_session):
-        """비즈니스 플랜 여부"""
-        group = Group(chat_id=-123, plan=PlanType.BUSINESS)
-        assert group.is_business is True
-
-    def test_ad_enabled_free_plan(self, db_session):
-        """무료 플랜은 광고 활성"""
-        group = Group(chat_id=-123, plan=PlanType.FREE, settings_json={})
-        assert group.ad_enabled is True
-
-    def test_ad_enabled_vip_plan(self, db_session):
-        """VIP 플랜은 광고 비활성"""
-        group = Group(
-            chat_id=-123,
-            plan=PlanType.VIP,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        )
-        assert group.ad_enabled is False
-
-    def test_get_prefix_default(self, db_session):
-        """기본 prefix"""
-        group = Group(chat_id=-123, settings_json={})
-        assert group.get_prefix() == "/"
-
-    def test_get_prefix_custom(self, db_session):
-        """커스텀 prefix"""
-        group = Group(chat_id=-123, settings_json={"prefix": "!"})
-        assert group.get_prefix() == "!"
+    def test_new_group_insert_without_plan_fields(self, db_session):
+        group = Group(chat_id=-555)
+        db_session.add(group)
+        db_session.commit()
+        assert group.plan is not None
+        assert group.settings_json == {}
 
 
 class TestGroupMemberModel:
@@ -332,99 +267,6 @@ class TestRoundModel:
             payout=0,
         )
         assert round_push.is_push is True
-
-
-class TestApprovalModel:
-    """Approval 모델 테스트"""
-
-    def test_create_approval(self, db_session):
-        """승인 요청 생성 테스트"""
-        user = User(tg_user_id=123)
-        db_session.add(user)
-        db_session.commit()
-
-        approval = Approval(
-            user_id=user.id,
-            type=ApprovalType.VIP,
-            depositor_name="홍길동",
-            amount=30.0,
-            duration_days=30,
-        )
-        db_session.add(approval)
-        db_session.commit()
-
-        assert approval.id is not None
-        assert approval.status == ApprovalStatus.PENDING
-        assert approval.is_pending is True
-
-    def test_approval_status(self, db_session):
-        """승인 상태 테스트"""
-        approval = Approval(
-            user_id=1,
-            type=ApprovalType.VIP,
-            depositor_name="Test",
-            amount=30,
-            duration_days=30,
-        )
-
-        # PENDING
-        approval.status = ApprovalStatus.PENDING
-        assert approval.is_pending is True
-        assert approval.is_approved is False
-        assert approval.is_rejected is False
-
-        # APPROVED
-        approval.status = ApprovalStatus.APPROVED
-        assert approval.is_pending is False
-        assert approval.is_approved is True
-        assert approval.is_rejected is False
-
-        # REJECTED
-        approval.status = ApprovalStatus.REJECTED
-        assert approval.is_pending is False
-        assert approval.is_approved is False
-        assert approval.is_rejected is True
-
-
-class TestAdScheduleModel:
-    """AdSchedule 모델 테스트"""
-
-    def test_create_ad_schedule(self, db_session):
-        """광고 스케줄 생성 테스트"""
-        schedule = AdSchedule(chat_id=-123456789, interval_minutes=60)
-        db_session.add(schedule)
-        db_session.commit()
-
-        assert schedule.id is not None
-        assert schedule.chat_id == -123456789
-        assert schedule.interval_minutes == 60
-
-    def test_can_send_ad_first_time(self, db_session):
-        """첫 광고 발송 가능"""
-        schedule = AdSchedule(chat_id=-123, interval_minutes=60)
-        assert schedule.can_send_ad() is True
-
-    def test_can_send_ad_after_interval(self, db_session):
-        """간격 경과 후 발송 가능"""
-        schedule = AdSchedule(chat_id=-123, interval_minutes=60)
-        schedule.last_sent_at = datetime.now(timezone.utc) - timedelta(minutes=61)
-        assert schedule.can_send_ad() is True
-
-    def test_can_send_ad_before_interval(self, db_session):
-        """간격 경과 전 발송 불가"""
-        schedule = AdSchedule(chat_id=-123, interval_minutes=60)
-        schedule.last_sent_at = datetime.now(timezone.utc) - timedelta(minutes=30)
-        assert schedule.can_send_ad() is False
-
-    def test_mark_sent(self, db_session):
-        """광고 발송 기록"""
-        schedule = AdSchedule(chat_id=-123, interval_minutes=60)
-        before = datetime.now(timezone.utc)
-        schedule.mark_sent()
-        after = datetime.now(timezone.utc)
-
-        assert schedule.last_sent_at is not None
-        assert before <= schedule.last_sent_at <= after
 
 
 class TestDailyResetKST:

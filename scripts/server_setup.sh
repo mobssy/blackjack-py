@@ -19,8 +19,7 @@ venv/bin/pip install \
   "alembic==1.13.0" \
   "Pillow==10.1.0" \
   "python-dotenv==1.0.0" \
-  "requests==2.31.0" \
-  "apscheduler"
+  "requests==2.31.0"
 
 echo "==> DB 초기화..."
 venv/bin/python3 init_db.py

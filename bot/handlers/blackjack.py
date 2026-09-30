@@ -15,14 +15,12 @@ from telegram import (
     InputMediaPhoto,
 )
 from telegram.ext import ContextTypes
-from models import get_db, User, Group, GameOutcome, PlanType
+from models import get_db, User, GameOutcome
 from bot.utils import (
     calculate_hand_value,
     is_blackjack,
     is_bust,
     PayoutCalculator,
-    should_show_game_ad,
-    get_ad_footer,
     t,
     get_user_lang,
 )
@@ -39,7 +37,6 @@ from bot.utils.rewards import (
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.session_store import load_sessions, save_sessions
 from bot.utils.casino_card_renderer import get_casino_renderer
-from bot.utils.themes import ThemeManager
 
 logger = logging.getLogger(__name__)
 
@@ -51,27 +48,6 @@ game_sessions: Dict[int, BlackjackGame] = load_sessions()
 def _persist_sessions() -> None:
     """게임 상태 변경 시점마다 세션을 파일에 반영"""
     save_sessions(game_sessions)
-
-
-def get_user_theme(user_tg_id: int, chat_id: int):
-    """
-    사용자 테마 가져오기
-
-    Args:
-        user_tg_id: 사용자 텔레그램 ID
-        chat_id: 채팅 ID
-
-    Returns:
-        Theme: 사용자 테마
-    """
-    with get_db() as db:
-        user_obj = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-        group = db.query(Group).filter(Group.chat_id == chat_id).first()
-
-        is_vip = user_obj.is_vip_active if user_obj else False
-        is_business = group.plan == PlanType.BUSINESS if group else False
-
-        return ThemeManager.get_theme_by_plan(is_vip, is_business)
 
 
 def get_game_keyboard(
@@ -121,7 +97,6 @@ def get_game_keyboard(
 
 def _render_game_image(
     game: "BlackjackGame",
-    theme,
     lang: str,
     message: str,
     reveal_dealer: bool = False,
@@ -133,7 +108,6 @@ def _render_game_image(
 
     Args:
         game: 게임 객체
-        theme: 카드 테마
         lang: 언어 코드
         message: 이미지 하단 메시지
         reveal_dealer: 딜러 첫 카드 공개 여부
@@ -147,7 +121,7 @@ def _render_game_image(
     if player_value is None:
         player_value = calculate_hand_value(game.player_hand)
     dealer_value = calculate_hand_value(game.dealer_hand) if reveal_dealer else None
-    return get_casino_renderer(theme).generate_game_image(
+    return get_casino_renderer().generate_game_image(
         player_hand=hand,
         dealer_hand=game.dealer_hand,
         player_value=player_value,
@@ -226,7 +200,6 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
     # 사용자 언어 조회
     with get_db() as db:
@@ -316,11 +289,9 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
-    theme = get_user_theme(user_tg_id, chat_id)
-    image_bytes = _render_game_image(game, theme, lang, t("hint_commands_first", lang))
+    image_bytes = _render_game_image(game, lang, t("hint_commands_first", lang))
 
-    theme_name = f" [{theme.name}]" if theme.name != "Classic" else ""
-    caption = t("deal_caption", lang, theme=theme_name, bet=bet_amount)
+    caption = t("deal_caption", lang, bet=bet_amount)
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=caption,
@@ -339,7 +310,6 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
     with get_db() as db:
         _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
@@ -369,8 +339,7 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 next=game.hand_number,
                 total=game.hand_count,
             )
-            theme = get_user_theme(user_tg_id, chat_id)
-            image_bytes = _render_game_image(game, theme, lang, caption)
+            image_bytes = _render_game_image(game, lang, caption)
             await update.message.reply_photo(
                 photo=BytesIO(image_bytes),
                 caption=caption,
@@ -380,8 +349,7 @@ async def cmd_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await _finish_game(update, user_tg_id, game, _all_hands_results(game))
         return
 
-    theme = get_user_theme(user_tg_id, chat_id)
-    image_bytes = _render_game_image(game, theme, lang, t("hint_commands", lang))
+    image_bytes = _render_game_image(game, lang, t("hint_commands", lang))
 
     caption = t("card_drawn", lang)
     await update.message.reply_photo(
@@ -400,7 +368,6 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
     with get_db() as db:
         _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
@@ -417,8 +384,7 @@ async def cmd_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if game.advance_hand():
         _persist_sessions()
         caption = _hand_progress_caption(game, lang)
-        theme = get_user_theme(user_tg_id, chat_id)
-        image_bytes = _render_game_image(game, theme, lang, caption)
+        image_bytes = _render_game_image(game, lang, caption)
         await update.message.reply_photo(
             photo=BytesIO(image_bytes),
             caption=caption,
@@ -626,7 +592,6 @@ async def cmd_split(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
     with get_db() as db:
         _u = db.query(User).filter(User.tg_user_id == user_tg_id).first()
@@ -652,8 +617,7 @@ async def cmd_split(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 핸드 1부터 플레이
     caption = _hand_progress_caption(game, lang)
-    theme = get_user_theme(user_tg_id, chat_id)
-    image_bytes = _render_game_image(game, theme, lang, caption)
+    image_bytes = _render_game_image(game, lang, caption)
     await update.message.reply_photo(
         photo=BytesIO(image_bytes),
         caption=t("split_caption", lang, bet=game.bet) + "\n" + caption,
@@ -753,15 +717,8 @@ def _render_game_result(
         ]
     )
 
-    if should_show_game_ad(settle_info["is_free"]):
-        result_message += get_ad_footer(show_ad=True)
-
-    theme = ThemeManager.get_theme_by_plan(
-        settle_info["is_vip"], settle_info["is_business"]
-    )
     image_bytes = _render_game_image(
         game,
-        theme,
         lang,
         result_message,
         reveal_dealer=True,
@@ -769,8 +726,7 @@ def _render_game_result(
         player_value=image_value,
     )
 
-    theme_badge = f" [{theme.name}]" if theme.name != "Classic" else ""
-    caption = f"{caption_head} {t('game_over_suffix', lang)}{theme_badge}"
+    caption = f"{caption_head} {t('game_over_suffix', lang)}"
 
     reply_markup = InlineKeyboardMarkup(
         [
@@ -835,12 +791,10 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         stats = user.stats_json or {}
-        vip_status = t("vip_active" if user.is_vip_active else "vip_inactive", lang)
         message = t(
             "wallet_full",
             lang,
             balance=float(user.wallet),
-            vip=vip_status,
             games=stats.get("total_games", 0),
             wins=stats.get("wins", 0),
             losses=stats.get("losses", 0),
@@ -848,6 +802,41 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
             profit=stats.get("total_profit", 0),
         )
         await update.message.reply_text(message)
+
+
+def claim_daily_reward(db, user: User, lang: str) -> str:
+    """
+    일일 보상 지급 (출석 스트릭 반영) 후 안내 메시지 반환
+
+    /daily 명령어와 시작 메뉴의 출석 체크 버튼이 공유한다.
+
+    Args:
+        db: DB 세션
+        user: 사용자 객체
+        lang: 언어 코드
+
+    Returns:
+        str: 지급 안내 메시지 (오늘 이미 받았으면 안내 문구)
+    """
+    if not user.can_claim_daily():
+        return t("daily_already", lang)
+
+    stats = user.stats_json or {}
+    streak = next_daily_streak(user.last_daily_at, stats.get("daily_streak", 0))
+    base_reward, streak_bonus_amount = daily_reward_amount(streak)
+    reward = base_reward + streak_bonus_amount
+
+    user.add_wallet(reward)
+    user.last_daily_at = datetime.now(timezone.utc)
+    new_stats = dict(stats)
+    new_stats["daily_streak"] = streak
+    user.stats_json = new_stats
+    db.commit()
+
+    message = t("daily_reward", lang, reward=reward, balance=float(user.wallet))
+    if streak_bonus_amount > 0:
+        message += t("daily_streak_line", lang, n=streak, bonus=streak_bonus_amount)
+    return message
 
 
 async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -866,37 +855,9 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))
             return
+        message = claim_daily_reward(db, user, lang)
 
-        # 일일 보상 수령 가능 여부 확인
-        if not user.can_claim_daily():
-            await update.message.reply_text(t("daily_already", lang))
-            return
-
-        # 보상 지급 (출석 스트릭 반영)
-        is_vip = user.is_vip_active
-        stats = user.stats_json or {}
-        streak = next_daily_streak(user.last_daily_at, stats.get("daily_streak", 0))
-        base_reward, streak_bonus_amount = daily_reward_amount(is_vip, streak)
-        reward = base_reward + streak_bonus_amount
-
-        user.add_wallet(reward)
-        user.last_daily_at = datetime.now(timezone.utc)
-        new_stats = dict(stats)
-        new_stats["daily_streak"] = streak
-        user.stats_json = new_stats
-        db.commit()
-
-        bonus = t("daily_vip_bonus", lang) if is_vip else ""
-        message = t(
-            "daily_reward",
-            lang,
-            reward=reward,
-            bonus=bonus,
-            balance=float(user.wallet),
-        )
-        if streak_bonus_amount > 0:
-            message += t("daily_streak_line", lang, n=streak, bonus=streak_bonus_amount)
-        await update.message.reply_text(message)
+    await update.message.reply_text(message)
 
 
 async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -927,11 +888,9 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     # callback_data에 따라 적절한 명령어 실행
     if query.data == "game_hit":
         # 먼저 뒷면 카드가 추가된 이미지 표시 (카드 뒤집기 연출)
-        theme = get_user_theme(user_tg_id, chat_id)
         drawing_msg = t("drawing_card", lang)
         back_image_bytes = _render_game_image(
             game,
-            theme,
             lang,
             drawing_msg,
             player_hand=game.player_hand + ["BACK"],
@@ -962,7 +921,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
                     next=game.hand_number,
                     total=game.hand_count,
                 )
-                image_bytes = _render_game_image(game, theme, lang, caption)
+                image_bytes = _render_game_image(game, lang, caption)
                 await query.edit_message_media(
                     media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
                     reply_markup=get_game_keyboard(),
@@ -973,7 +932,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             )
             return
 
-        image_bytes = _render_game_image(game, theme, lang, t("hint_commands", lang))
+        image_bytes = _render_game_image(game, lang, t("hint_commands", lang))
 
         # 앞면 카드로 업데이트
         await query.edit_message_media(
@@ -988,8 +947,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         if game.advance_hand():
             _persist_sessions()
             caption = _hand_progress_caption(game, lang)
-            theme = get_user_theme(user_tg_id, chat_id)
-            image_bytes = _render_game_image(game, theme, lang, caption)
+            image_bytes = _render_game_image(game, lang, caption)
             await query.edit_message_media(
                 media=InputMediaPhoto(media=BytesIO(image_bytes), caption=caption),
                 reply_markup=get_game_keyboard(),
@@ -1057,8 +1015,7 @@ async def game_button_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
         # 핸드 1부터 플레이
         caption = _hand_progress_caption(game, lang)
-        theme = get_user_theme(user_tg_id, chat_id)
-        image_bytes = _render_game_image(game, theme, lang, caption)
+        image_bytes = _render_game_image(game, lang, caption)
         await query.edit_message_media(
             media=InputMediaPhoto(
                 media=BytesIO(image_bytes),

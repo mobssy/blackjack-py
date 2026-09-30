@@ -1,6 +1,6 @@
 """
 JackPy - User 모델
-사용자 정보 및 VIP 상태 관리
+사용자 정보, 지갑, 통계 관리
 """
 
 from datetime import datetime, timedelta, timezone
@@ -32,8 +32,6 @@ class User(Base, TimestampMixin):
         username: 텔레그램 사용자명
         first_name: 이름
         wallet: 잔액 (Decimal)
-        is_vip: VIP 여부
-        vip_expires_at: VIP 만료일
         last_daily_at: 마지막 데일리 보상 수령일
         stats_json: 통계 정보 (JSON)
     """
@@ -47,6 +45,8 @@ class User(Base, TimestampMixin):
 
     # 게임 관련
     wallet = Column(Numeric(precision=15, scale=2), default=1000.0, nullable=False)
+    # (레거시) VIP 컬럼 — 기능은 제거됨. 기존 DB의 NOT NULL 컬럼이라
+    # 신규 사용자 INSERT가 깨지지 않도록 정의만 유지한다.
     is_vip = Column(Boolean, default=False, nullable=False)
     vip_expires_at = Column(DateTime, nullable=True)
 
@@ -61,20 +61,7 @@ class User(Base, TimestampMixin):
     stats_json = Column(JSON, default=dict, nullable=False)
 
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, username={self.username}, vip={self.is_vip})>"
-
-    @property
-    def is_vip_active(self) -> bool:
-        """VIP 활성 상태 확인"""
-        if not self.is_vip:
-            return False
-        if self.vip_expires_at is None:
-            return True  # 무제한 VIP
-        expires_at = self.vip_expires_at
-        if expires_at.tzinfo is None:
-            # DB에서 naive datetime으로 조회되는 경우 UTC로 간주
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) < expires_at
+        return f"<User(id={self.id}, username={self.username})>"
 
     @property
     def display_name(self) -> str:

@@ -23,8 +23,8 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import ContextTypes
 
-from models import get_db, User, Group
-from bot.handlers.blackjack import get_game_keyboard, get_user_theme
+from models import get_db, User
+from bot.handlers.blackjack import get_game_keyboard
 from bot.handlers.settlement import apply_settlement
 from bot.utils.table_renderer import get_table_renderer
 from bot.utils.deck import is_bust
@@ -216,9 +216,7 @@ def _render_table_image(
 
     seat_results가 없으면 플레이 중(홀 카드 가림, 현재 차례 강조),
     있으면 결과 모드(홀 카드 공개, 좌석별 정산 결과)로 그린다.
-    테마는 호스트 기준 (테이블 전체가 같은 테마를 쓰도록).
     """
-    theme = get_user_theme(table.host_id, table.chat_id)
     current = table.current_seat
     if seat_results is not None:
         footer = t("img_table_result", table.lang)
@@ -226,7 +224,7 @@ def _render_table_image(
         footer = t("table_img_hint", table.lang, name=current.name)
     else:
         footer = ""
-    return get_table_renderer(theme).render(
+    return get_table_renderer().render(
         dealer_hand=table.dealer_hand,
         seats=seat_views(table, seat_results),
         hide_dealer_first=seat_results is None,
@@ -355,12 +353,11 @@ async def _advance(
 def _settle_table(table: BlackjackTable, seat_results: SeatResults) -> Dict[int, Dict]:
     """모든 좌석을 한 트랜잭션으로 정산 (일부만 반영되는 상황 방지)"""
     with get_db() as db:
-        group = db.query(Group).filter(Group.chat_id == table.chat_id).first()
         settle_infos = {}
         for seat, results in seat_results:
             user = db.query(User).filter(User.tg_user_id == seat.user_id).first()
             settle_infos[seat.user_id] = apply_settlement(
-                db, user, group, seat.game, results, table.chat_id
+                db, user, seat.game, results, table.chat_id
             )
         db.commit()
         return settle_infos

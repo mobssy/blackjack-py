@@ -49,11 +49,7 @@ python -m bot.main
 
 ### 테마 시스템
 
-봇이 실행되면 사용자의 플랜에 따라 자동으로 테마가 적용됩니다:
-
-- **무료 사용자**: 🟢 Classic 테마 (전통적인 카지노 그린)
-- **VIP 사용자**: 🌑 Dark 테마 (세련된 다크 모드)
-- **비즈니스 그룹**: 💎 Luxury 테마 (프리미엄 골드)
+모든 게임 이미지는 Classic 테마(다크 네온) 하나로 그려집니다.
 
 ### 게임 플레이
 
@@ -117,7 +113,6 @@ jackpy/
 │   │   ├── blackjack.py    # 개선된 블랙잭 핸들러
 │   │   ├── profile.py
 │   │   ├── admin.py
-│   │   └── vip.py
 │   ├── utils/
 │   │   ├── themes.py               # 테마 시스템
 │   │   ├── enhanced_card_image.py  # 개선된 카드 이미지
@@ -159,24 +154,6 @@ jackpy/
    pip install --upgrade Pillow
    ```
 
-### 테마가 적용되지 않는 경우
-
-1. 사용자 VIP 상태 확인:
-   ```
-   /my
-   ```
-
-2. 그룹 플랜 확인:
-   ```
-   /admin
-   ```
-
-3. 봇 재시작:
-   ```bash
-   # Ctrl+C로 중지 후
-   python -m bot.main
-   ```
-
 ### 데이터베이스 오류
 
 ```bash
@@ -190,33 +167,7 @@ alembic upgrade head
 
 ## 🎯 다음 단계
 
-### 1. VIP 테스트
-
-VIP 사용자로 테스트하려면:
-
-```bash
-# 데이터베이스에서 직접 VIP 활성화
-python -c "
-from models import get_db, User
-with get_db() as db:
-    user = db.query(User).filter(User.tg_user_id == YOUR_TELEGRAM_ID).first()
-    if user:
-        user.activate_vip(days=30)
-        db.commit()
-        print('VIP 활성화 완료!')
-"
-```
-
-### 2. 비즈니스 플랜 테스트
-
-그룹에서 비즈니스 플랜을 테스트하려면:
-
-```bash
-# 관리자 명령어 사용
-/approve_business CHAT_ID
-```
-
-### 3. 애니메이션 테스트 (선택사항)
+### 애니메이션 테스트 (선택사항)
 
 카드 애니메이션을 직접 테스트하려면:
 
@@ -244,8 +195,6 @@ with open("flip.gif", "wb") as f:
 이제 JackPy 봇이 다음과 같은 개선된 기능을 제공합니다:
 
 - ✅ 실제 카드 이미지
-- ✅ 3가지 테마 시스템 (Classic, Dark, Luxury)
-- ✅ 플랜별 자동 테마 적용
 - ✅ 그림자 효과와 그라데이션
 - ✅ 명확한 승패 결과 표시
 - ✅ 카드 애니메이션 (GIF)
