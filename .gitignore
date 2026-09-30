@@ -81,3 +81,18 @@ game_sessions.pkl
 jackpy.log.*
 game_sessions.json
 table_sessions.json
+
+# SQLite 저널/WAL (DB와 같은 민감도)
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 키/인증서
+*.pem
+*.key
+
+# 로컬 백업 가상환경
+venv_backup/
+
+# Claude Code 로컬 설정 (전역 gitignore에만 의존하지 않도록)
+.claude/settings.local.json
