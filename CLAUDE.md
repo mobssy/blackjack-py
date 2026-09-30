@@ -67,6 +67,7 @@
 # 주의: black은 CI에 고정된 23.11.0을 사용할 것 — 버전이 다르면 포맷 결과가 달라 CI 실패
 ./venv/bin/python -m flake8 bot/ models/ tests/ scripts/ --select=E9,F63,F7,F82
 ./venv/bin/python -m bot.main                   # 봇 실행 (.env에 TELEGRAM_TOKEN 필요)
+JACKPY_HOST=<IP> JACKPY_SSH_USER=<ssh계정> JACKPY_APP_USER=<봇계정> ./scripts/deploy.sh  # 운영 배포 (push 후)
 ```
 
 ## 컨벤션

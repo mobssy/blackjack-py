@@ -87,15 +87,16 @@ CI(GitHub Actions)가 push마다 위 세 가지를 확인합니다.
 
 ### 서버 배포
 
-systemd로 운영합니다. 유닛 예시는 [`infra/jackpy.service`](infra/jackpy.service)에 있습니다.
+systemd로 운영합니다 (유닛: [`infra/jackpy.service`](infra/jackpy.service)).
+
+- **새 서버 준비 (1회):** 서버에서 [`scripts/server_setup.sh`](scripts/server_setup.sh)를 `sudo`로 실행하면 실행 계정, 코드, 가상환경, 한글 폰트, systemd 등록까지 처리합니다. 이후 `.env`에 토큰을 입력하고 시작합니다.
+- **배포:** main에 push한 뒤 로컬에서 실행합니다. 서버에서 pull → (의존성 변경 시) 설치 → import 확인 → 재시작 → 기동 로그 확인까지 진행하고, 문제가 있으면 실패로 끝납니다.
 
 ```bash
-# 서버에서: 코드 갱신 후 재시작
-git -C ~/jackpy pull origin main
-sudo systemctl restart jackpy
+JACKPY_HOST=<서버 IP> JACKPY_APP_USER=<봇 실행 계정> ./scripts/deploy.sh
 ```
 
-재시작 후 `jackpy.log`에 `Application started`가 찍히고 `Conflict` 에러가 없으면 정상입니다.
+진행 중인 게임과 테이블은 재시작 후 자동으로 복원됩니다.
 
 ---
 
@@ -175,15 +176,16 @@ CI (GitHub Actions) runs these three checks on every push.
 
 ### Deployment
 
-Runs under systemd. A sample unit is in [`infra/jackpy.service`](infra/jackpy.service).
+Runs under systemd (unit: [`infra/jackpy.service`](infra/jackpy.service)).
+
+- **New server (once):** run [`scripts/server_setup.sh`](scripts/server_setup.sh) with `sudo` on the server. It creates the service account, clones the code, sets up the venv, installs Korean fonts, and registers the systemd unit. Then fill in `.env` and start the service.
+- **Deploy:** push to main, then run the script locally. On the server it pulls, installs dependencies if they changed, checks imports, restarts, and verifies the startup log — failing loudly if anything is wrong.
 
 ```bash
-# On the server: update and restart
-git -C ~/jackpy pull origin main
-sudo systemctl restart jackpy
+JACKPY_HOST=<server IP> JACKPY_APP_USER=<service account> ./scripts/deploy.sh
 ```
 
-After a restart, `jackpy.log` should show `Application started` with no `Conflict` errors.
+In-progress games and tables are restored automatically after a restart.
 
 ---
 
@@ -215,6 +217,11 @@ models/                SQLAlchemy models (User, Group, GroupMember, Round)
 tests/                 pytest suite
 assets/                card images and fonts
 infra/                 systemd unit, Alembic, production requirements
+scripts/
+  deploy.sh            deploy to the server (pull, check, restart, verify)
+  server_setup.sh      one-time setup of a new Debian/Ubuntu server
+  rebuild_stats.py     recompute game stats from round history (--dry-run)
+  download_cards.py    re-download the card images
 ```
 
 ## Credits
