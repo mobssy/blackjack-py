@@ -220,13 +220,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(back))
 
-    # ── 게임 버튼 (hit/stand/double/surrender/split) ────────────
+    # ── 게임 버튼 (hit/stand/double/surrender/split/insurance) ──
     elif query.data in (
         "game_hit",
         "game_stand",
         "game_double",
         "game_surrender",
         "game_split",
+        "game_insurance",
     ):
         from bot.handlers.blackjack import game_button_callback
 
