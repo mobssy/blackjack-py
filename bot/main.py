@@ -58,6 +58,7 @@ from bot.handlers import (
     cmd_table,
     cmd_join,
     cmd_leave,
+    cmd_give,
     table_button_callback,
     resume_tables,
     cmd_admin,
@@ -112,6 +113,9 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("table", cmd_table))
     app.add_handler(CommandHandler("join", cmd_join))
     app.add_handler(CommandHandler("leave", cmd_leave))
+
+    # 칩 선물 (개인/그룹)
+    app.add_handler(CommandHandler("give", cmd_give))
 
     # 관리자
     app.add_handler(CommandHandler("admin", cmd_admin))

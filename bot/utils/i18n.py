@@ -158,6 +158,14 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_table_deal": "🃏 딜 시작",
         "btn_table_again": "🔁 같은 금액으로 계속",
         "table_again_no_bet": "지난 판 기록이 없어요. /join 금액 으로 착석하세요.",
+        # 칩 선물
+        "give_usage": ("사용법: /give @아이디 금액\n" "또는 받을 사람의 메시지에 답장하며 /give 금액"),
+        "give_invalid_amount": "[오류] 금액은 $1 이상, 소수점 둘째 자리까지 입력하세요.",
+        "give_self": "[오류] 자기 자신에게는 보낼 수 없습니다.",
+        "give_bot": "[오류] 봇에게는 칩을 보낼 수 없습니다.",
+        "give_unknown_user": "[오류] 받을 사람을 찾을 수 없습니다. 봇을 한 번이라도 사용한 사람에게만 보낼 수 있어요.",
+        "give_no_balance": "[오류] 잔액이 부족합니다. (현재 ${balance:,.2f})",
+        "give_done": "🎁 {sender}님이 {recipient}님에게 ${amount:,.2f} 선물! (남은 잔액 ${balance:,.2f})",
         "table_none": "[오류] 열린 테이블이 없습니다. /table 로 테이블을 여세요.",
         "table_join_usage": "[오류] 사용법: /join [금액]\n예: /join 100 | 올인: /join all",
         "table_not_betting": "[오류] 이미 라운드가 진행 중입니다. 다음 라운드에 참가하세요.",
@@ -253,6 +261,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "cmd_desc_insurance": "인슈어런스 (딜러 업카드 A)",
         "cmd_desc_wallet": "잔액 및 통계 확인",
         "cmd_desc_daily": "일일 보상 받기",
+        "cmd_desc_give": "칩 선물 — /give @아이디 금액",
         "cmd_desc_my": "내 프로필",
         "cmd_desc_stats": "상세 통계",
         "cmd_desc_history": "최근 게임 기록",
@@ -417,6 +426,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_table_deal": "🃏 Deal",
         "btn_table_again": "🔁 Same bet again",
         "table_again_no_bet": "No bet from the last round. Sit with /join amount.",
+        # 칩 선물
+        "give_usage": (
+            "Usage: /give @username amount\n"
+            "or reply to their message with /give amount"
+        ),
+        "give_invalid_amount": "[Error] Enter an amount of at least $1, up to two decimal places.",
+        "give_self": "[Error] You can't send chips to yourself.",
+        "give_bot": "[Error] You can't send chips to a bot.",
+        "give_unknown_user": "[Error] Recipient not found. You can only send to people who have used the bot.",
+        "give_no_balance": "[Error] Not enough chips. (Balance ${balance:,.2f})",
+        "give_done": "🎁 {sender} sent {recipient} ${amount:,.2f}! (Balance left ${balance:,.2f})",
         "table_none": "[Error] No table is open. Open one with /table.",
         "table_join_usage": "[Error] Usage: /join [amount]\nExample: /join 100 | All-in: /join all",
         "table_not_betting": "[Error] A round is already in progress. Join the next one.",
@@ -512,6 +532,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "cmd_desc_insurance": "Insurance (dealer shows an Ace)",
         "cmd_desc_wallet": "Check balance and stats",
         "cmd_desc_daily": "Claim daily reward",
+        "cmd_desc_give": "Send chips — /give @username amount",
         "cmd_desc_my": "My profile",
         "cmd_desc_stats": "Detailed stats",
         "cmd_desc_history": "Recent games",

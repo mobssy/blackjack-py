@@ -27,6 +27,7 @@ PRIVATE_COMMANDS: Tuple[str, ...] = (
     "insurance",
     "wallet",
     "daily",
+    "give",
     "my",
     "stats",
     "history",
@@ -41,6 +42,7 @@ GROUP_COMMANDS: Tuple[str, ...] = (
     "rank",
     "wallet",
     "daily",
+    "give",
     "my",
     "help",
 )

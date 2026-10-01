@@ -22,6 +22,7 @@ from bot.handlers.table import (
     table_button_callback,
     resume_tables,
 )
+from bot.handlers.give import cmd_give
 from bot.handlers.admin import (
     cmd_admin,
     cmd_add_balance,
@@ -49,6 +50,8 @@ __all__ = [
     "cmd_leave",
     "table_button_callback",
     "resume_tables",
+    # Give
+    "cmd_give",
     # Admin
     "cmd_admin",
     "cmd_add_balance",

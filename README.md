@@ -39,6 +39,7 @@
 | 개인 채팅 | `/hit` `/stand` `/double` `/surrender` `/split` `/insurance` | 1인 게임 액션 (버튼으로도 가능) |
 | 어디서나 | `/wallet` | 잔액 및 통계 |
 | 어디서나 | `/daily` | 일일 보상 (한국 시간 자정 리셋) |
+| 어디서나 | `/give @아이디 금액` | 칩 선물 (그룹에서는 상대 메시지에 답장하며 `/give 금액`도 가능) |
 | 어디서나 | `/my` `/stats` `/history` | 프로필 · 상세 통계 · 최근 게임 기록 |
 | 어디서나 | `/rank` | 랭킹 (그룹에서는 그룹 멤버 랭킹) |
 | 어디서나 | `/start` `/help` | 시작 메뉴 · 도움말 |
@@ -129,6 +130,7 @@ Play money only — no real money, payments, or ads. You can also practice solo 
 | Private chat | `/hit` `/stand` `/double` `/surrender` `/split` `/insurance` | Solo game actions (buttons also work) |
 | Anywhere | `/wallet` | Balance and stats |
 | Anywhere | `/daily` | Daily reward (resets at midnight KST) |
+| Anywhere | `/give @username amount` | Send chips (in a group you can also reply to their message with `/give amount`) |
 | Anywhere | `/my` `/stats` `/history` | Profile, detailed stats, recent games |
 | Anywhere | `/rank` | Leaderboard (group members only when used in a group) |
 | Anywhere | `/start` `/help` | Start menu, help |
@@ -203,6 +205,7 @@ bot/
     menu.py            `/` command menu sync
     profile.py         /my /rank /stats /history
     start.py           /start /help, language, menu buttons
+    give.py            /give chip gifts
     admin.py           /admin stats, /add
   middleware/auth.py   auto-registers users, groups, and group members
   middleware/rate_limit.py  waits and retries on Telegram flood control (429)
@@ -212,6 +215,7 @@ bot/
     deck.py            cards and hand values
     payouts.py         payouts, outcomes, win streaks
     rewards.py         daily reward streak, bankruptcy rescue
+    gifting.py         /give argument parsing and chip transfer rules
     i18n.py            Korean/English strings
     bot_commands.py    command menu definitions
     session_store.py   game/table persistence (JSON)
