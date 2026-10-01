@@ -150,7 +150,7 @@ class TestTableKeepsRunning:
 
     def test_stale_callback_answer_is_ignored(self):
         class _ExpiredQuery:
-            async def answer(self):
+            async def answer(self, text=None, show_alert=False):
                 raise BadRequest("Query is too old and response timeout expired")
 
         asyncio.run(table_handlers._answer_quietly(_ExpiredQuery()))

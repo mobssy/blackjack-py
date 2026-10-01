@@ -314,6 +314,29 @@ class TestSerialization:
         assert restored.seats[0].game.total_bet == 30.0
 
 
+class TestBaseBet:
+    """다음 판 "같은 금액으로 계속"용 착석 베팅액"""
+
+    def test_base_bet_ignores_double(self):
+        table = _table_with(2, ["5S", "9H", "KD", "6S", "6H", "7C", "KH"], bet=40.0)
+        table.apply(1, TableAction.DOUBLE)
+        assert table.seats[0].game.total_bet == 80.0
+        assert table.base_bets() == {1: 40.0, 2: 40.0}
+
+    def test_base_bet_survives_restore(self):
+        table = BlackjackTable(chat_id=-100, host_id=1)
+        table.join(user_id=1, name="P1", bet=25.5)
+        restored = BlackjackTable.from_dict(table.to_dict())
+        assert restored.base_bets() == {1: 25.5}
+
+    def test_legacy_session_falls_back_to_first_bet(self):
+        table = BlackjackTable(chat_id=-100, host_id=1)
+        table.join(user_id=1, name="P1", bet=30.0)
+        data = table.to_dict()
+        del data["seats"][0]["base_bet"]
+        assert BlackjackTable.from_dict(data).base_bets() == {1: 30.0}
+
+
 class TestSharedGameInjection:
     """BlackjackGame 공유 덱/딜러 핸드 주입"""
 

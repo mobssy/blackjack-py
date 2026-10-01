@@ -10,6 +10,7 @@ import pytest
 from telegram.error import BadRequest
 
 from bot.handlers import table as table_handlers
+from bot.utils.i18n import t
 from bot.utils.table import BlackjackTable
 
 
@@ -108,3 +109,91 @@ class TestSingleTableMessage:
             asyncio.run(table_handlers._show_betting(bot, table))
         assert bot.calls == []
         assert table.message_id == 7
+
+
+class _FakeQuery:
+    def __init__(self, user_id=1, first_name="P1"):
+        self.from_user = SimpleNamespace(id=user_id, first_name=first_name)
+        self.answers = []
+
+    async def answer(self, text=None, show_alert=False):
+        self.answers.append((text, show_alert))
+
+
+@pytest.fixture
+def isolated_tables(monkeypatch):
+    """테이블/직전 베팅 저장소를 테스트마다 비우고 타이머는 기록만"""
+    monkeypatch.setattr(table_handlers, "table_sessions", {})
+    monkeypatch.setattr(table_handlers, "_last_bets", {})
+    timers = []
+    monkeypatch.setattr(
+        table_handlers, "_arm_betting_timer", lambda bot, table: timers.append(table)
+    )
+    return timers
+
+
+@pytest.fixture
+def seat_calls(monkeypatch):
+    """DB 없이 착석 처리 (잔액 검증은 _seat_player 단위에서 별도)"""
+    calls = []
+
+    def fake_seat(table, user_id, name, bet_request, lang):
+        calls.append((user_id, name, bet_request.resolve(0)))
+        table.join(user_id, name, bet_request.resolve(0))
+        return None
+
+    monkeypatch.setattr(table_handlers, "_seat_player", fake_seat)
+    return calls
+
+
+class TestSameBetAgain:
+    def test_opens_table_and_seats_with_last_bet(self, isolated_tables, seat_calls):
+        table_handlers._last_bets[-100] = {1: 250.5, 2: 10.0}
+        bot, query = _FakeBot(), _FakeQuery(user_id=1, first_name="P1")
+
+        asyncio.run(table_handlers._rebet(bot, query, -100, 1, "ko"))
+
+        table = table_handlers.table_sessions[-100]
+        assert table.host_id == 1
+        assert seat_calls == [(1, "P1", 250.5)]
+        assert [seat.user_id for seat in table.seats] == [1]  # 누른 사람만
+        assert isolated_tables == [table]  # 새 테이블은 베팅 마감 타이머 예약
+        assert query.answers == [(None, False)]
+        assert bot.calls == [("send_message", 101)]
+
+    def test_joins_existing_table(self, isolated_tables, seat_calls):
+        table_handlers._last_bets[-100] = {2: 40.0}
+        table = table_handlers._create_table(-100, host_id=1, lang="ko")
+        bot = _FakeBot()
+
+        asyncio.run(table_handlers._rebet(bot, _FakeQuery(user_id=2), -100, 2, "ko"))
+
+        assert table_handlers.table_sessions[-100] is table
+        assert seat_calls == [(2, "P1", 40.0)]
+        assert isolated_tables == []  # 기존 테이블 타이머는 그대로
+        assert bot.calls == [("send_message", 101)]
+
+    def test_without_last_bet_opens_table_and_asks_to_join(
+        self, isolated_tables, seat_calls
+    ):
+        bot, query = _FakeBot(), _FakeQuery(user_id=3)
+
+        asyncio.run(table_handlers._rebet(bot, query, -100, 3, "ko"))
+
+        assert seat_calls == []
+        assert query.answers == [(t("table_again_no_bet", "ko"), True)]
+        assert table_handlers.table_sessions[-100].seats == []
+        assert bot.calls == [("send_message", 101)]
+
+    def test_no_repost_when_seating_fails_on_existing_table(
+        self, isolated_tables, monkeypatch
+    ):
+        monkeypatch.setattr(table_handlers, "_seat_player", lambda *args: "잔액 부족")
+        table_handlers._last_bets[-100] = {2: 40.0}
+        table_handlers._create_table(-100, host_id=1, lang="ko")
+        bot, query = _FakeBot(), _FakeQuery(user_id=2)
+
+        asyncio.run(table_handlers._rebet(bot, query, -100, 2, "ko"))
+
+        assert query.answers == [("잔액 부족", True)]
+        assert bot.calls == []

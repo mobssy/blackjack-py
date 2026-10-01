@@ -26,6 +26,7 @@
 4. 좌석 순서대로 차례가 오면 멘션 알림이 가고, 차례인 사람만 버튼(HIT / STAND / DOUBLE / SURRENDER / SPLIT / INSURANCE)을 누를 수 있습니다.
 5. 30초 안에 선택하지 않으면 자동 스탠드됩니다.
 6. 모두 끝나면 딜러가 플레이하고, 전원 결과와 잔액을 이미지 한 장으로 보여줍니다.
+7. 결과 화면의 **같은 금액으로 계속** 버튼을 누르면 `/join` 없이 지난 판과 같은 금액으로 다음 판에 착석합니다. (누른 사람만 착석)
 
 ### 명령어
 
@@ -115,6 +116,7 @@ Play money only — no real money, payments, or ads. You can also practice solo 
 4. Players act in seat order. The current player is mentioned and only they can press the buttons (HIT / STAND / DOUBLE / SURRENDER / SPLIT / INSURANCE).
 5. No choice within 30 seconds means an automatic stand.
 6. When everyone is done, the dealer plays and the results and balances for every seat are shown in a single image.
+7. Press **Same bet again** on the results to take a seat in the next round with the same bet, no `/join` needed (only the person who presses it is seated).
 
 ### Commands
 

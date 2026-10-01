@@ -8,6 +8,7 @@ JackPy - 멀티플레이 블랙잭 테이블 핸들러
 
 import asyncio
 import logging
+from decimal import Decimal
 from html import escape
 from io import BytesIO
 from typing import Awaitable, Callable, Dict, Optional
@@ -28,7 +29,7 @@ from models import get_db, User
 from bot.handlers.blackjack import get_game_keyboard
 from bot.handlers.settlement import apply_settlement
 from bot.utils.table_renderer import get_table_renderer
-from bot.utils.betting import BetError, is_valid_amount, parse_bet
+from bot.utils.betting import BetError, BetRequest, is_valid_amount, parse_bet
 from bot.utils.deck import is_bust
 from bot.utils.i18n import t, get_user_lang
 from bot.utils.session_store import load_tables, save_tables
@@ -58,6 +59,10 @@ table_sessions: Dict[int, BlackjackTable] = load_tables()
 # 채팅방별 타임아웃 타이머 (베팅 마감 / 턴 제한)와 상태 변경 직렬화 락
 _timers: Dict[int, asyncio.Task] = {}
 _locks: Dict[int, asyncio.Lock] = {}
+
+# 채팅방별 직전 라운드 착석 베팅액 (user_id → 금액) — "같은 금액으로 계속" 버튼용.
+# 메모리에만 둔다: 재시작 후에는 기록이 없어 /join 안내로 대체된다
+_last_bets: Dict[int, Dict[int, float]] = {}
 
 # 추가 베팅이 필요한 액션의 잔액 부족 안내 키
 _NO_BALANCE_KEYS = {
@@ -100,13 +105,15 @@ def _is_not_modified(error: BadRequest) -> bool:
     return "not modified" in str(error).lower()
 
 
-async def _answer_quietly(query: CallbackQuery) -> None:
+async def _answer_quietly(
+    query: CallbackQuery, text: Optional[str] = None, show_alert: bool = False
+) -> None:
     """
     상태 변경 후의 콜백 응답 — 실패해도 진행을 막지 않는다.
     (앞선 요청이 Flood control로 대기하는 사이 쿼리가 만료될 수 있다)
     """
     try:
-        await query.answer()
+        await query.answer(text, show_alert=show_alert)
     except TelegramError as e:
         logger.warning(f"콜백 응답 실패 (무시): {e}")
 
@@ -302,19 +309,29 @@ async def _show_turn(
 # ── 라운드 진행 ────────────────────────────────────────────────
 
 
+def _create_table(chat_id: int, host_id: int, lang: str) -> BlackjackTable:
+    """새 테이블 생성 및 등록 (메시지 표시는 하지 않음)"""
+    table = BlackjackTable(chat_id, host_id=host_id, lang=lang)
+    table_sessions[chat_id] = table
+    _persist_tables()
+    return table
+
+
+async def _open_new(bot: Bot, table: BlackjackTable) -> None:
+    """새 테이블의 베팅 화면 표시 + 베팅 마감 타이머 (표시 실패와 무관하게 예약)"""
+    try:
+        await _show_betting(bot, table)
+    finally:
+        _arm_betting_timer(bot, table)
+
+
 async def _open_or_resume(bot: Bot, chat_id: int, host_id: int, lang: str) -> None:
     """테이블이 없으면 새로 열고, 있으면 현재 상태를 다시 표시"""
     table = table_sessions.get(chat_id)
     if table is not None:
         await _resume(bot, table)
         return
-    table = BlackjackTable(chat_id, host_id=host_id, lang=lang)
-    table_sessions[chat_id] = table
-    _persist_tables()
-    try:
-        await _show_betting(bot, table)
-    finally:
-        _arm_betting_timer(bot, table)
+    await _open_new(bot, _create_table(chat_id, host_id, lang))
 
 
 async def _resume(bot: Bot, table: BlackjackTable) -> None:
@@ -400,6 +417,7 @@ async def _finish_round(
     settle_infos = _settle_table(table, seat_results)
     table_sessions.pop(table.chat_id, None)
     _persist_tables()
+    _last_bets[table.chat_id] = table.base_bets()
 
     text = result_text(table, seat_results, settle_infos)
     if notice:
@@ -408,7 +426,7 @@ async def _finish_round(
         [
             [
                 InlineKeyboardButton(
-                    t("btn_table_new", table.lang), callback_data="tbl_new"
+                    t("btn_table_again", table.lang), callback_data="tbl_again"
                 )
             ]
         ]
@@ -482,6 +500,69 @@ def _action_notice(
     return None
 
 
+def _seat_player(
+    table: BlackjackTable,
+    user_tg_id: int,
+    name: str,
+    bet_request: BetRequest,
+    lang: str,
+) -> Optional[str]:
+    """
+    착석 검증 → 잔액 차감 커밋 → 착석 (1인 게임과 동일한 순서)
+
+    Returns:
+        Optional[str]: 착석할 수 없으면 사용자에게 보여줄 메시지, 성공 시 None
+    """
+    try:
+        table.check_can_join(user_tg_id)
+    except TableError as e:
+        return t(e.key, lang, **e.kwargs)
+
+    with get_db() as db:
+        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        if not user:
+            return t("deal_no_user", lang)
+        bet_amount = bet_request.resolve(user.wallet)
+        if not is_valid_amount(bet_amount) or not user.deduct_wallet(bet_amount):
+            return t("deal_no_balance", lang, balance=float(user.wallet))
+        db.commit()
+
+    table.join(user_tg_id, name, bet_amount)
+    _persist_tables()
+    return None
+
+
+async def _rebet(
+    bot: Bot, query: CallbackQuery, chat_id: int, user_tg_id: int, lang: str
+) -> None:
+    """
+    "같은 금액으로 계속" — 테이블이 없으면 열고, 직전 라운드와 같은 금액으로 착석
+    (누른 사람만 착석: 자리를 비운 사람의 칩이 빠져나가지 않도록)
+    """
+    table = table_sessions.get(chat_id)
+    is_new = table is None
+    if is_new:
+        table = _create_table(chat_id, host_id=user_tg_id, lang=lang)
+
+    last_bet = _last_bets.get(chat_id, {}).get(user_tg_id)
+    if last_bet is None:
+        error = t("table_again_no_bet", lang)
+    else:
+        error = _seat_player(
+            table,
+            user_tg_id,
+            query.from_user.first_name or str(user_tg_id),
+            BetRequest(all_in=False, amount=Decimal(str(last_bet))),
+            lang,
+        )
+
+    await _answer_quietly(query, error, show_alert=error is not None)
+    if is_new:
+        await _open_new(bot, table)
+    elif error is None:
+        await _show_betting(bot, table)
+
+
 # ── 명령어 ────────────────────────────────────────────────────
 
 
@@ -533,29 +614,11 @@ async def cmd_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if table is None:
             await update.message.reply_text(t("table_none", lang))
             return
-        try:
-            table.check_can_join(user_tg_id)
-        except TableError as e:
-            await update.message.reply_text(t(e.key, lang, **e.kwargs))
-            return
-
-        # 잔액 차감 커밋 → 착석 (1인 게임과 동일한 순서)
-        with get_db() as db:
-            user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-            if not user:
-                await update.message.reply_text(t("deal_no_user", lang))
-                return
-            bet_amount = bet_request.resolve(user.wallet)
-            if not is_valid_amount(bet_amount) or not user.deduct_wallet(bet_amount):
-                await update.message.reply_text(
-                    t("deal_no_balance", lang, balance=float(user.wallet))
-                )
-                return
-            db.commit()
-
         name = update.effective_user.first_name or str(user_tg_id)
-        table.join(user_tg_id, name, bet_amount)
-        _persist_tables()
+        error = _seat_player(table, user_tg_id, name, bet_request, lang)
+        if error:
+            await update.message.reply_text(error)
+            return
 
         # 별도 안내 대신 착석 현황 메시지를 채팅 맨 아래로 다시 올린다
         await _show_betting(context.bot, table)
@@ -619,7 +682,10 @@ async def table_button_callback(update: Update, context: ContextTypes.DEFAULT_TY
     command = query.data.removeprefix("tbl_")
 
     async with _lock(chat_id):
-        if command == "new":
+        if command == "again":
+            await _rebet(context.bot, query, chat_id, user_tg_id, lang)
+            return
+        if command == "new":  # 이전 버전 결과 메시지의 "새 테이블" 버튼
             await query.answer()
             await _open_or_resume(context.bot, chat_id, user_tg_id, lang)
             return

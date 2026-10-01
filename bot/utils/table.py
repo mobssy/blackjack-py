@@ -59,6 +59,8 @@ class Seat:
     game: BlackjackGame
     done: bool = False
     surrendered: bool = False
+    # 착석 시 베팅액 (더블/스플릿 추가분 제외) — 다음 판 "같은 금액으로 계속"에 사용
+    base_bet: float = 0.0
 
     @property
     def is_live(self) -> bool:
@@ -77,6 +79,7 @@ class Seat:
             "name": self.name,
             "done": self.done,
             "surrendered": self.surrendered,
+            "base_bet": self.base_bet,
             "game": self.game.to_dict(include_shared=False),
         }
 
@@ -143,10 +146,14 @@ class BlackjackTable:
         """착석 및 베팅 (잔액은 호출 전에 차감되어 있어야 함)"""
         self.check_can_join(user_id)
         game = BlackjackGame(user_id, bet, deck=self.deck, dealer_hand=self.dealer_hand)
-        seat = Seat(user_id=user_id, name=name, game=game)
+        seat = Seat(user_id=user_id, name=name, game=game, base_bet=bet)
         self.seats.append(seat)
         self.version += 1
         return seat
+
+    def base_bets(self) -> Dict[int, float]:
+        """좌석별 착석 베팅액 (user_id → 금액)"""
+        return {seat.user_id: seat.base_bet for seat in self.seats}
 
     def leave(self, user_id: int) -> Seat:
         """
@@ -370,6 +377,8 @@ class BlackjackTable:
                 ),
                 done=bool(seat_data["done"]),
                 surrendered=bool(seat_data["surrendered"]),
+                # 이 필드 추가 전에 저장된 세션은 첫 핸드 베팅액으로 대체
+                base_bet=float(seat_data.get("base_bet", seat_data["game"]["bets"][0])),
             )
             for seat_data in data["seats"]
         ]
