@@ -93,3 +93,27 @@ class TestSessionStore:
 
         assert session_store.load_sessions() == {}
         assert not session_store.SESSION_FILE.exists()
+        # 수동 복구를 위해 손상된 원본은 보관
+        corrupt = tmp_path / "sessions.json.corrupt"
+        assert corrupt.read_text() == "{corrupted json!!"
+
+    def test_save_leaves_no_temp_file(self, tmp_path, monkeypatch):
+        """저장 후 임시 파일이 남지 않음"""
+        self._use_tmp_file(tmp_path, monkeypatch)
+        session_store.save_sessions({1: _make_game()})
+        assert [p.name for p in tmp_path.iterdir()] == ["sessions.json"]
+
+    def test_failed_write_keeps_previous_file(self, tmp_path, monkeypatch):
+        """디스크 기록 도중 실패해도 기존 파일 유지, 임시 파일은 정리 (원자적 교체)"""
+        self._use_tmp_file(tmp_path, monkeypatch)
+        session_store.save_sessions({1: _make_game(bet=70.0)})
+        before = session_store.SESSION_FILE.read_text()
+
+        def broken_fsync(fd):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(session_store.os, "fsync", broken_fsync)
+        session_store.save_sessions({1: _make_game(bet=30.0)})
+
+        assert session_store.SESSION_FILE.read_text() == before
+        assert [p.name for p in tmp_path.iterdir()] == ["sessions.json"]

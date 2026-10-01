@@ -79,8 +79,8 @@ htmlcov/
 jackpy.log
 game_sessions.pkl
 jackpy.log.*
-game_sessions.json
-table_sessions.json
+game_sessions.json*
+table_sessions.json*
 
 # SQLite 저널/WAL (DB와 같은 민감도)
 *.db-journal

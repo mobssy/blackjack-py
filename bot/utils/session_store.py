@@ -6,6 +6,7 @@ JackPy - 게임 세션 영속화
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Callable, Dict, TypeVar
 
@@ -21,12 +22,31 @@ T = TypeVar("T")
 
 
 def _write(path: Path, items: Dict[int, Any]) -> None:
-    """to_dict()를 가진 객체 매핑을 저장 (비어 있으면 파일 삭제)"""
+    """
+    to_dict()를 가진 객체 매핑을 저장 (비어 있으면 파일 삭제)
+
+    임시 파일에 다 쓴 뒤 os.replace로 교체한다 — 쓰는 도중 프로세스가 죽어도
+    기존 파일이 반쯤 쓰인 상태로 남지 않는다 (복원 실패 = 차감된 베팅 유실 방지).
+    """
     if not items:
         path.unlink(missing_ok=True)
         return
     data = {str(key): item.to_dict() for key, item in items.items()}
-    path.write_text(json.dumps(data, ensure_ascii=False))
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(json.dumps(data, ensure_ascii=False))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def _quarantine(path: Path) -> None:
+    """복원에 실패한 파일을 .corrupt로 옮겨 수동 복구 여지를 남긴다"""
+    if path.exists():
+        os.replace(path, path.with_name(path.name + ".corrupt"))
 
 
 def _read(path: Path, factory: Callable[[dict], T]) -> Dict[int, T]:
@@ -55,7 +75,7 @@ def load_sessions() -> Dict[int, BlackjackGame]:
     저장된 게임 세션 복원
 
     복원에 실패하면(파일 손상, 구조 변경 등) 빈 dict를 반환한다.
-    이 경우 해당 세션의 베팅은 유실되므로 로그를 남긴다.
+    손상된 파일은 .corrupt로 옮겨 두므로 차감된 베팅을 수동으로 복구할 수 있다.
 
     Returns:
         Dict[int, BlackjackGame]: 복원된 세션
@@ -66,8 +86,8 @@ def load_sessions() -> Dict[int, BlackjackGame]:
             logger.info(f"진행 중이던 게임 세션 {len(sessions)}건 복원")
         return sessions
     except Exception:
-        logger.exception("게임 세션 복원 실패 — 세션을 초기화합니다 (해당 베팅 유실)")
-        SESSION_FILE.unlink(missing_ok=True)
+        logger.exception(f"게임 세션 복원 실패 — {SESSION_FILE}.corrupt로 옮기고 초기화합니다")
+        _quarantine(SESSION_FILE)
         return {}
 
 
@@ -86,7 +106,7 @@ def save_tables(tables: Dict[int, BlackjackTable]) -> None:
 
 def load_tables() -> Dict[int, BlackjackTable]:
     """
-    저장된 멀티 테이블 복원 (실패 시 빈 dict — 해당 베팅 유실 로그)
+    저장된 멀티 테이블 복원 (실패 시 빈 dict — 손상된 파일은 .corrupt로 보관)
 
     Returns:
         Dict[int, BlackjackTable]: 복원된 테이블
@@ -97,6 +117,6 @@ def load_tables() -> Dict[int, BlackjackTable]:
             logger.info(f"진행 중이던 테이블 {len(tables)}건 복원")
         return tables
     except Exception:
-        logger.exception("테이블 세션 복원 실패 — 테이블을 초기화합니다 (해당 베팅 유실)")
-        TABLE_FILE.unlink(missing_ok=True)
+        logger.exception(f"테이블 세션 복원 실패 — {TABLE_FILE}.corrupt로 옮기고 초기화합니다")
+        _quarantine(TABLE_FILE)
         return {}
