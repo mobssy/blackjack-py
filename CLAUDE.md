@@ -13,6 +13,8 @@
   - `table.py` — 그룹 멀티 테이블 /table /join /leave, tbl_* 버튼 콜백.
     채팅방별 asyncio.Lock으로 상태 변경 직렬화, 베팅 마감/턴 타임아웃은 asyncio 태스크
     (재시작 시 post_init의 `resume_tables`가 메시지·타이머 재개)
+    채팅방엔 테이블 메시지를 하나만 유지 — 새 메시지 전송 후 `_retire_message`로 이전 것 삭제
+    (착석/퇴장도 별도 안내 없이 현황 메시지를 다시 올림). 카드·합계는 이미지에만, 캡션은 짧게
   - `settlement.py` — 1인 게임/테이블 공용 DB 정산 (`apply_settlement`는 커밋 안 함 →
     테이블은 전 좌석을 한 트랜잭션으로 정산)
   - `menu.py` — 봇 시작 시 `/` 명령어 메뉴를 스코프(개인/그룹/그룹관리자/봇관리자 DM)·

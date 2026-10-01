@@ -369,23 +369,26 @@ class TestTableView:
         table.join(user_id=1, name="<b>Evil</b>", bet=100.0)
         caption = betting_caption(table)
         assert "&lt;b&gt;Evil&lt;/b&gt;" in caption
-        assert "<b>" not in caption
+        assert "<b>Evil" not in caption
         assert "$100.00" in caption
+        assert "1/7" in caption
 
     def test_betting_caption_shows_deadline_in_minutes(self):
         assert BETTING_SECONDS == 180
         ko = betting_caption(BlackjackTable(chat_id=-100, host_id=1, lang="ko"))
         en = betting_caption(BlackjackTable(chat_id=-100, host_id=1, lang="en"))
-        assert "3분 뒤" in ko
-        assert "in 3 min." in en
+        assert "3분 뒤 자동 딜" in ko
+        assert "Auto-deal in 3 min" in en
 
-    def test_turn_caption_hides_hole_card_and_mentions_player(self):
+    def test_turn_caption_is_notice_and_turn_only(self):
         table = _table_with(2, ["9S", "5H", "KD", "8S", "6H", "7C"])
         caption = turn_caption(table, notice="NOTICE")
         assert caption.startswith("NOTICE")
-        assert "🂠" in caption
-        assert "K♦️" not in caption  # 홀 카드 비공개
         assert 'href="tg://user?id=1"' in caption
+        # 카드는 이미지에만 — 캡션에 카드/홀 카드 정보가 새지 않음
+        assert "K♦️" not in caption
+        assert "9♠️" not in caption
+        assert caption.count("\n") == 2
 
     def test_result_text_lists_every_seat(self):
         table = _table_with(2, ["KS", "9H", "KD", "9S", "6H", "8C"])
@@ -398,7 +401,8 @@ class TestTableView:
             2: {"wallet": 900.0, "streak": 0, "bonus": 0.0},
         }
         text = result_text(table, seat_results, settle_infos)
-        assert "K♦️" in text  # 결과에서는 홀 카드 공개
+        assert "딜러 18" in text.splitlines()[0]
+        assert len(text.splitlines()) == 4  # 제목, 빈 줄, 좌석당 한 줄
         assert "$1,100.00" in text
         assert "$900.00" in text
         assert "+$100.00" in text

@@ -45,6 +45,7 @@ from bot.utils.table import (
 from bot.utils.table_view import (
     betting_caption,
     result_text,
+    result_title,
     seat_views,
     turn_caption,
 )
@@ -172,23 +173,32 @@ def _arm_turn_timer(bot: Bot, table: BlackjackTable) -> None:
 # ── 메시지 표시 ────────────────────────────────────────────────
 
 
-async def _clear_keyboard(bot: Bot, table: BlackjackTable) -> None:
-    """이전 테이블 메시지의 버튼 제거 (실패는 무시)"""
-    if table.message_id is None:
+async def _retire_message(bot: Bot, chat_id: int, message_id: Optional[int]) -> None:
+    """
+    지난 테이블 메시지 정리 — 채팅방에 테이블 메시지가 하나만 남도록 삭제하고,
+    삭제할 수 없으면(48시간 경과 등) 버튼만 제거한다. 실패는 무시.
+    새 메시지를 보낸 뒤에 호출해 전송 실패 시 화면이 비지 않게 한다.
+    """
+    if message_id is None:
         return
     try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+        return
+    except TelegramError:
+        pass
+    try:
         await bot.edit_message_reply_markup(
-            chat_id=table.chat_id, message_id=table.message_id, reply_markup=None
+            chat_id=chat_id, message_id=message_id, reply_markup=None
         )
     except TelegramError:
         pass
 
 
-async def _show_betting(
-    bot: Bot, table: BlackjackTable, new_message: bool = False
-) -> None:
-    """베팅 단계 메시지 표시 (기존 메시지 수정 또는 새로 전송)"""
-    text = betting_caption(table)
+async def _show_betting(bot: Bot, table: BlackjackTable) -> None:
+    """
+    베팅 단계 메시지를 채팅 맨 아래에 새로 올리고 이전 메시지는 정리
+    (착석/퇴장 때마다 다시 올려 별도 안내 메시지 없이 현황이 보이게 한다)
+    """
     keyboard = InlineKeyboardMarkup(
         [
             [
@@ -198,27 +208,16 @@ async def _show_betting(
             ]
         ]
     )
-    if not new_message and table.message_id is not None:
-        try:
-            await bot.edit_message_text(
-                text,
-                chat_id=table.chat_id,
-                message_id=table.message_id,
-                parse_mode=ParseMode.HTML,
-                reply_markup=keyboard,
-            )
-            return
-        except BadRequest as e:
-            if _is_not_modified(e):
-                return
-            logger.warning(f"베팅 메시지 수정 실패, 새로 전송: {e}")
-
-    await _clear_keyboard(bot, table)
+    previous_id = table.message_id
     message = await bot.send_message(
-        table.chat_id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard
+        table.chat_id,
+        betting_caption(table),
+        parse_mode=ParseMode.HTML,
+        reply_markup=keyboard,
     )
     table.message_id = message.message_id
     _persist_tables()
+    await _retire_message(bot, table.chat_id, previous_id)
 
 
 def _render_table_image(
@@ -287,7 +286,7 @@ async def _show_turn(
         except TelegramError as e:
             logger.warning(f"테이블 메시지 수정 실패, 새로 전송: {e}")
 
-    await _clear_keyboard(bot, table)
+    previous_id = table.message_id
     message = await bot.send_photo(
         table.chat_id,
         photo=BytesIO(image_bytes),
@@ -297,6 +296,7 @@ async def _show_turn(
     )
     table.message_id = message.message_id
     _persist_tables()
+    await _retire_message(bot, table.chat_id, previous_id)
 
 
 # ── 라운드 진행 ────────────────────────────────────────────────
@@ -312,7 +312,7 @@ async def _open_or_resume(bot: Bot, chat_id: int, host_id: int, lang: str) -> No
     table_sessions[chat_id] = table
     _persist_tables()
     try:
-        await _show_betting(bot, table, new_message=True)
+        await _show_betting(bot, table)
     finally:
         _arm_betting_timer(bot, table)
 
@@ -325,7 +325,7 @@ async def _resume(bot: Bot, table: BlackjackTable) -> None:
     has_timer = table.chat_id in _timers
     if table.phase is TablePhase.BETTING:
         try:
-            await _show_betting(bot, table, new_message=True)
+            await _show_betting(bot, table)
         finally:
             if not has_timer:
                 _arm_betting_timer(bot, table)
@@ -345,13 +345,12 @@ async def _start_round(bot: Bot, table: BlackjackTable) -> None:
     if not table.seats:
         table_sessions.pop(table.chat_id, None)
         _persist_tables()
-        await _clear_keyboard(bot, table)
         await bot.send_message(table.chat_id, t("table_closed_empty", table.lang))
+        await _retire_message(bot, table.chat_id, table.message_id)
         return
 
     table.deal()
     _persist_tables()
-    await _clear_keyboard(bot, table)
     await _advance(bot, table, new_message=True)
 
 
@@ -402,7 +401,6 @@ async def _finish_round(
     table_sessions.pop(table.chat_id, None)
     _persist_tables()
 
-    await _clear_keyboard(bot, table)
     text = result_text(table, seat_results, settle_infos)
     if notice:
         text = f"{notice}\n\n{text}"
@@ -417,7 +415,7 @@ async def _finish_round(
     )
     image_bytes = _render_table_image(table, seat_results)
 
-    # 캡션 한도를 넘으면(좌석이 많을 때) 이미지와 상세 결과를 나눠 보낸다
+    # 캡션 한도를 넘으면(이름이 아주 긴 경우 등) 이미지와 상세 결과를 나눠 보낸다
     if len(text) <= _CAPTION_LIMIT:
         await bot.send_photo(
             table.chat_id,
@@ -426,15 +424,18 @@ async def _finish_round(
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard,
         )
-        return
-    await bot.send_photo(
-        table.chat_id,
-        photo=BytesIO(image_bytes),
-        caption=t("table_result_title", table.lang),
-    )
-    await bot.send_message(
-        table.chat_id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard
-    )
+    else:
+        await bot.send_photo(
+            table.chat_id,
+            photo=BytesIO(image_bytes),
+            caption=result_title(table),
+            parse_mode=ParseMode.HTML,
+        )
+        await bot.send_message(
+            table.chat_id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard
+        )
+    # 결과가 마지막 플레이 화면을 대신한다
+    await _retire_message(bot, table.chat_id, table.message_id)
 
 
 def _pay_action_cost(
@@ -553,19 +554,10 @@ async def cmd_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db.commit()
 
         name = update.effective_user.first_name or str(user_tg_id)
-        seat = table.join(user_tg_id, name, bet_amount)
+        table.join(user_tg_id, name, bet_amount)
         _persist_tables()
 
-        await update.message.reply_text(
-            t(
-                "table_joined",
-                table.lang,
-                name=escape(seat.name),
-                bet=bet_amount,
-                n=len(table.seats),
-            ),
-            parse_mode=ParseMode.HTML,
-        )
+        # 별도 안내 대신 착석 현황 메시지를 채팅 맨 아래로 다시 올린다
         await _show_betting(context.bot, table)
 
 
@@ -606,10 +598,6 @@ async def cmd_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
         table.leave(user_tg_id)
         _persist_tables()
 
-        await update.message.reply_text(
-            t("table_left", table.lang, name=escape(seat.name), bet=refund),
-            parse_mode=ParseMode.HTML,
-        )
         await _show_betting(context.bot, table)
 
 

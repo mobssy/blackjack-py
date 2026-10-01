@@ -149,19 +149,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_start_dm": "BlackJack 시작하기",
         # 멀티 테이블
         "table_group_only": "[오류] 멀티 테이블은 그룹 채팅에서만 열 수 있습니다.",
-        "table_opened": (
-            "🎰 블랙잭 테이블 오픈! (최대 {max}명)\n"
-            "/join [금액] 으로 착석하세요. 예: /join 100 | 올인: /join all\n"
-            "{minutes}분 뒤 자동으로 딜을 시작합니다. (호스트는 버튼으로 바로 시작)"
+        "table_betting_title": "🎰 <b>블랙잭 테이블</b> · 착석 {n}/{max}",
+        "table_betting_hint": (
+            "/join 금액 으로 착석 (예: /join 100, 올인: /join all)\n"
+            "⏱ {minutes}분 뒤 자동 딜 · 호스트는 버튼으로 바로 시작"
         ),
-        "table_seats_header": "💺 착석 ({n}/{max})",
         "table_seat_bet": "• {name} — ${bet:,.2f}",
         "btn_table_deal": "🃏 딜 시작",
         "btn_table_new": "🔁 새 테이블",
         "table_none": "[오류] 열린 테이블이 없습니다. /table 로 테이블을 여세요.",
         "table_join_usage": "[오류] 사용법: /join [금액]\n예: /join 100 | 올인: /join all",
-        "table_joined": "💺 {name}님 착석! 베팅 ${bet:,.2f} ({n}명)",
-        "table_left": "👋 {name}님 퇴장. 베팅 ${bet:,.2f} 반환",
         "table_not_betting": "[오류] 이미 라운드가 진행 중입니다. 다음 라운드에 참가하세요.",
         "table_already_seated": "[오류] 이미 착석해 있습니다.",
         "table_full": "[오류] 테이블이 가득 찼습니다. (최대 {max}명)",
@@ -171,23 +168,21 @@ STRINGS: dict[str, dict[str, str]] = {
         "table_host_only": "호스트만 딜을 시작할 수 있습니다.",
         "table_not_your_turn": "지금은 당신 차례가 아닙니다.",
         "table_closed_empty": "참가자가 없어 테이블을 닫았습니다. /table 로 다시 열 수 있어요.",
-        "table_playing_title": "🎰 블랙잭 테이블 ({n}/{max})",
-        "table_dealer_line": "🤖 딜러: {cards}",
-        "table_turn": "👉 {name}님 차례! ({seconds}초 안에 선택하지 않으면 자동 스탠드)",
+        "table_turn": "👉 {name}님 차례 · {seconds}초 안에 선택",
         "table_img_hint": "{name}님 차례",
         "table_timeout": "⏰ {name}님 시간 초과 — 자동 스탠드",
         "table_action_bust": "💥 {name}님 버스트!",
         "table_action_double": "💰 {name}님 더블 다운! 베팅 ${bet:,.2f}",
         "table_action_surrender": "🏳️ {name}님 서렌더",
         "table_insured": "🛡 {name}님 보험 가입 (${amount:,.2f}) — 결과는 라운드 종료 시 공개",
-        "table_result_title": "🏁 라운드 결과",
+        "table_result_title": "🏁 <b>라운드 결과</b> · 딜러 {dealer}",
+        "table_result_line": "{emoji} {name} · {status} · 잔액 ${wallet:,.2f}",
         "img_status_turn": "▶ 차례",
         "img_status_stand": "스탠드",
         "img_status_waiting": "대기",
         "img_status_surrender": "서렌더",
         "img_table_result": "라운드 결과",
         "img_table_dealer": "딜러",
-        "table_result_footer": "새 라운드는 /table 또는 아래 버튼으로!",
         # 뒤로가기
         "btn_back": "뒤로가기",
         # /my 프로필
@@ -412,19 +407,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "btn_start_dm": "Start BlackJack",
         # 멀티 테이블
         "table_group_only": "[Error] Multiplayer tables can only be opened in group chats.",
-        "table_opened": (
-            "🎰 Blackjack table is open! (up to {max} players)\n"
-            "Take a seat with /join [amount]. Example: /join 100 | All-in: /join all\n"
-            "Dealing starts automatically in {minutes} min. (The host can start now with the button)"
+        "table_betting_title": "🎰 <b>Blackjack table</b> · {n}/{max} seated",
+        "table_betting_hint": (
+            "Sit with /join amount (e.g. /join 100, all-in: /join all)\n"
+            "⏱ Auto-deal in {minutes} min · the host can start now with the button"
         ),
-        "table_seats_header": "💺 Seated ({n}/{max})",
         "table_seat_bet": "• {name} — ${bet:,.2f}",
         "btn_table_deal": "🃏 Deal",
         "btn_table_new": "🔁 New table",
         "table_none": "[Error] No table is open. Open one with /table.",
         "table_join_usage": "[Error] Usage: /join [amount]\nExample: /join 100 | All-in: /join all",
-        "table_joined": "💺 {name} sat down! Bet ${bet:,.2f} ({n} seated)",
-        "table_left": "👋 {name} left. Bet ${bet:,.2f} returned",
         "table_not_betting": "[Error] A round is already in progress. Join the next one.",
         "table_already_seated": "[Error] You are already seated.",
         "table_full": "[Error] The table is full. (max {max} players)",
@@ -434,23 +426,21 @@ STRINGS: dict[str, dict[str, str]] = {
         "table_host_only": "Only the host can start the deal.",
         "table_not_your_turn": "It's not your turn.",
         "table_closed_empty": "No one joined, so the table was closed. Open a new one with /table.",
-        "table_playing_title": "🎰 Blackjack table ({n}/{max})",
-        "table_dealer_line": "🤖 Dealer: {cards}",
-        "table_turn": "👉 {name}'s turn! (auto-stand if no choice within {seconds}s)",
+        "table_turn": "👉 {name}'s turn · {seconds}s to act",
         "table_img_hint": "{name}'s turn",
         "table_timeout": "⏰ {name} ran out of time — auto-stand",
         "table_action_bust": "💥 {name} busts!",
         "table_action_double": "💰 {name} doubles down! Bet ${bet:,.2f}",
         "table_action_surrender": "🏳️ {name} surrenders",
         "table_insured": "🛡 {name} took insurance (${amount:,.2f}) — revealed at the end of the round",
-        "table_result_title": "🏁 Round results",
+        "table_result_title": "🏁 <b>Round results</b> · dealer {dealer}",
+        "table_result_line": "{emoji} {name} · {status} · balance ${wallet:,.2f}",
         "img_status_turn": "▶ Turn",
         "img_status_stand": "Stand",
         "img_status_waiting": "Waiting",
         "img_status_surrender": "Surrender",
         "img_table_result": "Round results",
         "img_table_dealer": "Dealer",
-        "table_result_footer": "Start a new round with /table or the button below!",
         # 뒤로가기
         "btn_back": "Back",
         # /my 프로필

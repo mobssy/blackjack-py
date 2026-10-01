@@ -7,7 +7,7 @@ JackPy - 멀티 테이블 메시지 포맷
 from html import escape
 from typing import Dict, List, Optional, Tuple
 
-from bot.utils.deck import Card, calculate_hand_value, format_hand, is_blackjack
+from bot.utils.deck import calculate_hand_value, is_blackjack
 from bot.utils.i18n import t
 from bot.utils.payouts import OUTCOME_I18N_KEYS, PayoutCalculator
 from bot.utils.table import (
@@ -19,6 +19,7 @@ from bot.utils.table import (
     SeatResults,
 )
 from bot.utils.table_renderer import Color, SeatView
+from models.round import GameOutcome
 
 # 이미지 좌석 상태 문구 색상
 COLOR_TURN: Color = (255, 215, 0)
@@ -33,74 +34,34 @@ def mention(seat: Seat) -> str:
     return f'<a href="tg://user?id={seat.user_id}">{escape(seat.name)}</a>'
 
 
-def hand_text(hand: List[str]) -> str:
-    """핸드 카드와 합계 (예: 8♠️ 8♥️ (16))"""
-    return f"{format_hand(hand)} ({calculate_hand_value(hand)})"
-
-
-def seat_hands_text(seat: Seat) -> str:
-    """좌석의 모든 핸드 (스플릿이면 | 로 구분)"""
-    return " | ".join(hand_text(hand) for hand in seat.game.hands)
-
-
-def _hidden_dealer_text(dealer_hand: List[str]) -> str:
-    """홀 카드(첫 장)를 가린 딜러 핸드"""
-    shown = " ".join(Card(card).display for card in dealer_hand[1:])
-    return f"🂠 {shown}"
-
-
 def betting_caption(table: BlackjackTable) -> str:
-    """베팅 단계 안내 및 착석 현황"""
+    """베팅 단계 착석 현황과 참가 방법 (한 메시지로 계속 갱신)"""
     lang = table.lang
-    lines = [
-        t("table_opened", lang, max=MAX_SEATS, minutes=BETTING_SECONDS // 60),
-        "",
-        t("table_seats_header", lang, n=len(table.seats), max=MAX_SEATS),
-    ]
+    lines = [t("table_betting_title", lang, n=len(table.seats), max=MAX_SEATS)]
     lines += [
         t("table_seat_bet", lang, name=escape(seat.name), bet=seat.game.total_bet)
         for seat in table.seats
     ]
+    lines += ["", t("table_betting_hint", lang, minutes=BETTING_SECONDS // 60)]
     return "\n".join(lines)
 
 
-def _seat_marker(table: BlackjackTable, seat: Seat) -> str:
-    if seat.surrendered:
-        return "🏳️"
-    if seat is table.current_seat:
-        return "▶"
-    return "✔" if seat.done else "·"
-
-
 def turn_caption(table: BlackjackTable, notice: Optional[str] = None) -> str:
-    """플레이 단계 캡션 — 딜러 업카드, 좌석별 핸드, 현재 차례 안내"""
+    """
+    플레이 단계 캡션 — 직전 액션 공지와 현재 차례만 (카드/합계/베팅은 이미지에 표시)
+    """
     lang = table.lang
     lines = [notice, ""] if notice else []
-    lines += [
-        t("table_playing_title", lang, n=len(table.seats), max=MAX_SEATS),
-        t(
-            "table_dealer_line",
-            lang,
-            cards=_hidden_dealer_text(table.dealer_hand),
-        ),
-    ]
-    for seat in table.seats:
-        lines.append(
-            f"{_seat_marker(table, seat)} {escape(seat.name)}: "
-            f"{seat_hands_text(seat)} · ${seat.game.total_bet:,.2f}"
-        )
-
     current = table.current_seat
     if current is not None:
-        lines += [
-            "",
+        lines.append(
             t(
                 "table_turn",
                 lang,
                 name=mention(current),
                 seconds=TURN_TIMEOUT_SECONDS,
-            ),
-        ]
+            )
+        )
     return "\n".join(lines)
 
 
@@ -138,24 +99,43 @@ def result_text(
         settle_infos: user_id → 정산 결과 정보
     """
     lang = table.lang
-    lines = [
-        t("table_result_title", lang),
-        t("table_dealer_line", lang, cards=hand_text(table.dealer_hand)),
-    ]
+    lines = [result_title(table), ""]
     for seat, results in seat_results:
-        lines += ["", f"👤 {mention(seat)}"]
-        for (outcome, payout), hand in zip(results, seat.game.hands):
-            emoji = PayoutCalculator.get_result_emoji(outcome)
-            outcome_msg = t(OUTCOME_I18N_KEYS.get(outcome, "result_lose"), lang)
-            lines.append(
-                f"   {emoji} {hand_text(hand)} — {outcome_msg} "
-                f"({PayoutCalculator.format_payout(payout)})"
-            )
         settle_info = settle_infos[seat.user_id]
+        status, _ = _result_status(results, lang)
+        lines.append(
+            t(
+                "table_result_line",
+                lang,
+                emoji=_seat_emoji(results),
+                name=mention(seat),
+                status=status,
+                wallet=settle_info["wallet"],
+            )
+        )
         lines += [f"   {line}" for line in _settle_extra_lines(settle_info, lang)]
-        lines.append(f"   {t('balance_label', lang)}: ${settle_info['wallet']:,.2f}")
-    lines += ["", t("table_result_footer", lang)]
     return "\n".join(lines)
+
+
+def result_title(table: BlackjackTable) -> str:
+    """결과 제목 (딜러 최종 합계 포함)"""
+    return t(
+        "table_result_title",
+        table.lang,
+        dealer=calculate_hand_value(table.dealer_hand),
+    )
+
+
+def _seat_emoji(results) -> str:
+    """좌석 결과 이모지 — 핸드가 하나면 결과별, 스플릿이면 합계 손익 기준"""
+    if len(results) == 1:
+        return PayoutCalculator.get_result_emoji(results[0][0])
+    total = sum(payout for _, payout in results)
+    if total > 0:
+        return PayoutCalculator.get_result_emoji(GameOutcome.WIN)
+    if total < 0:
+        return PayoutCalculator.get_result_emoji(GameOutcome.LOSS)
+    return PayoutCalculator.get_result_emoji(GameOutcome.PUSH)
 
 
 # ── 이미지용 좌석 정보 ────────────────────────────────────────
