@@ -53,7 +53,7 @@ def betting_caption(table: BlackjackTable) -> str:
     """베팅 단계 안내 및 착석 현황"""
     lang = table.lang
     lines = [
-        t("table_opened", lang, max=MAX_SEATS, seconds=BETTING_SECONDS),
+        t("table_opened", lang, max=MAX_SEATS, minutes=BETTING_SECONDS // 60),
         "",
         t("table_seats_header", lang, n=len(table.seats), max=MAX_SEATS),
     ]

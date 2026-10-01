@@ -9,6 +9,7 @@ from bot.utils import session_store
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.deck import Deck, calculate_hand_value
 from bot.utils.table import (
+    BETTING_SECONDS,
     MAX_SEATS,
     BlackjackTable,
     TableAction,
@@ -370,6 +371,13 @@ class TestTableView:
         assert "&lt;b&gt;Evil&lt;/b&gt;" in caption
         assert "<b>" not in caption
         assert "$100.00" in caption
+
+    def test_betting_caption_shows_deadline_in_minutes(self):
+        assert BETTING_SECONDS == 180
+        ko = betting_caption(BlackjackTable(chat_id=-100, host_id=1, lang="ko"))
+        en = betting_caption(BlackjackTable(chat_id=-100, host_id=1, lang="en"))
+        assert "3분 뒤" in ko
+        assert "in 3 min." in en
 
     def test_turn_caption_hides_hole_card_and_mentions_player(self):
         table = _table_with(2, ["9S", "5H", "KD", "8S", "6H", "7C"])

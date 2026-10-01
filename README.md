@@ -22,7 +22,7 @@
 
 1. 그룹에 봇을 초대하고 `/table` 로 테이블을 엽니다. (최대 7명)
 2. 각자 `/join 100` 처럼 착석하며 베팅합니다. (`/join all` = 올인, 딜 전 `/leave` 로 퇴장·환불)
-3. 테이블을 연 사람이 **딜 시작** 버튼을 누르거나, 30초가 지나면 자동으로 딜합니다.
+3. 테이블을 연 사람이 **딜 시작** 버튼을 누르거나, 3분이 지나면 자동으로 딜합니다.
 4. 좌석 순서대로 차례가 오면 멘션 알림이 가고, 차례인 사람만 버튼(HIT / STAND / DOUBLE / SURRENDER / SPLIT / INSURANCE)을 누를 수 있습니다.
 5. 30초 안에 선택하지 않으면 자동 스탠드됩니다.
 6. 모두 끝나면 딜러가 플레이하고, 전원 결과와 잔액을 이미지 한 장으로 보여줍니다.
@@ -111,7 +111,7 @@ Play money only — no real money, payments, or ads. You can also practice solo 
 
 1. Add the bot to a group and open a table with `/table` (up to 7 players).
 2. Everyone takes a seat and bets, e.g. `/join 100` (`/join all` = all-in, `/leave` before the deal to get your bet back).
-3. The host presses **Deal**, or dealing starts automatically after 30 seconds.
+3. The host presses **Deal**, or dealing starts automatically after 3 minutes.
 4. Players act in seat order. The current player is mentioned and only they can press the buttons (HIT / STAND / DOUBLE / SURRENDER / SPLIT / INSURANCE).
 5. No choice within 30 seconds means an automatic stand.
 6. When everyone is done, the dealer plays and the results and balances for every seat are shown in a single image.

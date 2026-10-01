@@ -14,7 +14,8 @@ from models.round import GameOutcome
 
 MAX_SEATS = 7
 TURN_TIMEOUT_SECONDS = 30
-BETTING_SECONDS = 30
+# 베팅(착석) 마감 — 사람들이 모일 시간을 주도록 분 단위로 둔다 (안내 문구도 분 단위)
+BETTING_SECONDS = 3 * 60
 
 
 class TablePhase(str, Enum):

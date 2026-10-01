@@ -152,7 +152,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "table_opened": (
             "🎰 블랙잭 테이블 오픈! (최대 {max}명)\n"
             "/join [금액] 으로 착석하세요. 예: /join 100 | 올인: /join all\n"
-            "{seconds}초 뒤 자동으로 딜을 시작합니다. (호스트는 버튼으로 바로 시작)"
+            "{minutes}분 뒤 자동으로 딜을 시작합니다. (호스트는 버튼으로 바로 시작)"
         ),
         "table_seats_header": "💺 착석 ({n}/{max})",
         "table_seat_bet": "• {name} — ${bet:,.2f}",
@@ -415,7 +415,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "table_opened": (
             "🎰 Blackjack table is open! (up to {max} players)\n"
             "Take a seat with /join [amount]. Example: /join 100 | All-in: /join all\n"
-            "Dealing starts automatically in {seconds}s. (The host can start now with the button)"
+            "Dealing starts automatically in {minutes} min. (The host can start now with the button)"
         ),
         "table_seats_header": "💺 Seated ({n}/{max})",
         "table_seat_bet": "• {name} — ${bet:,.2f}",
