@@ -14,6 +14,7 @@ from typing import Awaitable, Callable, Dict, Optional
 
 from telegram import (
     Bot,
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
@@ -96,6 +97,17 @@ def _user_lang(user_tg_id: int) -> str:
 
 def _is_not_modified(error: BadRequest) -> bool:
     return "not modified" in str(error).lower()
+
+
+async def _answer_quietly(query: CallbackQuery) -> None:
+    """
+    상태 변경 후의 콜백 응답 — 실패해도 진행을 막지 않는다.
+    (앞선 요청이 Flood control로 대기하는 사이 쿼리가 만료될 수 있다)
+    """
+    try:
+        await query.answer()
+    except TelegramError as e:
+        logger.warning(f"콜백 응답 실패 (무시): {e}")
 
 
 # ── 타이머 ────────────────────────────────────────────────────
@@ -299,8 +311,10 @@ async def _open_or_resume(bot: Bot, chat_id: int, host_id: int, lang: str) -> No
     table = BlackjackTable(chat_id, host_id=host_id, lang=lang)
     table_sessions[chat_id] = table
     _persist_tables()
-    await _show_betting(bot, table, new_message=True)
-    _arm_betting_timer(bot, table)
+    try:
+        await _show_betting(bot, table, new_message=True)
+    finally:
+        _arm_betting_timer(bot, table)
 
 
 async def _resume(bot: Bot, table: BlackjackTable) -> None:
@@ -310,15 +324,19 @@ async def _resume(bot: Bot, table: BlackjackTable) -> None:
     """
     has_timer = table.chat_id in _timers
     if table.phase is TablePhase.BETTING:
-        await _show_betting(bot, table, new_message=True)
-        if not has_timer:
-            _arm_betting_timer(bot, table)
+        try:
+            await _show_betting(bot, table, new_message=True)
+        finally:
+            if not has_timer:
+                _arm_betting_timer(bot, table)
     elif table.is_round_over:
         await _finish_round(bot, table)
     else:
-        await _show_turn(bot, table, new_message=True)
-        if not has_timer:
-            _arm_turn_timer(bot, table)
+        try:
+            await _show_turn(bot, table, new_message=True)
+        finally:
+            if not has_timer:
+                _arm_turn_timer(bot, table)
 
 
 async def _start_round(bot: Bot, table: BlackjackTable) -> None:
@@ -343,12 +361,19 @@ async def _advance(
     notice: Optional[str] = None,
     new_message: bool = False,
 ) -> None:
-    """상태 변경 후 다음 단계로: 모든 좌석이 끝났으면 정산, 아니면 차례 표시"""
+    """
+    상태 변경 후 다음 단계로: 모든 좌석이 끝났으면 정산, 아니면 차례 표시
+
+    메시지 전송이 실패해도(Flood control 등) 턴 타이머는 반드시 예약해
+    시간 초과 시 자동 스탠드로 라운드가 계속 진행되게 한다.
+    """
     if table.is_round_over:
         await _finish_round(bot, table, notice)
         return
-    await _show_turn(bot, table, notice, new_message)
-    _arm_turn_timer(bot, table)
+    try:
+        await _show_turn(bot, table, notice, new_message)
+    finally:
+        _arm_turn_timer(bot, table)
 
 
 def _settle_table(table: BlackjackTable, seat_results: SeatResults) -> Dict[int, Dict]:
@@ -623,7 +648,7 @@ async def table_button_callback(update: Update, context: ContextTypes.DEFAULT_TY
             if table.phase is not TablePhase.BETTING:
                 await query.answer()
                 return
-            await query.answer()
+            await _answer_quietly(query)
             await _start_round(context.bot, table)
             return
 
@@ -647,7 +672,7 @@ async def table_button_callback(update: Update, context: ContextTypes.DEFAULT_TY
         table.apply(user_tg_id, action)
         _cancel_timer(chat_id)
         _persist_tables()
-        await query.answer()
+        await _answer_quietly(query)
 
         notice = _action_notice(table, seat, action, hand_index)
         turn_moved = table.current_seat is not seat

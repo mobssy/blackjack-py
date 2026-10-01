@@ -203,6 +203,7 @@ bot/
     start.py           /start /help, language, menu buttons
     admin.py           /admin stats, /add
   middleware/auth.py   auto-registers users, groups, and group members
+  middleware/rate_limit.py  waits and retries on Telegram flood control (429)
   utils/               Telegram-independent logic
     blackjack_game.py  hands, split, double, insurance
     table.py           multiplayer table rules and turns

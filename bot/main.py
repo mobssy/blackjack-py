@@ -72,6 +72,7 @@ from bot.handlers.menu import sync_command_menu
 
 # 미들웨어 import
 from bot.middleware.auth import user_middleware, group_middleware, logging_middleware
+from bot.middleware.rate_limit import RetryAfterLimiter
 
 # 모델 import
 from models import init_db
@@ -173,6 +174,7 @@ def main():
     app = (
         Application.builder()
         .token(TELEGRAM_TOKEN)
+        .rate_limiter(RetryAfterLimiter())
         .post_init(post_init)
         .post_shutdown(post_shutdown)
         .build()

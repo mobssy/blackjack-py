@@ -39,6 +39,9 @@
   제약 때문에 정의만 유지 (삭제하면 신규 INSERT 실패). 운영 DB에 approvals/ad_schedules
   테이블도 남아 있지만 미사용.
   DB는 `DATABASE_URL` 환경변수 (기본 sqlite:///./jackpy.db), `init_db()`로 create_all
+- `bot/middleware/rate_limit.py` — RetryAfterLimiter: 텔레그램 Flood control(429) 시
+  대기 후 재시도 (Application.builder().rate_limiter로 전 요청에 적용).
+  테이블은 메시지 전송이 실패해도 타이머를 finally로 예약해 라운드가 멈추지 않게 함
 - 미들웨어(`bot/middleware/auth.py`)는 각각 다른 handler group(-3/-2/-1)에 등록해야
   함 — PTB는 같은 group에서 첫 매칭 핸들러 하나만 실행
 
