@@ -11,7 +11,7 @@ class PayoutCalculator:
     정산 계산기
 
     블랙잭 룰:
-    - 블랙잭: 베팅액의 3:2 (1.5배)
+    - 블랙잭: 베팅액의 6:5 (1.2배)
     - 일반 승리: 베팅액의 1:1 (1배)
     - 푸시: 베팅액 반환 (0)
     - 패배: 베팅액 손실 (-1배)
@@ -19,7 +19,7 @@ class PayoutCalculator:
     """
 
     # 정산 배율
-    BLACKJACK_MULTIPLIER = 1.5
+    BLACKJACK_MULTIPLIER = 1.2
     WIN_MULTIPLIER = 1.0
     PUSH_MULTIPLIER = 0.0
     LOSS_MULTIPLIER = -1.0

@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from bot.utils.blackjack_game import BlackjackGame
-from bot.utils.deck import Deck, calculate_hand_value, is_blackjack, is_bust
+from bot.utils.deck import Deck, dealer_should_hit, is_blackjack, is_bust
 from models.round import GameOutcome
 
 MAX_SEATS = 7
@@ -321,10 +321,10 @@ class BlackjackTable:
     # ── 딜러 및 결과 ───────────────────────────────────────────
 
     def play_dealer(self) -> None:
-        """승부할 좌석이 남아 있으면 딜러가 17 이상까지 히트"""
+        """승부할 좌석이 남아 있으면 딜러 규칙(17 미만·소프트 17 히트)대로 플레이"""
         if not any(seat.is_live for seat in self.seats):
             return
-        while calculate_hand_value(self.dealer_hand) < 17:
+        while dealer_should_hit(self.dealer_hand):
             self.dealer_hand.append(self.deck.draw())
 
     def results(self) -> SeatResults:

@@ -9,6 +9,7 @@ from bot.utils.deck import (
     Card,
     Deck,
     calculate_hand_value,
+    dealer_should_hit,
     is_blackjack,
     is_bust,
 )
@@ -264,8 +265,8 @@ class BlackjackGame:
         return GameOutcome.SURRENDER, payout
 
     def dealer_play(self):
-        """딜러 자동 플레이 (17 이상까지)"""
-        while calculate_hand_value(self.dealer_hand) < 17:
+        """딜러 자동 플레이 (17 미만 또는 소프트 17이면 히트)"""
+        while dealer_should_hit(self.dealer_hand):
             card = self.deck.draw()
             self.dealer_hand.append(card)
 

@@ -131,7 +131,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "블랙잭 규칙\n"
             "최소 베팅: $1 (소수점 둘째 자리까지)\n"
             "목표: 21에 가까운 숫자\n"
-            "블랙잭: 3:2 배당\n"
+            "블랙잭: 6:5 배당 (1.2배)\n"
             "일반 승리: 1:1 배당\n"
             "무승부: 베팅액 반환\n"
             "서렌더: 베팅액 절반 회수\n"
@@ -140,7 +140,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "연승 보너스: 3연승부터 +10%, 5연승부터 +20%\n"
             "출석 보너스: 연속 출석 시 하루 +$25 (최대 +$175)\n"
             "파산 구제: 잔액 부족 시 4시간마다 $50 지급\n"
-            "딜러: 17 이상까지 히트"
+            "딜러: 16 이하와 소프트 17(A 포함 17)에서 히트"
         ),
         # 단체방
         "group_redirect": (
@@ -388,7 +388,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Blackjack Rules\n"
             "Minimum bet: $1 (up to two decimal places)\n"
             "Goal: Get closer to 21 than the dealer\n"
-            "Blackjack: 3:2 payout\n"
+            "Blackjack: 6:5 payout (1.2x)\n"
             "Win: 1:1 payout\n"
             "Push: Bet returned\n"
             "Surrender: Half bet returned\n"
@@ -397,7 +397,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Streak bonus: +10% from 3 wins, +20% from 5 wins in a row\n"
             "Attendance bonus: +$25 per consecutive day (up to +$175)\n"
             "Bankruptcy rescue: $50 every 4 hours when you run out of chips\n"
-            "Dealer hits until 17+"
+            "Dealer hits 16 or less and soft 17 (17 with an Ace)"
         ),
         # 단체방
         "group_redirect": (

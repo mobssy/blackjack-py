@@ -48,8 +48,8 @@
 
 ### 규칙
 
-- 6덱 슈, 딜러는 17 이상에서 스탠드 (소프트 17 포함)
-- 블랙잭 3:2, 일반 승리 1:1, 무승부는 베팅 반환
+- 6덱 슈, 딜러는 16 이하와 소프트 17(A 포함 17)에서 히트, 하드 17 이상에서 스탠드
+- 블랙잭 6:5 (1.2배), 일반 승리 1:1, 무승부는 베팅 반환
 - 더블 다운: 첫 두 장에서 베팅 2배 + 카드 1장 후 자동 스탠드
 - 서렌더: 첫 두 장에서 베팅 절반 회수
 - 스플릿: 같은 랭크 2장, 1회만 가능. 에이스 스플릿은 카드 1장씩만. 스플릿 후 21은 블랙잭이 아닌 일반 21
@@ -137,8 +137,8 @@ The Telegram `/` menu is registered automatically on startup for each chat type 
 
 ### Rules
 
-- 6-deck shoe; the dealer stands on all 17s (including soft 17)
-- Blackjack pays 3:2, a win pays 1:1, a push returns the bet
+- 6-deck shoe; the dealer hits 16 or less and soft 17 (17 with an Ace), stands on hard 17+
+- Blackjack pays 6:5 (1.2x), a win pays 1:1, a push returns the bet
 - Double down: on the first two cards, 2x bet + one card, then auto-stand
 - Surrender: on the first two cards, get half the bet back
 - Split: a same-rank pair, once only. Split aces get one card each. A two-card 21 after a split is a regular 21, not blackjack

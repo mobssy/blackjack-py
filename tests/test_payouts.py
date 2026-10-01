@@ -17,9 +17,9 @@ class TestPayoutCalculator:
     """PayoutCalculator 테스트"""
 
     def test_blackjack_payout(self):
-        """블랙잭 정산 테스트 (3:2)"""
+        """블랙잭 정산 테스트 (6:5)"""
         payout = PayoutCalculator.calculate(GameOutcome.BLACKJACK, 100)
-        assert payout == 150.0  # 100 * 1.5
+        assert payout == 120.0  # 100 * 1.2
 
     def test_win_payout(self):
         """일반 승리 정산 테스트 (1:1)"""

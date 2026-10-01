@@ -109,6 +109,24 @@ class Deck:
         return [self.draw() for _ in range(count)]
 
 
+# 딜러 규칙: 이 값 미만이면 히트, 소프트 17이면 히트 (H17, 라스베가스 표준)
+DEALER_STAND_VALUE = 17
+
+
+def _value_and_soft_aces(hand: List[str]) -> Tuple[int, int]:
+    """핸드 값과 11로 계산 중인 에이스 수"""
+    cards = [Card(card) for card in hand]
+    total = sum(card.value for card in cards)
+    aces = sum(1 for card in cards if card.rank == "A")
+
+    # Ace를 1로 계산하여 bust 방지
+    while total > 21 and aces > 0:
+        total -= 10
+        aces -= 1
+
+    return total, aces
+
+
 def calculate_hand_value(hand: List[str]) -> int:
     """
     핸드 값 계산 (Soft/Hard 고려)
@@ -119,16 +137,20 @@ def calculate_hand_value(hand: List[str]) -> int:
     Returns:
         int: 핸드 값
     """
-    cards = [Card(card) for card in hand]
-    total = sum(card.value for card in cards)
-    aces = sum(1 for card in cards if card.rank == "A")
+    return _value_and_soft_aces(hand)[0]
 
-    # Ace를 1로 계산하여 bust 방지
-    while total > 21 and aces > 0:
-        total -= 10
-        aces -= 1
 
-    return total
+def is_soft(hand: List[str]) -> bool:
+    """소프트 핸드 여부 (에이스 하나를 11로 계산 중, 예: A+6 = 소프트 17)"""
+    return _value_and_soft_aces(hand)[1] > 0
+
+
+def dealer_should_hit(hand: List[str]) -> bool:
+    """딜러 히트 여부 — 17 미만이거나 소프트 17이면 히트"""
+    value = calculate_hand_value(hand)
+    if value < DEALER_STAND_VALUE:
+        return True
+    return value == DEALER_STAND_VALUE and is_soft(hand)
 
 
 def is_blackjack(hand: List[str]) -> bool:

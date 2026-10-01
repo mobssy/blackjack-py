@@ -262,11 +262,18 @@ class TestDealerAndResults:
         assert outcomes["P1"] == (GameOutcome.WIN, 100.0)
         assert outcomes["P2"] == (GameOutcome.LOSS, -100.0)
 
-    def test_natural_blackjack_pays_3_to_2(self):
+    def test_natural_blackjack_pays_6_to_5(self):
         table = _table_with(1, ["AS", "9D", "KS", "8C"], bet=100.0)
         table.play_dealer()
         [(_, results)] = table.results()
-        assert results == [(GameOutcome.BLACKJACK, 150.0)]
+        assert results == [(GameOutcome.BLACKJACK, 120.0)]
+
+    def test_dealer_hits_soft_17(self):
+        # 딜러 A+6 (소프트 17) → 한 장 더 (4) → 21
+        table = _table_with(1, ["10S", "AH", "8S", "6D", "4C"])
+        table.apply(1, TableAction.STAND)
+        table.play_dealer()
+        assert table.dealer_hand == ["AH", "6D", "4C"]
 
 
 class TestSerialization:
