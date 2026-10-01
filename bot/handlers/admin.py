@@ -9,6 +9,7 @@ from typing import List
 from telegram import Update
 from telegram.ext import ContextTypes
 from models import get_db, User, Group, Round
+from bot.utils.betting import BetError, parse_bet
 
 logger = logging.getLogger(__name__)
 
@@ -131,15 +132,15 @@ async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 사용자 식별자 파싱
     user_identifier = context.args[0]
 
-    # 금액 파싱
+    # 금액 파싱 — 베팅과 같은 규칙 (nan/inf, 센트 미만 단위로 잔액이 깨지지 않도록)
     try:
-        amount = float(context.args[1])
-        if amount <= 0:
-            await update.message.reply_text("금액은 0보다 커야 합니다.")
-            return
-    except ValueError:
-        await update.message.reply_text("올바른 금액을 입력해주세요.")
+        bet = parse_bet(context.args[1])
+    except BetError:
+        bet = None
+    if bet is None or bet.all_in:
+        await update.message.reply_text("금액은 $1 이상, 소수점 둘째 자리까지 입력해주세요.")
         return
+    amount = float(bet.amount)
 
     with get_db() as db:
         # 사용자 조회
@@ -147,8 +148,7 @@ async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # @ 기호로 시작하면 username으로 검색
         if user_identifier.startswith("@"):
-            username = user_identifier[1:]  # @ 제거
-            user = db.query(User).filter(User.username == username).first()
+            user = User.find_by_username(db, user_identifier[1:])
         else:
             # 숫자면 user_id로 검색
             try:

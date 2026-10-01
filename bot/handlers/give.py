@@ -7,7 +7,6 @@ import logging
 from html import escape
 from typing import Optional
 
-from sqlalchemy import func
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
@@ -27,11 +26,7 @@ def _find_recipient(db, update: Update, request: GiveRequest) -> Optional[User]:
         GiveError: 받는 사람을 지정하지 않았거나 봇에게 보내는 경우
     """
     if request.username:
-        return (
-            db.query(User)
-            .filter(func.lower(User.username) == request.username.lower())
-            .first()
-        )
+        return User.find_by_username(db, request.username)
 
     reply = update.message.reply_to_message
     if reply is None or reply.from_user is None:

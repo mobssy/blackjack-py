@@ -5,7 +5,7 @@ JackPy - User 모델
 
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy import (
     Column,
     Integer,
@@ -15,6 +15,7 @@ from sqlalchemy import (
     DateTime,
     JSON,
     Numeric,
+    func,
 )
 from models.base import Base, TimestampMixin
 
@@ -72,6 +73,13 @@ class User(Base, TimestampMixin):
             return self.first_name
         else:
             return f"User#{self.tg_user_id}"
+
+    @classmethod
+    def find_by_username(cls, db, username: str) -> Optional["User"]:
+        """@ 없는 username으로 조회 (텔레그램 username은 대소문자를 구분하지 않음)"""
+        return (
+            db.query(cls).filter(func.lower(cls.username) == username.lower()).first()
+        )
 
     def add_wallet(self, amount: float):
         """잔액 추가"""
