@@ -22,6 +22,9 @@ from models.base import Base, TimestampMixin
 # 일일 보상 리셋 기준 시간대 (한국 표준시)
 KST = timezone(timedelta(hours=9))
 
+# 신규 사용자 시작 잔액
+STARTING_WALLET = 1000.0
+
 
 class User(Base, TimestampMixin):
     """
@@ -45,7 +48,9 @@ class User(Base, TimestampMixin):
     first_name = Column(String(128), nullable=True)
 
     # 게임 관련
-    wallet = Column(Numeric(precision=15, scale=2), default=1000.0, nullable=False)
+    wallet = Column(
+        Numeric(precision=15, scale=2), default=STARTING_WALLET, nullable=False
+    )
     # (레거시) VIP 컬럼 — 기능은 제거됨. 기존 DB의 NOT NULL 컬럼이라
     # 신규 사용자 INSERT가 깨지지 않도록 정의만 유지한다.
     is_vip = Column(Boolean, default=False, nullable=False)
@@ -73,6 +78,30 @@ class User(Base, TimestampMixin):
             return self.first_name
         else:
             return f"User#{self.tg_user_id}"
+
+    @classmethod
+    def create_new(
+        cls,
+        tg_user_id: int,
+        username: Optional[str],
+        first_name: Optional[str],
+        language: str = "ko",
+    ) -> "User":
+        """신규 사용자 생성 (시작 잔액·빈 통계 — 등록 경로가 달라도 같은 초기값)"""
+        return cls(
+            tg_user_id=tg_user_id,
+            username=username,
+            first_name=first_name,
+            wallet=STARTING_WALLET,
+            language=language,
+            stats_json={
+                "total_games": 0,
+                "wins": 0,
+                "losses": 0,
+                "total_bet": 0,
+                "total_profit": 0,
+            },
+        )
 
     @classmethod
     def find_by_username(cls, db, username: str) -> Optional["User"]:

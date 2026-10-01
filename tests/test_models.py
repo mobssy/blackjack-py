@@ -9,7 +9,7 @@ from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models.base import Base
-from models.user import User
+from models.user import STARTING_WALLET, User
 from models.group import Group
 from models.group_member import GroupMember
 from models.round import Round, GameOutcome
@@ -46,6 +46,26 @@ class TestUserModel:
         assert user.username == "testuser"
         assert user.wallet == Decimal("1000.0")
         assert user.is_vip is False
+
+    def test_create_new_defaults(self, db_session):
+        """create_new: 시작 잔액·빈 통계·기본 언어로 생성"""
+        user = User.create_new(42, "newbie", "New")
+        db_session.add(user)
+        db_session.commit()
+
+        assert user.wallet == Decimal(str(STARTING_WALLET))
+        assert user.language == "ko"
+        assert user.stats_json["total_games"] == 0
+        assert user.stats_json["total_profit"] == 0
+
+    def test_create_new_language(self, db_session):
+        """create_new: 언어 선택으로 가입하면 해당 언어 저장"""
+        user = User.create_new(43, None, "Eng", language="en")
+        db_session.add(user)
+        db_session.commit()
+
+        assert user.language == "en"
+        assert user.display_name == "Eng"
 
     def test_display_name_with_username(self, db_session):
         """사용자명이 있는 경우 표시 이름"""

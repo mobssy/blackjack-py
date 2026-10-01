@@ -32,19 +32,7 @@ async def user_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if not user:
                 # /start가 아닌 명령어로 첫 접속한 경우 자동 등록
-                user = User(
-                    tg_user_id=user_tg_id,
-                    username=username,
-                    first_name=first_name,
-                    wallet=1000.0,
-                    stats_json={
-                        "total_games": 0,
-                        "wins": 0,
-                        "losses": 0,
-                        "total_bet": 0,
-                        "total_profit": 0,
-                    },
-                )
+                user = User.create_new(user_tg_id, username, first_name)
                 db.add(user)
                 db.commit()
                 logger.info(f"신규 사용자 자동 등록: {username} ({user_tg_id})")

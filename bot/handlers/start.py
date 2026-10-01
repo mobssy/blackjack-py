@@ -96,20 +96,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with get_db() as db:
             user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
             if not user:
-                user = User(
-                    tg_user_id=user_tg_id,
-                    username=username,
-                    first_name=first_name,
-                    wallet=1000.0,
-                    language=lang,
-                    stats_json={
-                        "total_games": 0,
-                        "wins": 0,
-                        "losses": 0,
-                        "total_bet": 0,
-                        "total_profit": 0,
-                    },
-                )
+                user = User.create_new(user_tg_id, username, first_name, language=lang)
                 db.add(user)
                 db.commit()
                 welcome = t("welcome_new", lang)
