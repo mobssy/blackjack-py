@@ -194,6 +194,18 @@ STRINGS: dict[str, dict[str, str]] = {
         "img_table_dealer": "딜러",
         # 뒤로가기
         "btn_back": "뒤로가기",
+        # 시작 메뉴 프로필 버튼
+        "menu_profile": (
+            "프로필\n\n"
+            "이름: {name}\n"
+            "잔액: ${balance:,.2f}\n\n"
+            "총 게임: {games:,}회\n"
+            "승리: {wins:,}회\n"
+            "패배: {losses:,}회\n"
+            "승률: {win_rate:.1f}%\n"
+            "총 베팅: ${total_bet:,.2f}\n"
+            "총 수익: ${total_profit:,.2f}"
+        ),
         # /my 프로필
         "profile_title": "┏━━━━━━━━━━━━━━━━━━━┓\n┃  프로필 카드       ┃\n┗━━━━━━━━━━━━━━━━━━━┛",
         "profile_user": "사용자: {name}",
@@ -466,6 +478,17 @@ STRINGS: dict[str, dict[str, str]] = {
         # 뒤로가기
         "btn_back": "Back",
         # /my 프로필
+        "menu_profile": (
+            "Profile\n\n"
+            "Name: {name}\n"
+            "Balance: ${balance:,.2f}\n\n"
+            "Games: {games:,}\n"
+            "Wins: {wins:,}\n"
+            "Losses: {losses:,}\n"
+            "Win rate: {win_rate:.1f}%\n"
+            "Total bet: ${total_bet:,.2f}\n"
+            "Total profit: ${total_profit:,.2f}"
+        ),
         "profile_title": "┏━━━━━━━━━━━━━━━━━━━┓\n┃  Profile Card      ┃\n┗━━━━━━━━━━━━━━━━━━━┛",
         "profile_user": "User: {name}",
         "profile_finance": (
