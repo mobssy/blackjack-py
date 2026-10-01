@@ -8,8 +8,10 @@
 - `bot/main.py` — 봇 진입점 (핸들러 등록, 로깅, 테이블 재개·메뉴 동기화)
 - `bot/handlers/` — 텔레그램 명령어/콜백 핸들러
   - `blackjack.py` — /deal /hit /stand /double /surrender /split /insurance
-    /wallet /daily (출석 스트릭·파산 구제 포함), 게임 버튼 콜백,
-    정산(`_settle_game`)과 렌더링(`_render_game_result`) 분리 구조
+    /wallet /daily (출석 스트릭·파산 구제 포함), 게임 버튼 콜백.
+    액션 로직(`_act_*`)은 명령어/버튼 공용이고 응답 방식만 `CommandView`(새 메시지)/
+    `CallbackView`(메시지 수정)로 다름. game_* 버튼은 block=False로 동시 실행되므로
+    1인 게임 상태 변경은 반드시 `_user_lock` 안에서 할 것 (연타 이중 정산 방지)
   - `table.py` — 그룹 멀티 테이블 /table /join /leave, tbl_* 버튼 콜백.
     채팅방별 asyncio.Lock으로 상태 변경 직렬화, 베팅 마감/턴 타임아웃은 asyncio 태스크
     (재시작 시 post_init의 `resume_tables`가 메시지·타이머 재개)
@@ -23,7 +25,7 @@
     `bot/utils/gifting.py`)
   - `profile.py` — /my /rank(그룹에서는 그룹별 랭킹) /stats /history
   - `start.py` — /start /help, 언어 선택, 메뉴 버튼 콜백 라우팅 (game_* 콜백은
-    blackjack.game_button_callback으로 위임)
+    main.py에서 blackjack.game_button_callback으로 직접 등록)
 - `bot/utils/` — 텔레그램 의존성 없는 로직
   - `blackjack_game.py` — BlackjackGame (멀티 핸드: hands/bets 리스트,
     player_hand/bet은 활성 핸드 프로퍼티)

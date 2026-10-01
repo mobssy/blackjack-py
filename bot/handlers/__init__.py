@@ -14,6 +14,7 @@ from bot.handlers.blackjack import (
     cmd_insurance,
     cmd_wallet,
     cmd_daily,
+    game_button_callback,
 )
 from bot.handlers.table import (
     cmd_table,
@@ -44,6 +45,7 @@ __all__ = [
     "cmd_insurance",
     "cmd_wallet",
     "cmd_daily",
+    "game_button_callback",
     # Multiplayer Table
     "cmd_table",
     "cmd_join",

@@ -55,6 +55,7 @@ from bot.handlers import (
     cmd_insurance,
     cmd_wallet,
     cmd_daily,
+    game_button_callback,
     cmd_table,
     cmd_join,
     cmd_leave,
@@ -128,8 +129,13 @@ def setup_handlers(app: Application):
     app.add_handler(CommandHandler("history", cmd_history))
 
     # 인라인 버튼 콜백
-    # 멀티 테이블(tbl_*)을 먼저 등록 — 같은 group에서는 첫 매칭 핸들러만 실행됨
+    # 패턴이 있는 콜백을 먼저 등록 — 같은 group에서는 첫 매칭 핸들러만 실행됨
     app.add_handler(CallbackQueryHandler(table_button_callback, pattern=r"^tbl_"))
+    # 1인 게임 버튼은 HIT 연출(sleep) 동안 다른 사용자를 막지 않도록 동시 실행
+    # (같은 사용자의 액션은 blackjack._run_action의 사용자 잠금으로 직렬화)
+    app.add_handler(
+        CallbackQueryHandler(game_button_callback, pattern=r"^game_", block=False)
+    )
     app.add_handler(CallbackQueryHandler(button_callback))
 
     logger.info("✅ 핸들러 등록 완료")
