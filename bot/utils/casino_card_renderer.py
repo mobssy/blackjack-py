@@ -3,12 +3,16 @@ JackPy - 카지노급 카드 렌더러
 실제 카지노 카드처럼 K, Q, J, A 그림 포함
 """
 
+import logging
+
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import List, Optional, Tuple
 import io
 from pathlib import Path
 from bot.utils.themes import Theme, ThemeManager
 import math
+
+logger = logging.getLogger(__name__)
 
 
 class CasinoCardRenderer:
@@ -743,89 +747,21 @@ class CasinoCardRenderer:
         return card
 
     def _create_casino_card_back(self) -> Image.Image:
-        """카지노급 뒷면"""
+        """카지노급 뒷면 (assets/cards/back.png가 있으면 사용, 없으면 직접 그림)"""
+        return self._load_card_back() or self._draw_card_back()
 
-        # === 실제 뒷면 이미지 먼저 시도 ===
-        back_path = self.cards_dir / "back.png"
-        if back_path.exists():
-            try:
-                card_img = Image.open(back_path).convert("RGBA")
-                card_img = card_img.resize(
-                    (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS
-                )
-
-                # 라운드 코너
-                mask = Image.new("L", (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
-                mask_draw = ImageDraw.Draw(mask)
-                mask_draw.rounded_rectangle(
-                    [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
-                    radius=self.CARD_RADIUS,
-                    fill=255,
-                )
-
-                result = Image.new("RGBA", card_img.size, (0, 0, 0, 0))
-                result.paste(card_img, (0, 0), mask)
-
-                # 골드 테두리
-                draw = ImageDraw.Draw(result)
-                for i in range(4):
-                    offset = 5 + i * 4
-                    draw.rounded_rectangle(
-                        [
-                            (offset, offset),
-                            (self.CARD_WIDTH - offset, self.CARD_HEIGHT - offset),
-                        ],
-                        radius=self.CARD_RADIUS - i * 2,
-                        outline=self.METALLIC_GOLD + (255 - i * 40,),
-                        width=3,
-                    )
-
-                return result
-            except Exception as e:
-                print(f"뒷면 이미지 로드 실패: {e}")
-
-        # === 실제 이미지 없으면 그려서 생성 ===
-        card = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), (0, 0, 0, 0))
-
-        # 다크 그라데이션
-        base = Image.new("RGBA", card.size, (0, 0, 0, 0))
-        draw_base = ImageDraw.Draw(base)
-
-        for y in range(self.CARD_HEIGHT):
-            ratio = y / self.CARD_HEIGHT
-            r = int(10 + (30 * ratio))
-            g = int(10 + (40 * ratio))
-            b = int(50 + (70 * ratio))
-            draw_base.line([(0, y), (self.CARD_WIDTH, y)], fill=(r, g, b, 255))
-
-        # 라운드 마스크
-        mask = Image.new("L", card.size, 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle(
+    def _rounded_card_mask(self) -> Image.Image:
+        """카드 크기 라운드 코너 마스크"""
+        mask = Image.new("L", (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
+        ImageDraw.Draw(mask).rounded_rectangle(
             [(0, 0), (self.CARD_WIDTH, self.CARD_HEIGHT)],
             radius=self.CARD_RADIUS,
             fill=255,
         )
+        return mask
 
-        result = Image.new("RGBA", card.size, (0, 0, 0, 0))
-        result.paste(base, (0, 0), mask)
-        card = result
-
-        # 다이아몬드 패턴
-        pattern = Image.new("RGBA", card.size, (0, 0, 0, 0))
-        pattern_draw = ImageDraw.Draw(pattern)
-
-        spacing = 40
-        for y in range(0, self.CARD_HEIGHT + spacing, spacing):
-            for x in range(0, self.CARD_WIDTH + spacing, spacing):
-                points = [(x, y - 10), (x + 10, y), (x, y + 10), (x - 10, y)]
-                pattern_draw.polygon(
-                    points, outline=self.METALLIC_GOLD + (100,), width=2
-                )
-
-        card = Image.alpha_composite(card, pattern)
-
-        # 골드 테두리
+    def _draw_gold_border(self, card: Image.Image) -> None:
+        """카드 뒷면 골드 테두리 (제자리 그리기)"""
         draw = ImageDraw.Draw(card)
         for i in range(4):
             offset = 5 + i * 4
@@ -839,13 +775,69 @@ class CasinoCardRenderer:
                 width=3,
             )
 
-        # 중앙 로고
+    def _load_card_back(self) -> Optional[Image.Image]:
+        """실제 뒷면 이미지 로드 (없거나 읽기 실패 시 None)"""
+        back_path = self.cards_dir / "back.png"
+        if not back_path.exists():
+            return None
+        try:
+            card_img = Image.open(back_path).convert("RGBA")
+        except OSError as e:
+            logger.warning(f"뒷면 이미지 로드 실패: {e}")
+            return None
+        card_img = card_img.resize((self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS)
+
+        result = Image.new("RGBA", card_img.size, (0, 0, 0, 0))
+        result.paste(card_img, (0, 0), self._rounded_card_mask())
+        self._draw_gold_border(result)
+        return result
+
+    def _draw_card_back(self) -> Image.Image:
+        """뒷면 직접 그리기 — 다크 그라데이션 + 다이아몬드 패턴 + 골드 테두리 + JP 로고"""
+        size = (self.CARD_WIDTH, self.CARD_HEIGHT)
+
+        # 다크 그라데이션
+        base = Image.new("RGBA", size, (0, 0, 0, 0))
+        draw_base = ImageDraw.Draw(base)
+        for y in range(self.CARD_HEIGHT):
+            ratio = y / self.CARD_HEIGHT
+            r = int(10 + (30 * ratio))
+            g = int(10 + (40 * ratio))
+            b = int(50 + (70 * ratio))
+            draw_base.line([(0, y), (self.CARD_WIDTH, y)], fill=(r, g, b, 255))
+
+        card = Image.new("RGBA", size, (0, 0, 0, 0))
+        card.paste(base, (0, 0), self._rounded_card_mask())
+
+        # 다이아몬드 패턴
+        pattern = Image.new("RGBA", size, (0, 0, 0, 0))
+        pattern_draw = ImageDraw.Draw(pattern)
+        spacing = 40
+        for y in range(0, self.CARD_HEIGHT + spacing, spacing):
+            for x in range(0, self.CARD_WIDTH + spacing, spacing):
+                points = [(x, y - 10), (x + 10, y), (x, y + 10), (x - 10, y)]
+                pattern_draw.polygon(
+                    points, outline=self.METALLIC_GOLD + (100,), width=2
+                )
+        card = Image.alpha_composite(card, pattern)
+
+        self._draw_gold_border(card)
+        return self._add_back_logo(card)
+
+    def _back_logo_font(self) -> ImageFont.FreeTypeFont:
+        """뒷면 JP 로고 폰트 (macOS Helvetica, 없으면 기본 랭크 폰트)"""
+        try:
+            return ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 70)
+        except OSError:
+            return self.font_rank_large
+
+    def _add_back_logo(self, card: Image.Image) -> Image.Image:
+        """뒷면 중앙 원형 엠블럼 + JP 로고"""
         center_x = self.CARD_WIDTH // 2
         center_y = self.CARD_HEIGHT // 2
 
         logo_bg = Image.new("RGBA", card.size, (0, 0, 0, 0))
         logo_draw = ImageDraw.Draw(logo_bg)
-
         logo_draw.ellipse(
             [(center_x - 90, center_y - 90), (center_x + 90, center_y + 90)],
             fill=(20, 20, 40, 230),
@@ -857,38 +849,24 @@ class CasinoCardRenderer:
             outline=self.PLATINUM,
             width=2,
         )
-
         card = Image.alpha_composite(card, logo_bg)
 
-        # JP 로고
-        try:
-            logo_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 70)
-        except:
-            logo_font = self.font_rank_large
-
+        logo_font = self._back_logo_font()
         text_layer = Image.new("RGBA", card.size, (0, 0, 0, 0))
         text_draw = ImageDraw.Draw(text_layer)
-
+        text_pos = (center_x - 35, center_y - 40)
         # 그림자
-        for offset in [(4, 4), (3, 3), (2, 2)]:
+        for dx, dy in [(4, 4), (3, 3), (2, 2)]:
             text_draw.text(
-                (center_x - 35 + offset[0], center_y - 40 + offset[1]),
+                (text_pos[0] + dx, text_pos[1] + dy),
                 "JP",
                 fill=(0, 0, 0, 120),
                 font=logo_font,
             )
-
         # 메인 텍스트
-        text_draw.text(
-            (center_x - 35, center_y - 40),
-            "JP",
-            fill=self.METALLIC_GOLD,
-            font=logo_font,
-        )
+        text_draw.text(text_pos, "JP", fill=self.METALLIC_GOLD, font=logo_font)
 
-        card = Image.alpha_composite(card, text_layer)
-
-        return card
+        return Image.alpha_composite(card, text_layer)
 
     def _add_dramatic_shadow(self, card: Image.Image) -> Image.Image:
         """드라마틱 그림자"""
@@ -960,6 +938,12 @@ class CasinoCardRenderer:
         """테마 배경 (RGBA)"""
         return self._create_velvet_background(width, height)
 
+    # 게임 이미지 레이아웃 상수
+    _SHADOW_EXTRA = 30  # 카드 그림자 여백
+    _PANEL_X = 60  # 섹션/메시지 패널 왼쪽 위치
+    _LABEL_X = 100  # 섹션 라벨·카드 시작 x
+    _LINE_HEIGHT = 52  # 메시지 줄 간격
+
     def generate_game_image(
         self,
         player_hand: List[str],
@@ -972,369 +956,287 @@ class CasinoCardRenderer:
         player_label: str = "🎯 플레이어",
         value_label: str = "합",
     ) -> bytes:
-        """카지노급 게임 이미지 생성"""
+        """
+        카지노급 게임 이미지 생성 — 딜러 섹션, 플레이어 섹션, 하단 메시지 패널
 
+        플레이어 핸드의 "BACK"은 뒷면 카드로 그린다 (히트 연출용).
+        """
         message_lines = message.split("\n") if message else []
 
         max_cards = max(len(player_hand), len(dealer_hand), 1)
-        shadow_extra = 30
-        card_visual_width = self.CARD_WIDTH + shadow_extra
-
-        card_area_width = (
-            max_cards * card_visual_width + (max_cards - 1) * self.CARD_SPACING + 150
-        )
-
+        card_step = self.CARD_WIDTH + self._SHADOW_EXTRA + self.CARD_SPACING
+        card_area_width = max_cards * card_step - self.CARD_SPACING + 150
         total_width = max(card_area_width, 1150)
-        section_height = self.CARD_HEIGHT + shadow_extra + 260
-        msg_height = len(message_lines) * 52 + 100 if message_lines else 100
+        section_height = self.CARD_HEIGHT + self._SHADOW_EXTRA + 260
+        msg_height = (
+            len(message_lines) * self._LINE_HEIGHT + 100 if message_lines else 100
+        )
         total_height = section_height * 2 + msg_height
 
-        # 배경
+        border = self.theme.colors.border_color
+        accent = self.theme.colors.accent_color
+        panel_size = (total_width - 120, section_height - 80)
+
         image = self._create_velvet_background(total_width, total_height)
-        draw = ImageDraw.Draw(image)
+        image = self._draw_frame(image)
 
-        # 네온 글로우 프레임
-        border_color = self.theme.colors.border_color
-        accent_color = self.theme.colors.accent_color
+        # 딜러 섹션 (테두리색 강조)
+        dealer_y = 60
+        dealer_faces = [
+            "BACK" if i == 0 and hide_dealer_first else card
+            for i, card in enumerate(dealer_hand)
+        ]
+        dealer_value_text = (
+            f"{value_label}: {dealer_value}" if dealer_value is not None else None
+        )
+        image = self._draw_section(
+            image,
+            dealer_y,
+            panel_size,
+            (dealer_label, 260),
+            dealer_faces,
+            dealer_value_text,
+            colors=(border, accent),
+        )
 
-        # 외부 글로우 (네온 효과)
-        glow_layer = Image.new("RGBA", (total_width, total_height), (0, 0, 0, 0))
+        # 플레이어 섹션 (액센트색 강조)
+        player_y = dealer_y + section_height - 20
+        image = self._draw_section(
+            image,
+            player_y,
+            panel_size,
+            (player_label, 310),
+            player_hand,
+            f"{value_label}: {player_value}",
+            colors=(accent, border),
+        )
+
+        if message_lines:
+            msg_panel = self._message_panel(message_lines, panel_size[0])
+            msg_y = player_y + panel_size[1] + 20
+            image.paste(msg_panel, (self._PANEL_X, msg_y), msg_panel)
+
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format="PNG", quality=98)
+        return img_byte_arr.getvalue()
+
+    def _draw_frame(self, image: Image.Image) -> Image.Image:
+        """이미지 외곽 네온 글로우 + 메인 테두리 + 액센트 라인"""
+        width, height = image.size
+        border = self.theme.colors.border_color
+        accent = self.theme.colors.accent_color
+
+        glow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         glow_draw = ImageDraw.Draw(glow_layer)
         for i in range(10, 0, -1):
             offset = 15 + i * 3
-            alpha = int(80 - i * 7)
             glow_draw.rounded_rectangle(
-                [(offset, offset), (total_width - offset, total_height - offset)],
+                [(offset, offset), (width - offset, height - offset)],
                 radius=50 - i,
-                outline=border_color + (alpha,),
+                outline=border + (int(80 - i * 7),),
                 width=i * 2,
             )
         glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=15))
         image = Image.alpha_composite(image, glow_layer)
-        draw = ImageDraw.Draw(image)
 
-        # 메인 테두리
+        draw = ImageDraw.Draw(image)
         for i in range(3):
             offset = 20 + i * 3
-            alpha = 255 - i * 40
             draw.rounded_rectangle(
-                [(offset, offset), (total_width - offset, total_height - offset)],
+                [(offset, offset), (width - offset, height - offset)],
                 radius=38 - i * 2,
-                outline=border_color + (alpha,),
+                outline=border + (255 - i * 40,),
                 width=3,
             )
-
-        # 액센트 라인
         draw.rounded_rectangle(
-            [(25, 25), (total_width - 25, total_height - 25)],
+            [(25, 25), (width - 25, height - 25)],
             radius=35,
-            outline=accent_color + (180,),
+            outline=accent + (180,),
             width=1,
         )
+        return image
 
-        # 딜러 섹션
-        dealer_y = 60
-        panel_width = total_width - 120
-        panel_height = section_height - 80
+    def _draw_section(
+        self,
+        image: Image.Image,
+        section_y: int,
+        panel_size: Tuple[int, int],
+        label: Tuple[str, int],
+        cards: List[str],
+        value_text: Optional[str],
+        colors: Tuple[tuple, tuple],
+    ) -> Image.Image:
+        """
+        딜러/플레이어 섹션 하나 — 유리 패널, 라벨, 카드 줄, 합계 칩
 
-        # Glassmorphism 스타일 패널
-        panel = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
-        panel_draw = ImageDraw.Draw(panel)
-        panel_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)], radius=30, fill=(255, 255, 255, 15)
+        Args:
+            label: (라벨 문구, 라벨 박스 너비)
+            cards: 카드 문자열 ("BACK"은 뒷면)
+            value_text: 합계 칩 문구 (None이면 칩 생략)
+            colors: (강조색, 보조색)
+        """
+        primary, secondary = colors
+        panel = self._glass_panel(panel_size, primary, secondary)
+        image.paste(panel, (self._PANEL_X, section_y), panel)
+
+        label_text, label_width = label
+        image = self._draw_label(
+            image, label_text, (self._LABEL_X, section_y + 30), label_width, colors
         )
 
-        # 네온 테두리 글로우 (축소)
-        panel_glow = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
-        panel_glow_draw = ImageDraw.Draw(panel_glow)
+        cards_y = section_y + 140
+        x_offset = self._LABEL_X
+        step = self.CARD_WIDTH + self._SHADOW_EXTRA + self.CARD_SPACING
+        for card_str in cards:
+            card_img = self.card_image(card_str, face_down=card_str == "BACK")
+            card_with_shadow = self._add_dramatic_shadow(card_img)
+            image.paste(card_with_shadow, (x_offset, cards_y), card_with_shadow)
+            x_offset += step
+
+        if value_text is not None:
+            chip = self._create_value_chip(value_text)
+            chip_x = image.width - chip.width - 120
+            chip_y = cards_y + (self.CARD_HEIGHT - chip.height) // 2
+            image.paste(chip, (chip_x, chip_y), chip)
+        return image
+
+    def _glass_panel(
+        self, size: Tuple[int, int], primary: tuple, secondary: tuple
+    ) -> Image.Image:
+        """반투명 유리 패널 + 강조색 글로우 테두리"""
+        width, height = size
+        panel = Image.new("RGBA", size, (0, 0, 0, 0))
+        ImageDraw.Draw(panel).rounded_rectangle(
+            [(0, 0), (width, height)], radius=30, fill=(255, 255, 255, 15)
+        )
+
+        glow = Image.new("RGBA", size, (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow)
         for i in range(4, 0, -1):
-            alpha = int(35 - i * 6)
-            panel_glow_draw.rounded_rectangle(
-                [(0, 0), (panel_width, panel_height)],
+            glow_draw.rounded_rectangle(
+                [(0, 0), (width, height)],
                 radius=30,
-                outline=border_color + (alpha,),
+                outline=primary + (int(35 - i * 6),),
                 width=i * 2,
             )
-        panel_glow = panel_glow.filter(ImageFilter.GaussianBlur(radius=5))
-        panel = Image.alpha_composite(panel, panel_glow)
+        glow = glow.filter(ImageFilter.GaussianBlur(radius=5))
+        panel = Image.alpha_composite(panel, glow)
 
-        panel_draw = ImageDraw.Draw(panel)
-        panel_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)],
-            radius=30,
-            outline=border_color + (180,),
-            width=2,
+        draw = ImageDraw.Draw(panel)
+        draw.rounded_rectangle(
+            [(0, 0), (width, height)], radius=30, outline=primary + (180,), width=2
         )
-        panel_draw.rounded_rectangle(
-            [(2, 2), (panel_width - 2, panel_height - 2)],
+        draw.rounded_rectangle(
+            [(2, 2), (width - 2, height - 2)],
             radius=28,
-            outline=accent_color + (100,),
+            outline=secondary + (100,),
             width=1,
         )
+        return panel
 
-        image.paste(panel, (60, dealer_y), panel)
+    def _draw_label(
+        self,
+        image: Image.Image,
+        text: str,
+        pos: Tuple[int, int],
+        box_width: int,
+        colors: Tuple[tuple, tuple],
+    ) -> Image.Image:
+        """네온 라벨 박스 + 가운데 정렬된 글로우 텍스트"""
+        primary, secondary = colors
+        box_height = 80
+        label_x, label_y = pos
 
-        # 딜러 라벨 (네온 스타일)
-        label_x = 100
-        label_y = dealer_y + 30
-
-        label_bg = Image.new("RGBA", (260, 80), (0, 0, 0, 0))
-        label_bg_draw = ImageDraw.Draw(label_bg)
-
-        # 네온 글로우
+        box = Image.new("RGBA", (box_width, box_height), (0, 0, 0, 0))
+        box_draw = ImageDraw.Draw(box)
         for i in range(6, 0, -1):
-            alpha = int(60 - i * 8)
-            label_bg_draw.rounded_rectangle(
-                [(0, 0), (260, 80)],
+            box_draw.rounded_rectangle(
+                [(0, 0), (box_width, box_height)],
                 radius=22,
-                outline=border_color + (alpha,),
+                outline=primary + (int(60 - i * 8),),
                 width=i * 2,
             )
-        label_bg = label_bg.filter(ImageFilter.GaussianBlur(radius=6))
-
-        label_bg_draw = ImageDraw.Draw(label_bg)
-        label_bg_draw.rounded_rectangle(
-            [(0, 0), (260, 80)],
+        box = box.filter(ImageFilter.GaussianBlur(radius=6))
+        box_draw = ImageDraw.Draw(box)
+        box_draw.rounded_rectangle(
+            [(0, 0), (box_width, box_height)],
             radius=22,
             fill=(20, 20, 30, 220),
-            outline=border_color,
+            outline=primary,
             width=3,
         )
-        label_bg_draw.rounded_rectangle(
-            [(3, 3), (257, 77)], radius=20, outline=accent_color + (150,), width=1
+        box_draw.rounded_rectangle(
+            [(3, 3), (box_width - 3, box_height - 3)],
+            radius=20,
+            outline=secondary + (150,),
+            width=1,
         )
+        image.paste(box, pos, box)
 
-        image.paste(label_bg, (label_x, label_y), label_bg)
+        bbox = ImageDraw.Draw(Image.new("RGBA", (1, 1))).textbbox(
+            (0, 0), text, font=self.font_title
+        )
+        text_x = label_x + (box_width - (bbox[2] - bbox[0])) // 2
+        text_y = label_y + (box_height - (bbox[3] - bbox[1])) // 2 - 5
 
-        # 텍스트 중앙 정렬 계산
-        dealer_text = dealer_label
-        temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        dealer_bbox = temp_draw.textbbox((0, 0), dealer_text, font=self.font_title)
-        dealer_text_width = dealer_bbox[2] - dealer_bbox[0]
-        dealer_text_height = dealer_bbox[3] - dealer_bbox[1]
-        dealer_text_x = label_x + (260 - dealer_text_width) // 2
-        dealer_text_y = label_y + (80 - dealer_text_height) // 2 - 5
-
-        # 텍스트 글로우 효과
         text_glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        text_glow_draw = ImageDraw.Draw(text_glow)
-        for offset in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
-            text_glow_draw.text(
-                (dealer_text_x + offset[0], dealer_text_y + offset[1]),
-                dealer_text,
-                fill=border_color + (100,),
+        glow_draw = ImageDraw.Draw(text_glow)
+        for dx, dy in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
+            glow_draw.text(
+                (text_x + dx, text_y + dy),
+                text,
+                fill=primary + (100,),
                 font=self.font_title,
             )
         text_glow = text_glow.filter(ImageFilter.GaussianBlur(radius=3))
         image = Image.alpha_composite(image, text_glow)
-        draw = ImageDraw.Draw(image)
 
-        draw.text(
-            (dealer_text_x, dealer_text_y),
-            dealer_text,
-            fill=(255, 255, 255),
-            font=self.font_title,
+        ImageDraw.Draw(image).text(
+            (text_x, text_y), text, fill=(255, 255, 255), font=self.font_title
+        )
+        return image
+
+    def _message_panel(self, lines: List[str], width: int) -> Image.Image:
+        """하단 메시지 패널 (네온 테두리 + 여러 줄 텍스트)"""
+        border = self.theme.colors.border_color
+        accent = self.theme.colors.accent_color
+        height = len(lines) * self._LINE_HEIGHT + 70
+
+        panel = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        ImageDraw.Draw(panel).rounded_rectangle(
+            [(0, 0), (width, height)], radius=25, fill=(10, 10, 20, 230)
         )
 
-        # 딜러 카드
-        cards_y = label_y + 110
-        x_offset = 100
-
-        for i, card_str in enumerate(dealer_hand):
-            if i == 0 and hide_dealer_first:
-                card_img = self._create_casino_card_back()
-            else:
-                card_img = self._create_casino_card_front(card_str)
-
-            card_with_shadow = self._add_dramatic_shadow(card_img)
-            image.paste(card_with_shadow, (x_offset, cards_y), card_with_shadow)
-            x_offset += card_visual_width + self.CARD_SPACING
-
-        # 딜러 값
-        if dealer_value is not None:
-            chip = self._create_value_chip(f"{value_label}: {dealer_value}")
-            chip_x = total_width - chip.width - 120
-            chip_y = cards_y + (self.CARD_HEIGHT - chip.height) // 2
-            image.paste(chip, (chip_x, chip_y), chip)
-
-        # 플레이어 섹션
-        player_y = dealer_y + section_height - 20
-
-        # Glassmorphism 패널
-        panel2 = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
-        panel2_draw = ImageDraw.Draw(panel2)
-        panel2_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)], radius=30, fill=(255, 255, 255, 15)
-        )
-
-        # 네온 글로우 (축소)
-        panel2_glow = Image.new("RGBA", (panel_width, panel_height), (0, 0, 0, 0))
-        panel2_glow_draw = ImageDraw.Draw(panel2_glow)
+        glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow)
         for i in range(4, 0, -1):
-            alpha = int(35 - i * 6)
-            panel2_glow_draw.rounded_rectangle(
-                [(0, 0), (panel_width, panel_height)],
-                radius=30,
-                outline=accent_color + (alpha,),
+            glow_draw.rounded_rectangle(
+                [(0, 0), (width, height)],
+                radius=25,
+                outline=border + (int(35 - i * 6),),
                 width=i * 2,
             )
-        panel2_glow = panel2_glow.filter(ImageFilter.GaussianBlur(radius=5))
-        panel2 = Image.alpha_composite(panel2, panel2_glow)
+        glow = glow.filter(ImageFilter.GaussianBlur(radius=5))
+        panel = Image.alpha_composite(panel, glow)
 
-        panel2_draw = ImageDraw.Draw(panel2)
-        panel2_draw.rounded_rectangle(
-            [(0, 0), (panel_width, panel_height)],
-            radius=30,
-            outline=accent_color + (180,),
-            width=2,
+        draw = ImageDraw.Draw(panel)
+        draw.rounded_rectangle(
+            [(0, 0), (width, height)], radius=25, outline=border, width=3
         )
-        panel2_draw.rounded_rectangle(
-            [(2, 2), (panel_width - 2, panel_height - 2)],
-            radius=28,
-            outline=border_color + (100,),
+        draw.rounded_rectangle(
+            [(3, 3), (width - 3, height - 3)],
+            radius=23,
+            outline=accent + (120,),
             width=1,
         )
-
-        image.paste(panel2, (60, player_y), panel2)
-
-        # 플레이어 라벨 (네온 스타일)
-        label_bg2 = Image.new("RGBA", (310, 80), (0, 0, 0, 0))
-        label_bg2_draw = ImageDraw.Draw(label_bg2)
-
-        # 네온 글로우
-        for i in range(6, 0, -1):
-            alpha = int(60 - i * 8)
-            label_bg2_draw.rounded_rectangle(
-                [(0, 0), (310, 80)],
-                radius=22,
-                outline=accent_color + (alpha,),
-                width=i * 2,
+        for i, line in enumerate(lines):
+            draw.text(
+                (45, 25 + i * self._LINE_HEIGHT),
+                line,
+                fill=(255, 255, 255),
+                font=self.font_message,
             )
-        label_bg2 = label_bg2.filter(ImageFilter.GaussianBlur(radius=6))
-
-        label_bg2_draw = ImageDraw.Draw(label_bg2)
-        label_bg2_draw.rounded_rectangle(
-            [(0, 0), (310, 80)],
-            radius=22,
-            fill=(20, 20, 30, 220),
-            outline=accent_color,
-            width=3,
-        )
-        label_bg2_draw.rounded_rectangle(
-            [(3, 3), (307, 77)], radius=20, outline=border_color + (150,), width=1
-        )
-
-        image.paste(label_bg2, (label_x, player_y + 30), label_bg2)
-
-        # 텍스트 중앙 정렬 계산
-        player_text = player_label
-        temp_draw2 = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        player_bbox = temp_draw2.textbbox((0, 0), player_text, font=self.font_title)
-        player_text_width = player_bbox[2] - player_bbox[0]
-        player_text_height = player_bbox[3] - player_bbox[1]
-        player_text_x = label_x + (310 - player_text_width) // 2
-        player_text_y = player_y + 30 + (80 - player_text_height) // 2 - 5
-
-        # 텍스트 글로우
-        text_glow2 = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        text_glow2_draw = ImageDraw.Draw(text_glow2)
-        for offset in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
-            text_glow2_draw.text(
-                (player_text_x + offset[0], player_text_y + offset[1]),
-                player_text,
-                fill=accent_color + (100,),
-                font=self.font_title,
-            )
-        text_glow2 = text_glow2.filter(ImageFilter.GaussianBlur(radius=3))
-        image = Image.alpha_composite(image, text_glow2)
-        draw = ImageDraw.Draw(image)
-
-        draw.text(
-            (player_text_x, player_text_y),
-            player_text,
-            fill=(255, 255, 255),
-            font=self.font_title,
-        )
-
-        # 플레이어 카드
-        cards_y = player_y + 140
-        x_offset = 100
-
-        for card_str in player_hand:
-            # "BACK" 카드는 뒷면으로 표시
-            if card_str == "BACK":
-                card_img = self._create_casino_card_back()
-            else:
-                card_img = self._create_casino_card_front(card_str)
-            card_with_shadow = self._add_dramatic_shadow(card_img)
-            image.paste(card_with_shadow, (x_offset, cards_y), card_with_shadow)
-            x_offset += card_visual_width + self.CARD_SPACING
-
-        # 플레이어 값
-        chip = self._create_value_chip(f"{value_label}: {player_value}")
-        chip_x = total_width - chip.width - 120
-        chip_y = cards_y + (self.CARD_HEIGHT - chip.height) // 2
-        image.paste(chip, (chip_x, chip_y), chip)
-
-        # 메시지 (네온 스타일)
-        if message_lines:
-            msg_y = player_y + panel_height + 20
-            msg_panel_height = len(message_lines) * 52 + 70
-
-            # 베이스 패널
-            msg_panel = Image.new("RGBA", (panel_width, msg_panel_height), (0, 0, 0, 0))
-            msg_draw = ImageDraw.Draw(msg_panel)
-            msg_draw.rounded_rectangle(
-                [(0, 0), (panel_width, msg_panel_height)],
-                radius=25,
-                fill=(10, 10, 20, 230),
-            )
-
-            # 네온 글로우 (별도 레이어, 축소)
-            msg_glow = Image.new("RGBA", (panel_width, msg_panel_height), (0, 0, 0, 0))
-            msg_glow_draw = ImageDraw.Draw(msg_glow)
-            for i in range(4, 0, -1):
-                alpha = int(35 - i * 6)
-                msg_glow_draw.rounded_rectangle(
-                    [(0, 0), (panel_width, msg_panel_height)],
-                    radius=25,
-                    outline=border_color + (alpha,),
-                    width=i * 2,
-                )
-            msg_glow = msg_glow.filter(ImageFilter.GaussianBlur(radius=5))
-            msg_panel = Image.alpha_composite(msg_panel, msg_glow)
-
-            # 테두리
-            msg_draw = ImageDraw.Draw(msg_panel)
-            msg_draw.rounded_rectangle(
-                [(0, 0), (panel_width, msg_panel_height)],
-                radius=25,
-                outline=border_color,
-                width=3,
-            )
-            msg_draw.rounded_rectangle(
-                [(3, 3), (panel_width - 3, msg_panel_height - 3)],
-                radius=23,
-                outline=accent_color + (120,),
-                width=1,
-            )
-
-            # 텍스트
-            for i, line in enumerate(message_lines):
-                msg_draw.text(
-                    (45, 25 + i * 52),
-                    line,
-                    fill=(255, 255, 255),
-                    font=self.font_message,
-                )
-
-            image.paste(msg_panel, (60, msg_y), msg_panel)
-
-        # 바이트 변환
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format="PNG", quality=98)
-        img_byte_arr.seek(0)
-        return img_byte_arr.getvalue()
+        return panel
 
     def _create_value_chip(self, text: str) -> Image.Image:
         """네온 스타일 값 칩"""
