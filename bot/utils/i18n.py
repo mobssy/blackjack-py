@@ -166,6 +166,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "give_unknown_user": "[오류] 받을 사람을 찾을 수 없습니다. 봇을 한 번이라도 사용한 사람에게만 보낼 수 있어요.",
         "give_no_balance": "[오류] 잔액이 부족합니다. (현재 ${balance:,.2f})",
         "give_done": "🎁 {sender}님이 {recipient}님에게 ${amount:,.2f} 선물! (남은 잔액 ${balance:,.2f})",
+        # 관리자 /add 지급 알림 (받는 사람에게 DM)
+        "add_received": "잔액이 충전되었습니다!\n\n충전 금액: ${amount:,.2f}\n현재 잔액: ${balance:,.2f}",
         "table_none": "[오류] 열린 테이블이 없습니다. /table 로 테이블을 여세요.",
         "table_join_usage": "[오류] 사용법: /join [금액]\n예: /join 100 | 올인: /join all",
         "table_not_betting": "[오류] 이미 라운드가 진행 중입니다. 다음 라운드에 참가하세요.",
@@ -449,6 +451,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "give_unknown_user": "[Error] Recipient not found. You can only send to people who have used the bot.",
         "give_no_balance": "[Error] Not enough chips. (Balance ${balance:,.2f})",
         "give_done": "🎁 {sender} sent {recipient} ${amount:,.2f}! (Balance left ${balance:,.2f})",
+        "add_received": "Chips added to your wallet!\n\nAmount: ${amount:,.2f}\nBalance: ${balance:,.2f}",
         "table_none": "[Error] No table is open. Open one with /table.",
         "table_join_usage": "[Error] Usage: /join [amount]\nExample: /join 100 | All-in: /join all",
         "table_not_betting": "[Error] A round is already in progress. Join the next one.",

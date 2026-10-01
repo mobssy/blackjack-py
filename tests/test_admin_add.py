@@ -12,6 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from bot.handlers import admin as admin_handlers
+from bot.utils.i18n import t
 from models.base import Base
 from models.user import User
 
@@ -44,14 +45,15 @@ def _user(db, tg_user_id, username=None, wallet="100") -> User:
     return user
 
 
-def _run(args, admin_id=1):
+def _run(args, admin_id=1, sent=None):
     replies = []
 
     async def reply_text(text, **kwargs):
         replies.append(text)
 
     async def send_message(chat_id, text, **kwargs):
-        pass
+        if sent is not None:
+            sent.append((chat_id, text))
 
     update = SimpleNamespace(
         effective_user=SimpleNamespace(id=admin_id),
@@ -92,3 +94,19 @@ class TestAddBalance:
         replies = _run(["@Alice", "1000"], admin_id=2)
         assert user.wallet == Decimal("100")
         assert "관리자" in replies[0]
+
+    def test_recipient_notified_in_own_language(self, db_session):
+        user = _user(db_session, 2, username="Alice")
+        user.language = "en"
+        db_session.commit()
+        sent = []
+        _run(["@Alice", "10"], sent=sent)
+        assert sent == [(2, t("add_received", "en", amount=10.0, balance=110.0))]
+
+    def test_invalid_identifier(self, db_session):
+        replies = _run(["alice", "10"])
+        assert "올바른 사용자 ID" in replies[0]
+
+    def test_unknown_user(self, db_session):
+        replies = _run(["@nobody", "10"])
+        assert "찾을 수 없습니다" in replies[0]

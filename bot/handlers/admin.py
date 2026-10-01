@@ -5,11 +5,12 @@ JackPy - 관리자 핸들러
 
 import logging
 import os
-from typing import List
+from typing import List, Optional
 from telegram import Update
 from telegram.ext import ContextTypes
 from models import get_db, User, Group, Round
 from bot.utils.betting import BetError, parse_bet
+from bot.utils.i18n import get_user_lang, t
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,57 @@ async def _admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(message)
 
 
+_ADD_USAGE = (
+    "사용법: /add [user_id 또는 @username] [금액]\n"
+    "예: /add 123456789 1000\n"
+    "예: /add @username 1000"
+)
+
+
+def _parse_add_amount(raw: str) -> Optional[float]:
+    """
+    /add 금액 파싱 — 베팅과 같은 규칙 (nan/inf, 센트 미만 단위로 잔액이 깨지지 않도록)
+
+    Returns:
+        Optional[float]: 올바르지 않으면 None
+    """
+    try:
+        bet = parse_bet(raw)
+    except BetError:
+        return None
+    if bet.all_in:
+        return None
+    return float(bet.amount)
+
+
+def _find_target(db, identifier: str) -> Optional[User]:
+    """
+    지급 대상 조회 — @username(대소문자 무시) 또는 텔레그램 숫자 ID
+
+    Raises:
+        ValueError: @username도 숫자도 아닌 경우
+    """
+    if identifier.startswith("@"):
+        return User.find_by_username(db, identifier[1:])
+    return db.query(User).filter(User.tg_user_id == int(identifier)).first()
+
+
+async def _notify_recipient(bot, user: User, amount: float) -> None:
+    """지급받은 사용자에게 DM 알림 (실패해도 지급은 유지)"""
+    try:
+        await bot.send_message(
+            chat_id=user.tg_user_id,
+            text=t(
+                "add_received",
+                get_user_lang(user),
+                amount=amount,
+                balance=float(user.wallet),
+            ),
+        )
+    except Exception as e:
+        logger.error(f"사용자 알림 전송 실패: {e}")
+
+
 async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /add [user_id 또는 @username] [금액] - 사용자 잔액 추가
@@ -113,74 +165,35 @@ async def cmd_add_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update: 업데이트 객체
         context: 컨텍스트 객체
     """
-    user_tg_id = update.effective_user.id
-
-    # 관리자 권한 확인
-    if not is_admin(user_tg_id):
+    if not is_admin(update.effective_user.id):
         await update.message.reply_text("[오류] 관리자 권한이 필요합니다.")
         return
 
-    # 인자 확인
     if not context.args or len(context.args) < 2:
-        await update.message.reply_text(
-            "사용법: /add [user_id 또는 @username] [금액]\n"
-            "예: /add 123456789 1000\n"
-            "예: /add @username 1000"
-        )
+        await update.message.reply_text(_ADD_USAGE)
         return
 
-    # 사용자 식별자 파싱
     user_identifier = context.args[0]
-
-    # 금액 파싱 — 베팅과 같은 규칙 (nan/inf, 센트 미만 단위로 잔액이 깨지지 않도록)
-    try:
-        bet = parse_bet(context.args[1])
-    except BetError:
-        bet = None
-    if bet is None or bet.all_in:
+    amount = _parse_add_amount(context.args[1])
+    if amount is None:
         await update.message.reply_text("금액은 $1 이상, 소수점 둘째 자리까지 입력해주세요.")
         return
-    amount = float(bet.amount)
 
     with get_db() as db:
-        # 사용자 조회
-        user = None
-
-        # @ 기호로 시작하면 username으로 검색
-        if user_identifier.startswith("@"):
-            user = User.find_by_username(db, user_identifier[1:])
-        else:
-            # 숫자면 user_id로 검색
-            try:
-                target_user_id = int(user_identifier)
-                user = db.query(User).filter(User.tg_user_id == target_user_id).first()
-            except ValueError:
-                await update.message.reply_text("올바른 사용자 ID 또는 username을 입력해주세요.")
-                return
-
+        try:
+            user = _find_target(db, user_identifier)
+        except ValueError:
+            await update.message.reply_text("올바른 사용자 ID 또는 username을 입력해주세요.")
+            return
         if not user:
             await update.message.reply_text(f"사용자를 찾을 수 없습니다: {user_identifier}")
             return
 
-        # 이전 잔액 저장
         old_balance = user.wallet
-
-        # 잔액 추가
         user.add_wallet(amount)
         db.commit()
 
-        # 사용자에게 알림
-        try:
-            await context.bot.send_message(
-                chat_id=user.tg_user_id,
-                text=f"잔액이 충전되었습니다!\n\n"
-                f"충전 금액: ${amount:,.2f}\n"
-                f"현재 잔액: ${user.wallet:,.2f}",
-            )
-        except Exception as e:
-            logger.error(f"사용자 알림 전송 실패: {e}")
-
-        # 관리자에게 확인 메시지
+        await _notify_recipient(context.bot, user, amount)
         await update.message.reply_text(
             f"잔액 추가 완료\n\n"
             f"사용자: {user.display_name}\n"

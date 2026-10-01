@@ -667,6 +667,83 @@ async def cmd_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ── 버튼 콜백 ─────────────────────────────────────────────────
 
 
+async def _host_deal(
+    bot: Bot, query: CallbackQuery, table: BlackjackTable, user_tg_id: int, lang: str
+) -> None:
+    """방장의 "딜" 버튼 — 베팅 단계에서만 라운드 시작"""
+    if user_tg_id != table.host_id:
+        await query.answer(t("table_host_only", lang), show_alert=True)
+        return
+    if table.phase is not TablePhase.BETTING:
+        await query.answer()
+        return
+    await _answer_quietly(query)
+    await _start_round(bot, table)
+
+
+async def _play_action(
+    bot: Bot,
+    query: CallbackQuery,
+    table: BlackjackTable,
+    user_tg_id: int,
+    action: TableAction,
+    lang: str,
+) -> None:
+    """차례인 플레이어의 액션 — 추가 베팅 차감 후 적용, 다음 차례로 진행"""
+    try:
+        error = _pay_action_cost(table, user_tg_id, action, lang)
+    except TableError as e:
+        await query.answer(t(e.key, lang, **e.kwargs), show_alert=True)
+        return
+    if error:
+        await query.answer(error, show_alert=True)
+        return
+
+    seat = table.current_seat
+    hand_index = seat.game.active_index
+    table.apply(user_tg_id, action)
+    _cancel_timer(table.chat_id)
+    _persist_tables()
+    await _answer_quietly(query)
+
+    notice = _action_notice(table, seat, action, hand_index)
+    turn_moved = table.current_seat is not seat
+    await _advance(bot, table, notice=notice, new_message=turn_moved)
+
+
+async def _table_command(
+    bot: Bot,
+    query: CallbackQuery,
+    chat_id: int,
+    user_tg_id: int,
+    command: str,
+    lang: str,
+) -> None:
+    """tbl_ 접두사를 뗀 명령 처리 (채팅방 잠금 안에서 호출)"""
+    if command == "again":
+        await _rebet(bot, query, chat_id, user_tg_id, lang)
+        return
+    if command == "new":  # 이전 버전 결과 메시지의 "새 테이블" 버튼
+        await query.answer()
+        await _open_or_resume(bot, chat_id, user_tg_id, lang)
+        return
+
+    table = table_sessions.get(chat_id)
+    if table is None:
+        await query.answer(t("table_none", lang), show_alert=True)
+        return
+    if command == "deal":
+        await _host_deal(bot, query, table, user_tg_id, lang)
+        return
+
+    try:
+        action = TableAction(command)
+    except ValueError:
+        await query.answer()
+        return
+    await _play_action(bot, query, table, user_tg_id, action, lang)
+
+
 async def table_button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     멀티 테이블 버튼(tbl_*) 콜백 — 차례인 플레이어만 액션 가능
@@ -682,55 +759,7 @@ async def table_button_callback(update: Update, context: ContextTypes.DEFAULT_TY
     command = query.data.removeprefix("tbl_")
 
     async with _lock(chat_id):
-        if command == "again":
-            await _rebet(context.bot, query, chat_id, user_tg_id, lang)
-            return
-        if command == "new":  # 이전 버전 결과 메시지의 "새 테이블" 버튼
-            await query.answer()
-            await _open_or_resume(context.bot, chat_id, user_tg_id, lang)
-            return
-
-        table = table_sessions.get(chat_id)
-        if table is None:
-            await query.answer(t("table_none", lang), show_alert=True)
-            return
-
-        if command == "deal":
-            if user_tg_id != table.host_id:
-                await query.answer(t("table_host_only", lang), show_alert=True)
-                return
-            if table.phase is not TablePhase.BETTING:
-                await query.answer()
-                return
-            await _answer_quietly(query)
-            await _start_round(context.bot, table)
-            return
-
-        try:
-            action = TableAction(command)
-        except ValueError:
-            await query.answer()
-            return
-
-        try:
-            error = _pay_action_cost(table, user_tg_id, action, lang)
-        except TableError as e:
-            await query.answer(t(e.key, lang, **e.kwargs), show_alert=True)
-            return
-        if error:
-            await query.answer(error, show_alert=True)
-            return
-
-        seat = table.current_seat
-        hand_index = seat.game.active_index
-        table.apply(user_tg_id, action)
-        _cancel_timer(chat_id)
-        _persist_tables()
-        await _answer_quietly(query)
-
-        notice = _action_notice(table, seat, action, hand_index)
-        turn_moved = table.current_seat is not seat
-        await _advance(context.bot, table, notice=notice, new_message=turn_moved)
+        await _table_command(context.bot, query, chat_id, user_tg_id, command, lang)
 
 
 # ── 재시작 복구 ───────────────────────────────────────────────
