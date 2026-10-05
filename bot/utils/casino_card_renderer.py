@@ -15,6 +15,8 @@ import math
 
 logger = logging.getLogger(__name__)
 
+WHITE_RGBA = (255, 255, 255, 255)
+
 
 class CasinoCardRenderer:
     """
@@ -249,6 +251,29 @@ class CasinoCardRenderer:
 
         return None
 
+    _ASSET_EDGE = 2  # 카드 PNG 자체의 회색 외곽선/투명 모서리 두께
+    _ART_INSET = 16  # 골드 테두리(5~15px) 안쪽 — 그림이 테두리에 가리지 않는 여백
+
+    def _fit_card_art(self, art: Image.Image) -> Image.Image:
+        """
+        카드 그림을 비율 유지한 채 골드 테두리 안쪽 가운데에 배치
+
+        카드 PNG(약 266x376)를 카드 크기로 그대로 늘리면 가로로 찌그러지고,
+        모서리 숫자("10")가 위에 그리는 골드 테두리에 가려진다.
+        """
+        edge = self._ASSET_EDGE
+        art = art.crop((edge, edge, art.width - edge, art.height - edge))
+        box_w = self.CARD_WIDTH - 2 * self._ART_INSET
+        box_h = self.CARD_HEIGHT - 2 * self._ART_INSET
+        scale = min(box_w / art.width, box_h / art.height)
+        size = (round(art.width * scale), round(art.height * scale))
+        art = art.resize(size, Image.LANCZOS)
+
+        canvas = Image.new("RGBA", (self.CARD_WIDTH, self.CARD_HEIGHT), WHITE_RGBA)
+        offset = ((self.CARD_WIDTH - size[0]) // 2, (self.CARD_HEIGHT - size[1]) // 2)
+        canvas.alpha_composite(art, dest=offset)
+        return canvas
+
     def _load_real_card_image(self, card_str: str) -> Optional[Image.Image]:
         """
         실제 카드 이미지 파일 로드
@@ -266,10 +291,7 @@ class CasinoCardRenderer:
                 # 이미지 로드
                 card_img = Image.open(card_path).convert("RGBA")
 
-                # 카드 크기에 맞게 리사이즈
-                card_img = card_img.resize(
-                    (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS
-                )
+                card_img = self._fit_card_art(card_img)
 
                 # 라운드 코너 적용
                 mask = Image.new("L", (self.CARD_WIDTH, self.CARD_HEIGHT), 0)
