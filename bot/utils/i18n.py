@@ -2,7 +2,7 @@
 JackPy - 다국어 지원 (한국어 / English)
 """
 
-from typing import Any
+from typing import Any, Optional
 
 STRINGS: dict[str, dict[str, str]] = {
     "ko": {
@@ -580,3 +580,16 @@ def t(key: str, lang: str = "ko", **kwargs: Any) -> str:
 def get_user_lang(user) -> str:
     """User 객체에서 언어 코드 반환. 없으면 'ko'."""
     return getattr(user, "language", None) or "ko"
+
+
+def lang_from_telegram(language_code: Optional[str]) -> str:
+    """
+    텔레그램 앱 언어(IETF 태그, 예: "ko", "en-US")로 정한 첫 가입 기본 언어
+
+    한국어 앱이면 ko, 그 밖의 언어는 지원 언어 중 en으로 맞춘다.
+    텔레그램이 언어를 보내지 않으면(None) 봇 기본값인 ko.
+    """
+    if not language_code:
+        return "ko"
+    base = language_code.split("-")[0].lower()
+    return "ko" if base == "ko" else "en"

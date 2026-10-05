@@ -18,6 +18,8 @@
 클럽하우스 음성방에서 대화하면서, 같은 텔레그램 그룹에 모여 딜러 한 명을 상대로 함께 블랙잭을 하는 봇입니다.
 가상 칩으로만 플레이하며 실제 돈, 결제, 광고는 없습니다. 개인 채팅에서는 혼자 연습할 수도 있습니다.
 
+한국어와 영어를 지원합니다. 처음엔 텔레그램 앱 언어에 맞춰지고(한국어가 아니면 영어), 개인 채팅의 `/start`에서 언제든 바꿀 수 있습니다. 그룹 테이블은 테이블을 연 사람의 언어로 진행됩니다.
+
 ### 그룹에서 같이 하기 (멀티 테이블)
 
 1. 그룹에 봇을 초대하고 `/table` 로 테이블을 엽니다. (최대 7명)
@@ -108,6 +110,8 @@ JACKPY_HOST=<서버 IP> JACKPY_APP_USER=<봇 실행 계정> ./scripts/deploy.sh
 
 A bot for playing blackjack together against one dealer in a Telegram group, while chatting in a Clubhouse voice room.
 Play money only — no real money, payments, or ads. You can also practice solo in a private chat.
+
+Korean and English are supported. Your language starts out matching your Telegram app (English for anything other than Korean) and can be changed anytime with `/start` in a private chat. A group table uses the language of the person who opened it.
 
 ### Playing together (multiplayer table)
 

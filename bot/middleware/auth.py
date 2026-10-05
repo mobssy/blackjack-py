@@ -6,6 +6,7 @@ JackPy - 인증 미들웨어
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
+from bot.utils.i18n import lang_from_telegram
 from models import get_db, User, Group, GroupMember
 
 logger = logging.getLogger(__name__)
@@ -31,8 +32,10 @@ async def user_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
 
             if not user:
-                # /start가 아닌 명령어로 첫 접속한 경우 자동 등록
-                user = User.create_new(user_tg_id, username, first_name)
+                # 첫 접속 시 자동 등록 — 기본 언어는 텔레그램 앱 언어로
+                # (/start의 언어 선택으로 언제든 바꿀 수 있음)
+                language = lang_from_telegram(update.effective_user.language_code)
+                user = User.create_new(user_tg_id, username, first_name, language)
                 db.add(user)
                 db.commit()
                 logger.info(f"신규 사용자 자동 등록: {username} ({user_tg_id})")
