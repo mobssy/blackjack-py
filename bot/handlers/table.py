@@ -28,6 +28,7 @@ from telegram.ext import ContextTypes
 from models import get_db, User
 from bot.handlers.blackjack import get_game_keyboard
 from bot.handlers.settlement import apply_settlement
+from bot.utils.game_scene import felt_rule_lines
 from bot.utils.table_renderer import get_table_renderer
 from bot.utils.betting import BetError, BetRequest, is_valid_amount, parse_bet
 from bot.utils.deck import is_bust
@@ -236,14 +237,16 @@ def _render_table_image(
     seat_results가 없으면 플레이 중(홀 카드 가림, 현재 차례 강조),
     있으면 결과 모드(홀 카드 공개, 좌석별 정산 결과)로 그린다.
     """
-    # 플레이 중엔 푸터 없음 — 차례는 좌석 강조와 캡션 멘션으로 이미 표시됨
-    footer = t("img_table_result", table.lang) if seat_results is not None else ""
+    playing = seat_results is None
+    # 딜러 아래 펠트 문구: 플레이 중엔 규칙, 결과 화면엔 "라운드 결과"
+    # (차례는 좌석 강조와 메시지 캡션 멘션으로 표시됨)
     return get_table_renderer().render(
         dealer_hand=table.dealer_hand,
         seats=seat_views(table, seat_results),
-        hide_dealer_first=seat_results is None,
+        hide_dealer_first=playing,
         dealer_label=t("img_table_dealer", table.lang),
-        footer=footer,
+        caption="" if playing else t("img_table_result", table.lang),
+        felt_lines=felt_rule_lines(table.lang) if playing else (),
     )
 
 

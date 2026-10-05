@@ -5,7 +5,7 @@ BlackjackGame/정산 결과 → GameScene (홀 카드, HIT 연출, 스플릿, �
 
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.game_renderer import FACE_DOWN, Tone
-from bot.utils.game_scene import felt_lines, play_scene, result_scene
+from bot.utils.game_scene import felt_rule_lines, play_scene, result_scene
 from bot.utils.i18n import t
 from bot.utils.payouts import PayoutCalculator
 from models.round import GameOutcome
@@ -32,12 +32,12 @@ _SETTLE = {"wallet": 1200.0, "streak": 0}
 
 class TestFeltLines:
     def test_blackjack_ratio_comes_from_payout_constant(self, monkeypatch):
-        assert felt_lines("en")[0] == "BLACKJACK PAYS 6 TO 5"
+        assert felt_rule_lines("en")[0] == "BLACKJACK PAYS 6 TO 5"
         monkeypatch.setattr(PayoutCalculator, "BLACKJACK_MULTIPLIER", 1.5)
-        assert felt_lines("en")[0] == "BLACKJACK PAYS 3 TO 2"
+        assert felt_rule_lines("en")[0] == "BLACKJACK PAYS 3 TO 2"
 
     def test_dealer_rule_line(self):
-        assert felt_lines("ko")[1] == t("img_felt_dealer_rule", "ko")
+        assert felt_rule_lines("ko")[1] == t("img_felt_dealer_rule", "ko")
 
 
 class TestPlayScene:

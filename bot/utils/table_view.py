@@ -18,15 +18,16 @@ from bot.utils.table import (
     Seat,
     SeatResults,
 )
+from bot.utils.felt import ACTIVE_COLOR, TONE_COLORS, Tone
 from bot.utils.table_renderer import Color, SeatView
 from models.round import GameOutcome
 
-# 이미지 좌석 상태 문구 색상
-COLOR_TURN: Color = (255, 215, 0)
-COLOR_WIN: Color = (90, 220, 130)
-COLOR_LOSS: Color = (240, 95, 95)
-COLOR_NEUTRAL: Color = (200, 200, 210)
-COLOR_BLACKJACK: Color = (255, 190, 60)
+# 이미지 좌석 상태 문구 색상 (1인 게임 이미지와 같은 펠트 팔레트)
+COLOR_TURN: Color = ACTIVE_COLOR
+COLOR_WIN: Color = TONE_COLORS[Tone.WIN]
+COLOR_LOSS: Color = TONE_COLORS[Tone.LOSS]
+COLOR_NEUTRAL: Color = TONE_COLORS[Tone.PUSH]
+COLOR_BLACKJACK: Color = TONE_COLORS[Tone.BLACKJACK]
 
 
 def mention(seat: Seat) -> str:

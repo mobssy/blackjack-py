@@ -50,12 +50,11 @@ class TestTableLayout:
         assert layout.rows(5) == 2
         assert layout.rows(7) == 2
 
-    def test_height_grows_with_rows_and_footer(self):
+    def test_height_grows_with_rows(self):
         layout = TableLayout()
-        one_row = layout.height(4, has_footer=False)
-        two_rows = layout.height(5, has_footer=False)
+        one_row = layout.height(4)
+        two_rows = layout.height(5)
         assert two_rows - one_row == layout.seat_height + layout.gap
-        assert layout.height(4, has_footer=True) - one_row == layout.footer_height
 
     def test_seat_origin_wraps_to_next_row(self):
         layout = TableLayout()
@@ -95,20 +94,27 @@ class TestTableLayout:
 class TestTableImageRenderer:
     """이미지 출력"""
 
-    def _render(self, seats, footer="", hide=True):
+    def _render(self, seats, caption="", hide=True, felt_lines=()):
         return get_table_renderer().render(
             dealer_hand=["KD", "7C"],
             seats=seats,
             hide_dealer_first=hide,
             dealer_label="Dealer",
-            footer=footer,
+            caption=caption,
+            felt_lines=felt_lines,
         )
 
     def test_renders_jpeg_with_layout_size(self):
         seats = [SeatView(name=f"P{i}", hands=[["9S", "8S"]], bet=10) for i in range(7)]
-        photo = self._render(seats, footer="P1's turn")
+        photo = self._render(seats, caption="Round results", hide=False)
         layout = TableLayout()
-        assert _photo_size(photo) == ("JPEG", (layout.width, layout.height(7, True)))
+        assert _photo_size(photo) == ("JPEG", (layout.width, layout.height(7)))
+
+    def test_play_mode_with_felt_rule_lines(self):
+        seats = [SeatView(name="P1", hands=[["9S", "8S"]], bet=10, active=True)]
+        felt = ("BLACKJACK PAYS 6 TO 5", "DEALER MUST HIT SOFT 17")
+        photo = self._render(seats, felt_lines=felt)
+        assert _photo_size(photo) == ("JPEG", (1600, TableLayout().height(1)))
 
     def test_split_hands_and_long_name(self):
         seats = [

@@ -5,8 +5,9 @@ JackPy - 펠트 테이블 그리기 요소
 """
 
 import math
+from enum import Enum
 from functools import lru_cache
-from typing import Tuple
+from typing import Dict, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -22,6 +23,24 @@ CHIP_RED: Color = (178, 34, 46)
 CHIP_BLACK: Color = (28, 28, 30)
 BADGE_FILL = (8, 30, 22, 225)
 
+
+class Tone(Enum):
+    """결과 색 계열 (1인 게임·테이블 이미지 공용)"""
+
+    WIN = "win"
+    LOSS = "loss"
+    PUSH = "push"
+    BLACKJACK = "blackjack"
+
+
+TONE_COLORS: Dict[Tone, Color] = {
+    Tone.WIN: (64, 196, 120),
+    Tone.LOSS: (226, 82, 82),
+    Tone.PUSH: (222, 216, 196),
+    Tone.BLACKJACK: (240, 196, 80),
+}
+ACTIVE_COLOR: Color = (240, 196, 80)  # 지금 차례인 핸드/좌석 강조
+
 # 펠트 그라데이션을 계산하는 저해상도 격자 (크게 늘려도 부드러운 그라데이션이라 충분)
 _GRADIENT_GRID = (120, 90)
 
@@ -30,7 +49,7 @@ def _lerp(a: Color, b: Color, t: float) -> Tuple[int, ...]:
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=16)
 def _felt(width: int, height: int) -> Image.Image:
     grid_w, grid_h = _GRADIENT_GRID
     small = Image.new("RGB", _GRADIENT_GRID)

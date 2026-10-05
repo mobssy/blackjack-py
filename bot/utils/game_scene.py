@@ -9,13 +9,8 @@ from typing import Dict, List, Tuple
 
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.deck import calculate_hand_value
-from bot.utils.game_renderer import (
-    FACE_DOWN,
-    GameScene,
-    HandScene,
-    ResultBanner,
-    Tone,
-)
+from bot.utils.felt import Tone
+from bot.utils.game_renderer import FACE_DOWN, GameScene, HandScene, ResultBanner
 from bot.utils.i18n import t
 from bot.utils.payouts import OUTCOME_I18N_KEYS, PayoutCalculator
 from models.round import GameOutcome
@@ -44,8 +39,8 @@ def _tone_of_total(total: float) -> Tone:
     return Tone.PUSH
 
 
-def felt_lines(lang: str) -> Tuple[str, ...]:
-    """펠트 규칙 문구 — 블랙잭 배당은 실제 배당 상수에서 계산 (6:5 등)"""
+def felt_rule_lines(lang: str) -> Tuple[str, ...]:
+    """펠트 규칙 문구 (1인 게임·테이블 공용) — 블랙잭 배당은 배당 상수에서 계산"""
     ratio = Fraction(PayoutCalculator.BLACKJACK_MULTIPLIER).limit_denominator(10)
     return (
         t("img_felt_blackjack", lang, num=ratio.numerator, den=ratio.denominator),
@@ -76,7 +71,7 @@ def play_scene(game: BlackjackGame, lang: str, drawing: bool = False) -> GameSce
         dealer=list(game.dealer_hand),
         dealer_total=None,
         hands=hands,
-        felt_lines=felt_lines(lang),
+        felt_lines=felt_rule_lines(lang),
         bet_label=t("img_bet", lang),
     )
 
@@ -124,7 +119,7 @@ def result_scene(
         dealer=list(game.dealer_hand),
         dealer_total=calculate_hand_value(game.dealer_hand),
         hands=hands,
-        felt_lines=felt_lines(lang),
+        felt_lines=felt_rule_lines(lang),
         bet_label=t("img_bet", lang),
         result=ResultBanner(
             headline=headline,

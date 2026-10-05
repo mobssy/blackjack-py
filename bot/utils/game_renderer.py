@@ -6,18 +6,19 @@ BlackjackGame → GameScene 변환은 game_scene.py가 맡는다.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw
 
 from bot.utils.casino_card_renderer import CasinoCardRenderer, get_casino_renderer
 from bot.utils.felt import (
+    ACTIVE_COLOR,
     CHIP_BLACK,
     CHIP_RED,
     CREAM,
     FELT_INK,
-    Color,
+    TONE_COLORS,
+    Tone,
     chip,
     draw_arc_text,
     felt_background,
@@ -30,24 +31,6 @@ from bot.utils.photo_encoding import encode_photo
 
 # 플레이어 핸드에서 뒷면으로 그릴 카드 (HIT 연출: 받을 카드를 먼저 뒷면으로 보여줌)
 FACE_DOWN = "BACK"
-
-
-class Tone(Enum):
-    """결과 색 계열"""
-
-    WIN = "win"
-    LOSS = "loss"
-    PUSH = "push"
-    BLACKJACK = "blackjack"
-
-
-TONE_COLORS: Dict[Tone, Color] = {
-    Tone.WIN: (64, 196, 120),
-    Tone.LOSS: (226, 82, 82),
-    Tone.PUSH: (222, 216, 196),
-    Tone.BLACKJACK: (240, 196, 80),
-}
-ACTIVE_COLOR: Color = (240, 196, 80)  # 스플릿 진행 중인 핸드 표시
 
 
 @dataclass(frozen=True)
