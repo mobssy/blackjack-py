@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import List, Optional, Tuple
 import io
 from pathlib import Path
+from bot.utils.glyph_filter import drawable_text
 from bot.utils.themes import Theme, ThemeManager
 import math
 
@@ -952,8 +953,8 @@ class CasinoCardRenderer:
         dealer_value: Optional[int] = None,
         hide_dealer_first: bool = True,
         message: str = "",
-        dealer_label: str = "🤖 딜러",
-        player_label: str = "🎯 플레이어",
+        dealer_label: str = "딜러",
+        player_label: str = "플레이어",
         value_label: str = "합",
     ) -> bytes:
         """
@@ -1144,6 +1145,7 @@ class CasinoCardRenderer:
     ) -> Image.Image:
         """네온 라벨 박스 + 가운데 정렬된 글로우 텍스트"""
         primary, secondary = colors
+        text = drawable_text(text, self.font_title)
         box_height = 80
         label_x, label_y = pos
 
@@ -1232,7 +1234,7 @@ class CasinoCardRenderer:
         for i, line in enumerate(lines):
             draw.text(
                 (45, 25 + i * self._LINE_HEIGHT),
-                line,
+                drawable_text(line, self.font_message),
                 fill=(255, 255, 255),
                 font=self.font_message,
             )
@@ -1289,6 +1291,7 @@ class CasinoCardRenderer:
         )
 
         # 텍스트 글로우
+        text = drawable_text(text, self.font_value)
         bbox = draw.textbbox((0, 0), text, font=self.font_value)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]

@@ -31,8 +31,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "player_label": "플레이어",
         "deal_caption": "블랙잭 시작!\n베팅: ${bet:,.2f}",
         # 게임 이미지 라벨
-        "img_dealer": "🤖 딜러",
-        "img_player": "🎯 플레이어",
+        "img_dealer": "딜러",
+        "img_player": "플레이어",
         "img_total": "합",
         "hint_commands": "명령어: /hit (카드 추가) | /stand (멈춤)",
         "hint_commands_first": "명령어: /hit | /stand | /double (더블) | /surrender (항복)",
@@ -312,8 +312,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "player_label": "Player",
         "deal_caption": "Blackjack!\nBet: ${bet:,.2f}",
         # 게임 이미지 라벨
-        "img_dealer": "🤖 Dealer",
-        "img_player": "🎯 Player",
+        "img_dealer": "Dealer",
+        "img_player": "Player",
         "img_total": "Total",
         "hint_commands": "Hit: /hit | Stand: /stand",
         "hint_commands_first": "/hit | /stand | /double | /surrender",

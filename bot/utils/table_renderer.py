@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from bot.utils.casino_card_renderer import CasinoCardRenderer, get_casino_renderer
 from bot.utils.deck import calculate_hand_value
+from bot.utils.glyph_filter import drawable_text
 from bot.utils.themes import Theme
 
 Color = Tuple[int, int, int]
@@ -140,7 +141,8 @@ class TableImageRenderer:
         return bbox[2] - bbox[0]
 
     def _fit(self, draw: ImageDraw.ImageDraw, text: str, font, max_width: int) -> str:
-        """max_width를 넘으면 말줄임"""
+        """그릴 수 없는 문자(이모지 등)를 빼고, max_width를 넘으면 말줄임"""
+        text = drawable_text(text, font)
         if self._text_width(draw, text, font) <= max_width:
             return text
         while text and self._text_width(draw, text + "…", font) > max_width:
@@ -185,6 +187,7 @@ class TableImageRenderer:
         title = label
         if not hide_first and dealer_hand:
             title = f"{label} · {calculate_hand_value(dealer_hand)}"
+        title = self._fit(draw, title, self.font_dealer, box[2] - box[0] - 60)
         draw.text((box[0] + 30, box[1] + 20), title, fill=WHITE, font=self.font_dealer)
 
         card_w, _ = self._card_size(layout.dealer_scale)

@@ -220,6 +220,7 @@ bot/
     bot_commands.py    command menu definitions
     session_store.py   game/table persistence (JSON)
     casino_card_renderer.py, table_renderer.py, table_view.py, themes.py   images and captions
+    glyph_filter.py    drops characters the font can't draw (emoji) from image text
 models/                SQLAlchemy models (User, Group, GroupMember, Round)
 tests/                 pytest suite
 assets/                card images and fonts

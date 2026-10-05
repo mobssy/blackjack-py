@@ -33,6 +33,8 @@
     공유 `dealer_hand`는 재할당 금지·제자리 변경만), `table_view.py` — 테이블 HTML 캡션
     및 이미지용 SeatView 변환, `table_renderer.py` — 딜러+좌석 그리드 이미지
     (카드/배경은 CasinoCardRenderer의 card_image/background 재사용)
+  - `glyph_filter.py` — 이미지에 그리는 텍스트에서 폰트에 없는 문자(이모지) 제거.
+    Pillow는 이모지를 네모로 그리므로 렌더러의 텍스트는 `drawable_text`를 거칠 것
   - `deck.py` — 카드/덱/핸드 계산, `payouts.py` — 배당 계산 및 결과 판정
   - `i18n.py` — ko/en 문자열, `t(key, lang, **kwargs)`. 키는 반드시 양쪽 언어에 추가
   - `casino_card_renderer.py` — 1인 게임 이미지 렌더러
