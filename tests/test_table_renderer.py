@@ -35,8 +35,8 @@ def _table_with(seat_count, draw_order, bet=100.0):
     return table
 
 
-def _png_size(png: bytes):
-    with Image.open(io.BytesIO(png)) as image:
+def _photo_size(photo: bytes):
+    with Image.open(io.BytesIO(photo)) as image:
         return image.format, image.size
 
 
@@ -85,11 +85,11 @@ class TestTableImageRenderer:
             footer=footer,
         )
 
-    def test_renders_png_with_layout_size(self):
+    def test_renders_jpeg_with_layout_size(self):
         seats = [SeatView(name=f"P{i}", hands=[["9S", "8S"]], bet=10) for i in range(7)]
-        png = self._render(seats, footer="P1's turn")
+        photo = self._render(seats, footer="P1's turn")
         layout = TableLayout()
-        assert _png_size(png) == ("PNG", (layout.width, layout.height(7, True)))
+        assert _photo_size(photo) == ("JPEG", (layout.width, layout.height(7, True)))
 
     def test_split_hands_and_long_name(self):
         seats = [
@@ -101,12 +101,12 @@ class TestTableImageRenderer:
                 status="▶ Turn",
             )
         ]
-        png = self._render(seats)
-        assert _png_size(png)[0] == "PNG"
+        photo = self._render(seats)
+        assert _photo_size(photo)[0] == "JPEG"
 
     def test_revealed_dealer(self):
         seats = [SeatView(name="P1", hands=[["9S", "8S"]], bet=10)]
-        assert _png_size(self._render(seats, hide=False))[0] == "PNG"
+        assert _photo_size(self._render(seats, hide=False))[0] == "JPEG"
 
     def test_renderer_cached_per_theme(self):
         assert get_table_renderer() is get_table_renderer()

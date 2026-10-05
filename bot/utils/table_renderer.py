@@ -4,7 +4,6 @@ JackPy - 멀티 테이블 이미지 렌더러
 카드/배경/폰트는 CasinoCardRenderer를 재사용하고, 레이아웃만 담당한다.
 """
 
-import io
 import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -14,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 from bot.utils.casino_card_renderer import CasinoCardRenderer, get_casino_renderer
 from bot.utils.deck import calculate_hand_value
 from bot.utils.glyph_filter import drawable_text
+from bot.utils.photo_encoding import encode_photo
 from bot.utils.themes import Theme
 
 Color = Tuple[int, int, int]
@@ -283,7 +283,7 @@ class TableImageRenderer:
             footer: 하단 안내 문구 (없으면 생략)
 
         Returns:
-            bytes: PNG 이미지
+            bytes: JPEG 이미지
         """
         layout = self.layout
         height = layout.height(len(seats), bool(footer))
@@ -295,9 +295,7 @@ class TableImageRenderer:
         if footer:
             self._draw_footer(image, len(seats), footer)
 
-        buffer = io.BytesIO()
-        image.convert("RGB").save(buffer, format="PNG")
-        return buffer.getvalue()
+        return encode_photo(image)
 
 
 _table_renderers: Dict[str, TableImageRenderer] = {}

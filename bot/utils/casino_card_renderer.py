@@ -7,9 +7,9 @@ import logging
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from typing import List, Optional, Tuple
-import io
 from pathlib import Path
 from bot.utils.glyph_filter import drawable_text
+from bot.utils.photo_encoding import encode_photo
 from bot.utils.themes import Theme, ThemeManager
 import math
 
@@ -1039,9 +1039,7 @@ class CasinoCardRenderer:
             msg_y = player_y + panel_size[1] + 20
             image.paste(msg_panel, (self._PANEL_X, msg_y), msg_panel)
 
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format="PNG", quality=98)
-        return img_byte_arr.getvalue()
+        return encode_photo(image)
 
     def _draw_frame(self, image: Image.Image) -> Image.Image:
         """이미지 외곽 네온 글로우 + 메인 테두리 + 액센트 라인"""
