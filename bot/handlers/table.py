@@ -236,13 +236,8 @@ def _render_table_image(
     seat_results가 없으면 플레이 중(홀 카드 가림, 현재 차례 강조),
     있으면 결과 모드(홀 카드 공개, 좌석별 정산 결과)로 그린다.
     """
-    current = table.current_seat
-    if seat_results is not None:
-        footer = t("img_table_result", table.lang)
-    elif current is not None:
-        footer = t("table_img_hint", table.lang, name=current.name)
-    else:
-        footer = ""
+    # 플레이 중엔 푸터 없음 — 차례는 좌석 강조와 캡션 멘션으로 이미 표시됨
+    footer = t("img_table_result", table.lang) if seat_results is not None else ""
     return get_table_renderer().render(
         dealer_hand=table.dealer_hand,
         seats=seat_views(table, seat_results),

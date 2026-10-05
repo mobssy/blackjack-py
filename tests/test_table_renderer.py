@@ -59,18 +59,37 @@ class TestTableLayout:
 
     def test_seat_origin_wraps_to_next_row(self):
         layout = TableLayout()
-        x0, y0 = layout.seat_origin(0)
-        x1, y1 = layout.seat_origin(1)
-        x4, y4 = layout.seat_origin(4)
+        x0, y0 = layout.seat_origin(0, 8)
+        x1, y1 = layout.seat_origin(1, 8)
+        x4, y4 = layout.seat_origin(4, 8)
         assert y1 == y0 and x1 == x0 + layout.seat_width + layout.gap
         assert x4 == x0 and y4 == y0 + layout.seat_height + layout.gap
 
     def test_grid_fits_inside_width(self):
         layout = TableLayout()
-        x_last, _ = layout.seat_origin(layout.columns - 1)
-        x_first, _ = layout.seat_origin(0)
+        seat_count = layout.columns
+        x_last, _ = layout.seat_origin(layout.columns - 1, seat_count)
+        x_first, _ = layout.seat_origin(0, seat_count)
         assert x_first >= 0
         assert x_last + layout.seat_width <= layout.width
+
+    def test_partial_row_is_centered(self):
+        layout = TableLayout()
+        for seat_count in (1, 2, 3):
+            x_first, _ = layout.seat_origin(0, seat_count)
+            x_last, _ = layout.seat_origin(seat_count - 1, seat_count)
+            right_gap = layout.width - (x_last + layout.seat_width)
+            assert abs(x_first - right_gap) <= 1, seat_count
+
+    def test_partial_second_row_is_centered_under_full_row(self):
+        layout = TableLayout()
+        # 7석: 첫 줄 4석은 그대로, 둘째 줄 3석은 가운데
+        x0, _ = layout.seat_origin(0, 7)
+        x4, y4 = layout.seat_origin(4, 7)
+        x6, y6 = layout.seat_origin(6, 7)
+        assert x4 == x0 + (layout.seat_width + layout.gap) // 2
+        assert y6 == y4
+        assert abs(x4 - (layout.width - (x6 + layout.seat_width))) <= 1
 
 
 class TestTableImageRenderer:
