@@ -5,7 +5,7 @@ JackPy - 카지노급 카드 렌더러
 
 import logging
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 from typing import List, Optional, Tuple
 from pathlib import Path
 from bot.utils.glyph_filter import drawable_text
@@ -339,6 +339,8 @@ class CasinoCardRenderer:
                 )
                 gloss = gloss.filter(ImageFilter.GaussianBlur(radius=60))
                 result = Image.alpha_composite(result, gloss)
+                # 광택이 둥근 모서리 바깥(투명 영역)에 번지지 않도록 다시 잘라냄
+                result.putalpha(ImageChops.multiply(result.getchannel("A"), mask))
 
                 return result
 

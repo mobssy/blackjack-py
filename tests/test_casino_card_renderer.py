@@ -69,3 +69,13 @@ def test_generate_game_image_is_jpeg():
     with Image.open(io.BytesIO(photo)) as image:
         assert image.format == "JPEG"
         assert image.mode == "RGB"
+
+
+def test_card_corners_stay_transparent():
+    # 광택 효과가 둥근 모서리 바깥에 번져 테이블 위에 흰 얼룩이 생기면 안 된다
+    renderer = get_casino_renderer()
+    for card in ("7C", "10D", "KH"):
+        image = renderer.card_image(card)
+        right, bottom = image.width - 1, image.height - 1
+        for corner in ((0, 0), (right, 0), (0, bottom), (right, bottom)):
+            assert image.getpixel(corner)[3] == 0, (card, corner)
