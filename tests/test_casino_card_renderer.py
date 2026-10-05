@@ -3,8 +3,6 @@ JackPy - 1인 게임 카드 렌더러 테스트
 카드 PNG가 골드 테두리 안쪽에 비율을 유지한 채 배치되는지 확인
 """
 
-import io
-
 from PIL import Image
 
 from bot.utils.casino_card_renderer import CasinoCardRenderer, get_casino_renderer
@@ -59,16 +57,6 @@ def test_fit_card_art_keeps_corner_index_inside_frame():
     dark = fitted.convert("L").point(lambda v: 255 if v < 128 else 0).getbbox()
     assert dark[0] >= CasinoCardRenderer._ART_INSET
     assert dark[1] >= CasinoCardRenderer._ART_INSET
-
-
-def test_generate_game_image_is_jpeg():
-    renderer = get_casino_renderer()
-    photo = renderer.generate_game_image(
-        ["10S", "QH"], ["10D", "8C"], 20, 18, False, "🎉 Win\nBet: $100.00"
-    )
-    with Image.open(io.BytesIO(photo)) as image:
-        assert image.format == "JPEG"
-        assert image.mode == "RGB"
 
 
 def test_card_corners_stay_transparent():

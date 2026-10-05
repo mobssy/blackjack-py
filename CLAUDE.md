@@ -37,7 +37,13 @@
     Pillow는 이모지를 네모로 그리므로 렌더러의 텍스트는 `drawable_text`를 거칠 것
   - `deck.py` — 카드/덱/핸드 계산, `payouts.py` — 배당 계산 및 결과 판정
   - `i18n.py` — ko/en 문자열, `t(key, lang, **kwargs)`. 키는 반드시 양쪽 언어에 추가
-  - `casino_card_renderer.py` — 1인 게임 이미지 렌더러
+  - `game_renderer.py` — 1인 게임 펠트 이미지 (GameScene만 받음, 1200x900 고정),
+    `game_scene.py` — BlackjackGame/정산 결과 → GameScene 변환 (table_view.py와 같은 역할).
+    펠트 문구의 블랙잭 배당은 PayoutCalculator.BLACKJACK_MULTIPLIER에서 계산 (현재 6:5)
+  - `felt.py` — 펠트 배경·아치 문구·칩·카드 그림자 (두 이미지 공용),
+    `fonts.py` — 이미지 글자는 전부 저장소의 Pretendard(`pretendard(size, Weight)`)로.
+    시스템 폰트에 의존하지 말 것 (서버/맥 결과가 달라짐)
+  - `casino_card_renderer.py` — 카드 앞/뒷면 이미지와 `scaled_card` 캐시
   - `rewards.py` — 일일 보상 출석 스트릭 / 파산 구제 계산 (상태는 User.stats_json의
     daily_streak, last_rescue_at 키에 저장 — 컬럼 추가 마이그레이션 회피)
   - `session_store.py` — 게임 세션/멀티 테이블 JSON 영속화 (game_sessions.json,

@@ -20,10 +20,10 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-echo "==> 패키지 설치 (python3, venv, git, 한글 폰트)"
-# fonts-nanum: 게임 이미지의 한글(이름, 결과 문구) 렌더링에 필요
+echo "==> 패키지 설치 (python3, venv, git)"
+# 이미지 글꼴(Pretendard)은 저장소 assets/fonts에 포함되어 있어 시스템 폰트가 필요 없다
 apt-get update -q
-apt-get install -y -q python3 python3-venv python3-pip git fonts-nanum
+apt-get install -y -q python3 python3-venv python3-pip git
 
 echo "==> 실행 계정: $APP_USER"
 if ! id "$APP_USER" >/dev/null 2>&1; then

@@ -27,15 +27,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_no_user": "[오류] 등록되지 않은 사용자입니다. /start를 먼저 실행해주세요.",
         "deal_no_balance": "[오류] 잔액이 부족합니다. 현재 잔액: ${balance:.2f}",
         "deal_in_progress": "[오류] 이미 게임이 진행 중입니다. /hit 또는 /stand를 입력하세요.",
-        "dealer_label": "딜러",
-        "player_label": "플레이어",
         "deal_caption": "블랙잭 시작!\n베팅: ${bet:,.2f}",
         # 게임 이미지 라벨
-        "img_dealer": "딜러",
-        "img_player": "플레이어",
-        "img_total": "합",
-        "hint_commands": "명령어: /hit (카드 추가) | /stand (멈춤)",
-        "hint_commands_first": "명령어: /hit | /stand | /double (더블) | /surrender (항복)",
+        # 1인 게임 펠트 이미지 (펠트 인쇄 문구는 실제 테이블처럼 영어)
+        "img_felt_blackjack": "BLACKJACK PAYS {num} TO {den}",
+        "img_felt_dealer_rule": "DEALER MUST HIT SOFT 17",
+        "img_bet": "BET",
+        "img_balance": "잔액 ${amount:,.2f}",
+        "img_split_total": "스플릿 합계",
+        "img_hand_outcome": "핸드{n} {outcome} {payout}",
         "drawing_card": "카드를 뽑는 중...",
         "card_drawn": "카드를 한 장 더 받았습니다!",
         # 더블 다운 / 서렌더
@@ -62,10 +62,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "streak_line": "🔥 {n}연승 중!",
         "streak_bonus_line": "🔥 {n}연승 보너스: +${bonus:,.2f}",
         # 결과 라벨
-        "result_label": "게임 결과",
-        "bet_label": "베팅 금액",
-        "payout_label": "정산 금액",
-        "balance_label": "현재 잔액",
         "game_over_suffix": "게임 종료",
         "btn_play_again": "다시 시작",
         # 게임 결과
@@ -307,15 +303,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "deal_no_user": "[Error] User not registered. Please run /start first.",
         "deal_no_balance": "[Error] Insufficient balance. Current balance: ${balance:.2f}",
         "deal_in_progress": "[Error] Game already in progress. Type /hit or /stand.",
-        "dealer_label": "Dealer",
-        "player_label": "Player",
         "deal_caption": "Blackjack!\nBet: ${bet:,.2f}",
         # 게임 이미지 라벨
-        "img_dealer": "Dealer",
-        "img_player": "Player",
-        "img_total": "Total",
-        "hint_commands": "Hit: /hit | Stand: /stand",
-        "hint_commands_first": "/hit | /stand | /double | /surrender",
+        # 1인 게임 펠트 이미지 (펠트 인쇄 문구는 실제 테이블처럼 영어)
+        "img_felt_blackjack": "BLACKJACK PAYS {num} TO {den}",
+        "img_felt_dealer_rule": "DEALER MUST HIT SOFT 17",
+        "img_bet": "BET",
+        "img_balance": "Balance ${amount:,.2f}",
+        "img_split_total": "Split total",
+        "img_hand_outcome": "Hand {n} {outcome} {payout}",
         "drawing_card": "Drawing card...",
         "card_drawn": "Card drawn!",
         # 더블 다운 / 서렌더
@@ -342,10 +338,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "streak_line": "🔥 {n} win streak!",
         "streak_bonus_line": "🔥 {n}-win streak bonus: +${bonus:,.2f}",
         # 결과 라벨
-        "result_label": "Result",
-        "bet_label": "Bet",
-        "payout_label": "Payout",
-        "balance_label": "Balance",
         "game_over_suffix": "Game Over",
         "btn_play_again": "Play Again",
         # 게임 결과

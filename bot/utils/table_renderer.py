@@ -1,17 +1,18 @@
 """
 JackPy - 멀티 테이블 이미지 렌더러
 딜러와 최대 7개 좌석을 한 장에 그린다.
-카드/배경/폰트는 CasinoCardRenderer를 재사용하고, 레이아웃만 담당한다.
+카드/배경은 CasinoCardRenderer, 글자는 Pretendard(fonts.py)를 쓰고 레이아웃만 담당한다.
 """
 
 import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from bot.utils.casino_card_renderer import CasinoCardRenderer, get_casino_renderer
 from bot.utils.deck import calculate_hand_value
+from bot.utils.fonts import Weight, pretendard
 from bot.utils.glyph_filter import drawable_text
 from bot.utils.photo_encoding import encode_photo
 from bot.utils.themes import Theme
@@ -84,34 +85,17 @@ class TableImageRenderer:
     def __init__(self, cards: CasinoCardRenderer, layout: Optional[TableLayout] = None):
         self.cards = cards
         self.layout = layout or TableLayout()
-        self._card_cache: Dict[Tuple[str, bool, float], Image.Image] = {}
-        self.font_name = self._font_variant(cards.font_title, 34)
-        self.font_small = self._font_variant(cards.font_message, 28)
-        self.font_dealer = self._font_variant(cards.font_title, 44)
-
-    @staticmethod
-    def _font_variant(font, size: int):
-        """같은 폰트 파일의 다른 크기 (기본 비트맵 폰트면 그대로)"""
-        if isinstance(font, ImageFont.FreeTypeFont):
-            return font.font_variant(size=size)
-        return font
+        self.font_name = pretendard(34, Weight.SEMIBOLD)
+        self.font_small = pretendard(28, Weight.MEDIUM)
+        self.font_dealer = pretendard(44, Weight.SEMIBOLD)
 
     # ── 카드 ──────────────────────────────────────────────────
 
     def _card(self, card_str: str, face_down: bool, scale: float) -> Image.Image:
-        """축소된 카드 이미지 (카드별 캐시)"""
-        key = (card_str, face_down, scale)
-        if key not in self._card_cache:
-            image = self.cards.card_image(card_str, face_down=face_down)
-            size = (int(image.width * scale), int(image.height * scale))
-            self._card_cache[key] = image.resize(size, Image.LANCZOS)
-        return self._card_cache[key]
+        return self.cards.scaled_card(card_str, face_down, scale)
 
     def _card_size(self, scale: float) -> Tuple[int, int]:
-        return (
-            int(CasinoCardRenderer.CARD_WIDTH * scale),
-            int(CasinoCardRenderer.CARD_HEIGHT * scale),
-        )
+        return self.cards.scaled_card_size(scale)
 
     def _draw_fan(
         self,

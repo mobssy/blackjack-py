@@ -6,10 +6,8 @@ JackPy - 카지노급 카드 렌더러
 import logging
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
-from typing import List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from pathlib import Path
-from bot.utils.glyph_filter import drawable_text
-from bot.utils.photo_encoding import encode_photo
 from bot.utils.themes import Theme, ThemeManager
 import math
 
@@ -59,143 +57,29 @@ class CasinoCardRenderer:
         """초기화"""
         self.theme = theme or ThemeManager.CLASSIC
         self.cards_dir = Path(__file__).parent.parent.parent / "assets" / "cards"
+        self._scaled_cache: Dict[Tuple[str, bool, float], Image.Image] = {}
         self._load_fonts()
 
     def _load_fonts(self):
-        """폰트 로드 - 한글 지원 폰트 사용"""
+        """
+        카드 그림용 Poppins (직접 그리는 대체 카드의 랭크·무늬, 뒷면 로고)
+
+        게임/테이블 이미지의 글자는 bot/utils/fonts.py의 Pretendard를 쓴다.
+        """
         fonts_dir = Path(__file__).parent.parent.parent / "assets" / "fonts" / "Poppins"
-
-        # Poppins 폰트 경로 (영문용)
-        poppins_bold = fonts_dir / "Poppins-Bold.ttf"
-        poppins_semibold = fonts_dir / "Poppins-SemiBold.ttf"
-        poppins_medium = fonts_dir / "Poppins-Medium.ttf"
-        poppins_regular = fonts_dir / "Poppins-Regular.ttf"
-
-        # 한글 지원 시스템 폰트 (폴백용)
-        korean_fonts = [
-            "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS 기본 한글 폰트
-            "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
-            "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",  # Linux
-        ]
-
-        # 영문 시스템 폰트
-        system_fonts = [
-            "/System/Library/Fonts/Helvetica.ttc",
-            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-        ]
-
-        # 한글 폰트를 찾아서 로드
-        korean_font_path = None
-        for font_path in korean_fonts:
-            if Path(font_path).exists():
-                korean_font_path = font_path
-                break
-
-        # Poppins 또는 시스템 폰트 로드
-        english_font_loaded = False
-        font_paths = [poppins_bold, poppins_semibold] + system_fonts
-
-        for font_path in font_paths:
-            try:
-                if Path(font_path).exists():
-                    # 랭크용 - 영문은 Poppins, 나머지는 한글 폰트
-                    self.font_rank_large = ImageFont.truetype(
-                        str(
-                            poppins_semibold
-                            if poppins_semibold.exists()
-                            else korean_font_path
-                        ),
-                        72,
-                    )
-                    self.font_rank_small = ImageFont.truetype(
-                        str(
-                            poppins_semibold
-                            if poppins_semibold.exists()
-                            else korean_font_path
-                        ),
-                        48,
-                    )
-
-                    # 무늬용
-                    self.font_suit_huge = ImageFont.truetype(
-                        str(
-                            poppins_regular
-                            if poppins_regular.exists()
-                            else korean_font_path
-                        ),
-                        180,
-                    )
-                    self.font_suit_large = ImageFont.truetype(
-                        str(
-                            poppins_regular
-                            if poppins_regular.exists()
-                            else korean_font_path
-                        ),
-                        100,
-                    )
-                    self.font_suit_medium = ImageFont.truetype(
-                        str(
-                            poppins_regular
-                            if poppins_regular.exists()
-                            else korean_font_path
-                        ),
-                        60,
-                    )
-                    self.font_suit_small = ImageFont.truetype(
-                        str(
-                            poppins_regular
-                            if poppins_regular.exists()
-                            else korean_font_path
-                        ),
-                        44,
-                    )
-
-                    # 페이스 카드 문자
-                    self.font_face_letter = ImageFont.truetype(
-                        str(
-                            poppins_bold if poppins_bold.exists() else korean_font_path
-                        ),
-                        140,
-                    )
-
-                    # UI 텍스트 - 한글 지원 필수
-                    if korean_font_path:
-                        self.font_title = ImageFont.truetype(str(korean_font_path), 58)
-                        self.font_value = ImageFont.truetype(str(korean_font_path), 50)
-                        self.font_message = ImageFont.truetype(
-                            str(korean_font_path), 40
-                        )
-                    else:
-                        self.font_title = ImageFont.truetype(
-                            str(
-                                poppins_medium if poppins_medium.exists() else font_path
-                            ),
-                            58,
-                        )
-                        self.font_value = ImageFont.truetype(
-                            str(
-                                poppins_semibold
-                                if poppins_semibold.exists()
-                                else font_path
-                            ),
-                            50,
-                        )
-                        self.font_message = ImageFont.truetype(
-                            str(
-                                poppins_regular
-                                if poppins_regular.exists()
-                                else font_path
-                            ),
-                            40,
-                        )
-
-                    english_font_loaded = True
-                    break
-            except Exception:
-                continue
-
-        if not english_font_loaded:
-            # 모든 폰트 로드 실패 시 기본 폰트
+        try:
+            semibold = str(fonts_dir / "Poppins-SemiBold.ttf")
+            regular = str(fonts_dir / "Poppins-Regular.ttf")
+            bold = str(fonts_dir / "Poppins-Bold.ttf")
+            self.font_rank_large = ImageFont.truetype(semibold, 72)
+            self.font_rank_small = ImageFont.truetype(semibold, 48)
+            self.font_suit_huge = ImageFont.truetype(regular, 180)
+            self.font_suit_large = ImageFont.truetype(regular, 100)
+            self.font_suit_medium = ImageFont.truetype(regular, 60)
+            self.font_suit_small = ImageFont.truetype(regular, 44)
+            self.font_face_letter = ImageFont.truetype(bold, 140)
+        except OSError:
+            logger.warning("Poppins 폰트를 찾지 못해 기본 폰트로 카드를 그립니다")
             default = ImageFont.load_default()
             self.font_rank_large = default
             self.font_rank_small = default
@@ -204,9 +88,6 @@ class CasinoCardRenderer:
             self.font_suit_medium = default
             self.font_suit_small = default
             self.font_face_letter = default
-            self.font_title = default
-            self.font_value = default
-            self.font_message = default
 
     def _get_card_image_path(self, card_str: str) -> Optional[Path]:
         """
@@ -893,28 +774,6 @@ class CasinoCardRenderer:
 
         return Image.alpha_composite(card, text_layer)
 
-    def _add_dramatic_shadow(self, card: Image.Image) -> Image.Image:
-        """드라마틱 그림자"""
-        shadow_offset = 15
-        shadow_size = (card.width + shadow_offset * 2, card.height + shadow_offset * 2)
-
-        shadow = Image.new("RGBA", shadow_size, (0, 0, 0, 0))
-        shadow_draw = ImageDraw.Draw(shadow)
-
-        for i in range(3):
-            offset = shadow_offset + i * 2
-            alpha = 180 - i * 40
-            shadow_draw.rounded_rectangle(
-                [(offset, offset), (card.width + offset, card.height + offset)],
-                radius=self.CARD_RADIUS + 5,
-                fill=(0, 0, 0, alpha),
-            )
-
-        shadow = shadow.filter(ImageFilter.GaussianBlur(radius=12))
-        shadow.paste(card, (0, 0), card)
-
-        return shadow
-
     def _create_velvet_background(self, width: int, height: int) -> Image.Image:
         """모던 그라데이션 배경 (네온 액센트)"""
         bg = Image.new("RGB", (width, height), self.theme.colors.background)
@@ -963,375 +822,18 @@ class CasinoCardRenderer:
         """테마 배경 (RGBA)"""
         return self._create_velvet_background(width, height)
 
-    # 게임 이미지 레이아웃 상수
-    _SHADOW_EXTRA = 30  # 카드 그림자 여백
-    _PANEL_X = 60  # 섹션/메시지 패널 왼쪽 위치
-    _LABEL_X = 100  # 섹션 라벨·카드 시작 x
-    _LINE_HEIGHT = 52  # 메시지 줄 간격
+    def scaled_card(self, card_str: str, face_down: bool, scale: float) -> Image.Image:
+        """축소한 카드 이미지 (카드·크기별 캐시 — 붙여넣기만 하고 수정하지 말 것)"""
+        key = (card_str, face_down, scale)
+        if key not in self._scaled_cache:
+            image = self.card_image(card_str, face_down=face_down)
+            size = (int(image.width * scale), int(image.height * scale))
+            self._scaled_cache[key] = image.resize(size, Image.LANCZOS)
+        return self._scaled_cache[key]
 
-    def generate_game_image(
-        self,
-        player_hand: List[str],
-        dealer_hand: List[str],
-        player_value: int,
-        dealer_value: Optional[int] = None,
-        hide_dealer_first: bool = True,
-        message: str = "",
-        dealer_label: str = "딜러",
-        player_label: str = "플레이어",
-        value_label: str = "합",
-    ) -> bytes:
-        """
-        카지노급 게임 이미지 생성 — 딜러 섹션, 플레이어 섹션, 하단 메시지 패널
-
-        플레이어 핸드의 "BACK"은 뒷면 카드로 그린다 (히트 연출용).
-        """
-        message_lines = message.split("\n") if message else []
-
-        max_cards = max(len(player_hand), len(dealer_hand), 1)
-        card_step = self.CARD_WIDTH + self._SHADOW_EXTRA + self.CARD_SPACING
-        card_area_width = max_cards * card_step - self.CARD_SPACING + 150
-        total_width = max(card_area_width, 1150)
-        section_height = self.CARD_HEIGHT + self._SHADOW_EXTRA + 260
-        msg_height = (
-            len(message_lines) * self._LINE_HEIGHT + 100 if message_lines else 100
-        )
-        total_height = section_height * 2 + msg_height
-
-        border = self.theme.colors.border_color
-        accent = self.theme.colors.accent_color
-        panel_size = (total_width - 120, section_height - 80)
-
-        image = self._create_velvet_background(total_width, total_height)
-        image = self._draw_frame(image)
-
-        # 딜러 섹션 (테두리색 강조)
-        dealer_y = 60
-        dealer_faces = [
-            "BACK" if i == 0 and hide_dealer_first else card
-            for i, card in enumerate(dealer_hand)
-        ]
-        dealer_value_text = (
-            f"{value_label}: {dealer_value}" if dealer_value is not None else None
-        )
-        image = self._draw_section(
-            image,
-            dealer_y,
-            panel_size,
-            (dealer_label, 260),
-            dealer_faces,
-            dealer_value_text,
-            colors=(border, accent),
-        )
-
-        # 플레이어 섹션 (액센트색 강조)
-        player_y = dealer_y + section_height - 20
-        image = self._draw_section(
-            image,
-            player_y,
-            panel_size,
-            (player_label, 310),
-            player_hand,
-            f"{value_label}: {player_value}",
-            colors=(accent, border),
-        )
-
-        if message_lines:
-            msg_panel = self._message_panel(message_lines, panel_size[0])
-            msg_y = player_y + panel_size[1] + 20
-            image.paste(msg_panel, (self._PANEL_X, msg_y), msg_panel)
-
-        return encode_photo(image)
-
-    def _draw_frame(self, image: Image.Image) -> Image.Image:
-        """이미지 외곽 네온 글로우 + 메인 테두리 + 액센트 라인"""
-        width, height = image.size
-        border = self.theme.colors.border_color
-        accent = self.theme.colors.accent_color
-
-        glow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        glow_draw = ImageDraw.Draw(glow_layer)
-        for i in range(10, 0, -1):
-            offset = 15 + i * 3
-            glow_draw.rounded_rectangle(
-                [(offset, offset), (width - offset, height - offset)],
-                radius=50 - i,
-                outline=border + (int(80 - i * 7),),
-                width=i * 2,
-            )
-        glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=15))
-        image = Image.alpha_composite(image, glow_layer)
-
-        draw = ImageDraw.Draw(image)
-        for i in range(3):
-            offset = 20 + i * 3
-            draw.rounded_rectangle(
-                [(offset, offset), (width - offset, height - offset)],
-                radius=38 - i * 2,
-                outline=border + (255 - i * 40,),
-                width=3,
-            )
-        draw.rounded_rectangle(
-            [(25, 25), (width - 25, height - 25)],
-            radius=35,
-            outline=accent + (180,),
-            width=1,
-        )
-        return image
-
-    def _draw_section(
-        self,
-        image: Image.Image,
-        section_y: int,
-        panel_size: Tuple[int, int],
-        label: Tuple[str, int],
-        cards: List[str],
-        value_text: Optional[str],
-        colors: Tuple[tuple, tuple],
-    ) -> Image.Image:
-        """
-        딜러/플레이어 섹션 하나 — 유리 패널, 라벨, 카드 줄, 합계 칩
-
-        Args:
-            label: (라벨 문구, 라벨 박스 너비)
-            cards: 카드 문자열 ("BACK"은 뒷면)
-            value_text: 합계 칩 문구 (None이면 칩 생략)
-            colors: (강조색, 보조색)
-        """
-        primary, secondary = colors
-        panel = self._glass_panel(panel_size, primary, secondary)
-        image.paste(panel, (self._PANEL_X, section_y), panel)
-
-        label_text, label_width = label
-        image = self._draw_label(
-            image, label_text, (self._LABEL_X, section_y + 30), label_width, colors
-        )
-
-        cards_y = section_y + 140
-        x_offset = self._LABEL_X
-        step = self.CARD_WIDTH + self._SHADOW_EXTRA + self.CARD_SPACING
-        for card_str in cards:
-            card_img = self.card_image(card_str, face_down=card_str == "BACK")
-            card_with_shadow = self._add_dramatic_shadow(card_img)
-            image.paste(card_with_shadow, (x_offset, cards_y), card_with_shadow)
-            x_offset += step
-
-        if value_text is not None:
-            chip = self._create_value_chip(value_text)
-            chip_x = image.width - chip.width - 120
-            chip_y = cards_y + (self.CARD_HEIGHT - chip.height) // 2
-            image.paste(chip, (chip_x, chip_y), chip)
-        return image
-
-    def _glass_panel(
-        self, size: Tuple[int, int], primary: tuple, secondary: tuple
-    ) -> Image.Image:
-        """반투명 유리 패널 + 강조색 글로우 테두리"""
-        width, height = size
-        panel = Image.new("RGBA", size, (0, 0, 0, 0))
-        ImageDraw.Draw(panel).rounded_rectangle(
-            [(0, 0), (width, height)], radius=30, fill=(255, 255, 255, 15)
-        )
-
-        glow = Image.new("RGBA", size, (0, 0, 0, 0))
-        glow_draw = ImageDraw.Draw(glow)
-        for i in range(4, 0, -1):
-            glow_draw.rounded_rectangle(
-                [(0, 0), (width, height)],
-                radius=30,
-                outline=primary + (int(35 - i * 6),),
-                width=i * 2,
-            )
-        glow = glow.filter(ImageFilter.GaussianBlur(radius=5))
-        panel = Image.alpha_composite(panel, glow)
-
-        draw = ImageDraw.Draw(panel)
-        draw.rounded_rectangle(
-            [(0, 0), (width, height)], radius=30, outline=primary + (180,), width=2
-        )
-        draw.rounded_rectangle(
-            [(2, 2), (width - 2, height - 2)],
-            radius=28,
-            outline=secondary + (100,),
-            width=1,
-        )
-        return panel
-
-    def _draw_label(
-        self,
-        image: Image.Image,
-        text: str,
-        pos: Tuple[int, int],
-        box_width: int,
-        colors: Tuple[tuple, tuple],
-    ) -> Image.Image:
-        """네온 라벨 박스 + 가운데 정렬된 글로우 텍스트"""
-        primary, secondary = colors
-        text = drawable_text(text, self.font_title)
-        box_height = 80
-        label_x, label_y = pos
-
-        box = Image.new("RGBA", (box_width, box_height), (0, 0, 0, 0))
-        box_draw = ImageDraw.Draw(box)
-        for i in range(6, 0, -1):
-            box_draw.rounded_rectangle(
-                [(0, 0), (box_width, box_height)],
-                radius=22,
-                outline=primary + (int(60 - i * 8),),
-                width=i * 2,
-            )
-        box = box.filter(ImageFilter.GaussianBlur(radius=6))
-        box_draw = ImageDraw.Draw(box)
-        box_draw.rounded_rectangle(
-            [(0, 0), (box_width, box_height)],
-            radius=22,
-            fill=(20, 20, 30, 220),
-            outline=primary,
-            width=3,
-        )
-        box_draw.rounded_rectangle(
-            [(3, 3), (box_width - 3, box_height - 3)],
-            radius=20,
-            outline=secondary + (150,),
-            width=1,
-        )
-        image.paste(box, pos, box)
-
-        bbox = ImageDraw.Draw(Image.new("RGBA", (1, 1))).textbbox(
-            (0, 0), text, font=self.font_title
-        )
-        text_x = label_x + (box_width - (bbox[2] - bbox[0])) // 2
-        text_y = label_y + (box_height - (bbox[3] - bbox[1])) // 2 - 5
-
-        text_glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        glow_draw = ImageDraw.Draw(text_glow)
-        for dx, dy in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
-            glow_draw.text(
-                (text_x + dx, text_y + dy),
-                text,
-                fill=primary + (100,),
-                font=self.font_title,
-            )
-        text_glow = text_glow.filter(ImageFilter.GaussianBlur(radius=3))
-        image = Image.alpha_composite(image, text_glow)
-
-        ImageDraw.Draw(image).text(
-            (text_x, text_y), text, fill=(255, 255, 255), font=self.font_title
-        )
-        return image
-
-    def _message_panel(self, lines: List[str], width: int) -> Image.Image:
-        """하단 메시지 패널 (네온 테두리 + 여러 줄 텍스트)"""
-        border = self.theme.colors.border_color
-        accent = self.theme.colors.accent_color
-        height = len(lines) * self._LINE_HEIGHT + 70
-
-        panel = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        ImageDraw.Draw(panel).rounded_rectangle(
-            [(0, 0), (width, height)], radius=25, fill=(10, 10, 20, 230)
-        )
-
-        glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        glow_draw = ImageDraw.Draw(glow)
-        for i in range(4, 0, -1):
-            glow_draw.rounded_rectangle(
-                [(0, 0), (width, height)],
-                radius=25,
-                outline=border + (int(35 - i * 6),),
-                width=i * 2,
-            )
-        glow = glow.filter(ImageFilter.GaussianBlur(radius=5))
-        panel = Image.alpha_composite(panel, glow)
-
-        draw = ImageDraw.Draw(panel)
-        draw.rounded_rectangle(
-            [(0, 0), (width, height)], radius=25, outline=border, width=3
-        )
-        draw.rounded_rectangle(
-            [(3, 3), (width - 3, height - 3)],
-            radius=23,
-            outline=accent + (120,),
-            width=1,
-        )
-        for i, line in enumerate(lines):
-            draw.text(
-                (45, 25 + i * self._LINE_HEIGHT),
-                drawable_text(line, self.font_message),
-                fill=(255, 255, 255),
-                font=self.font_message,
-            )
-        return panel
-
-    def _create_value_chip(self, text: str) -> Image.Image:
-        """네온 스타일 값 칩"""
-        width, height = 250, 85
-        chip = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(chip)
-
-        border_color = self.theme.colors.border_color
-        accent_color = self.theme.colors.accent_color
-
-        # 네온 글로우
-        for i in range(8, 0, -1):
-            alpha = int(70 - i * 7)
-            draw.rounded_rectangle(
-                [(0, 0), (width, height)],
-                radius=38,
-                outline=accent_color + (alpha,),
-                width=i * 2,
-            )
-        chip = chip.filter(ImageFilter.GaussianBlur(radius=8))
-
-        draw = ImageDraw.Draw(chip)
-
-        # 다크 그라데이션 배경
-        bg = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        bg_draw = ImageDraw.Draw(bg)
-        for y in range(height):
-            ratio = y / height
-            alpha = int(200 + 55 * ratio)
-            bg_draw.line([(0, y), (width, y)], fill=(15, 15, 25, alpha))
-
-        # 라운드 마스크
-        mask = Image.new("L", (width, height), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle([(0, 0), (width, height)], radius=38, fill=255)
-
-        result = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        result.paste(bg, (0, 0), mask)
-        chip = Image.alpha_composite(chip, result)
-
-        draw = ImageDraw.Draw(chip)
-        draw.rounded_rectangle(
-            [(0, 0), (width - 1, height - 1)], radius=38, outline=accent_color, width=3
-        )
-        draw.rounded_rectangle(
-            [(3, 3), (width - 4, height - 4)],
-            radius=36,
-            outline=border_color + (180,),
-            width=1,
-        )
-
-        # 텍스트 글로우
-        text = drawable_text(text, self.font_value)
-        bbox = draw.textbbox((0, 0), text, font=self.font_value)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        text_x = (width - text_width) // 2
-        text_y = (height - text_height) // 2 - 5
-
-        # 글로우 효과
-        for offset in [(2, 2), (1, 1), (-1, -1), (-2, -2)]:
-            draw.text(
-                (text_x + offset[0], text_y + offset[1]),
-                text,
-                fill=accent_color + (120,),
-                font=self.font_value,
-            )
-
-        draw.text((text_x, text_y), text, fill=(255, 255, 255), font=self.font_value)
-
-        return chip
+    def scaled_card_size(self, scale: float) -> Tuple[int, int]:
+        """scaled_card가 돌려주는 카드 크기"""
+        return int(self.CARD_WIDTH * scale), int(self.CARD_HEIGHT * scale)
 
 
 _casino_renderers = {}

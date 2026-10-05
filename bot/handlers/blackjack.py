@@ -19,7 +19,6 @@ from telegram import (
 from telegram.ext import ContextTypes
 from models import get_db, User, GameOutcome
 from bot.utils import (
-    calculate_hand_value,
     is_blackjack,
     is_bust,
     PayoutCalculator,
@@ -39,7 +38,8 @@ from bot.utils.rewards import (
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.betting import BetError, is_valid_amount, parse_bet
 from bot.utils.session_store import load_sessions, save_sessions
-from bot.utils.casino_card_renderer import get_casino_renderer
+from bot.utils.game_renderer import get_game_renderer
+from bot.utils.game_scene import play_scene, result_scene
 
 logger = logging.getLogger(__name__)
 
@@ -117,43 +117,16 @@ def get_game_keyboard(
     return InlineKeyboardMarkup(keyboard)
 
 
-def _render_game_image(
-    game: "BlackjackGame",
-    lang: str,
-    message: str,
-    reveal_dealer: bool = False,
-    player_hand: Optional[List[str]] = None,
-    player_value=None,
-) -> bytes:
+def _render_game_image(game: BlackjackGame, lang: str, drawing: bool = False) -> bytes:
     """
-    게임 상태 이미지 렌더링 (공통 헬퍼)
+    진행 중 게임 이미지 (딜러 홀 카드 가림)
 
     Args:
         game: 게임 객체
         lang: 언어 코드
-        message: 이미지 하단 메시지
-        reveal_dealer: 딜러 첫 카드 공개 여부
-        player_hand: 플레이어 핸드 오버라이드 (애니메이션/스플릿 합산 표시용)
-        player_value: 값 칩 표시 오버라이드 (스플릿 시 "18 / 21" 형태 문자열)
-
-    Returns:
-        bytes: 렌더링된 이미지
+        drawing: HIT 연출 — 받을 카드를 뒷면으로 먼저 보여줌
     """
-    hand = player_hand if player_hand is not None else game.player_hand
-    if player_value is None:
-        player_value = calculate_hand_value(game.player_hand)
-    dealer_value = calculate_hand_value(game.dealer_hand) if reveal_dealer else None
-    return get_casino_renderer().generate_game_image(
-        player_hand=hand,
-        dealer_hand=game.dealer_hand,
-        player_value=player_value,
-        dealer_value=dealer_value,
-        hide_dealer_first=not reveal_dealer,
-        message=message,
-        dealer_label=t("img_dealer", lang),
-        player_label=t("img_player", lang),
-        value_label=t("img_total", lang),
-    )
+    return get_game_renderer().render(play_scene(game, lang, drawing=drawing))
 
 
 def _all_hands_results(game: BlackjackGame) -> List[Tuple[GameOutcome, float]]:
@@ -312,7 +285,7 @@ async def _deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
-    image_bytes = _render_game_image(game, lang, t("hint_commands_first", lang))
+    image_bytes = _render_game_image(game, lang)
 
     caption = t("deal_caption", lang, bet=bet_amount)
     await update.message.reply_photo(
@@ -521,8 +494,8 @@ async def _finish(turn: _Turn, results: List[Tuple[GameOutcome, float]]) -> None
 
 
 async def _show_progress(turn: _Turn, caption: str, header: str = "") -> None:
-    """다음 핸드/카드 진행 화면 (이미지 하단에 caption, 메시지 캡션은 header+caption)"""
-    image_bytes = _render_game_image(turn.game, turn.lang, caption)
+    """다음 핸드/카드 진행 화면 (메시지 캡션은 header+caption)"""
+    image_bytes = _render_game_image(turn.game, turn.lang)
     await turn.view.show(image_bytes, header + caption, get_game_keyboard())
 
 
@@ -531,17 +504,14 @@ async def _act_hit(turn: _Turn) -> None:
     game, lang = turn.game, turn.lang
     drawing_msg = t("drawing_card", lang)
     await turn.view.animate_draw(
-        lambda: _render_game_image(
-            game, lang, drawing_msg, player_hand=game.player_hand + ["BACK"]
-        ),
-        drawing_msg,
+        lambda: _render_game_image(game, lang, drawing=True), drawing_msg
     )
 
     game.player_hit()
     _persist_sessions()
 
     if not is_bust(game.player_hand):
-        image_bytes = _render_game_image(game, lang, t("hint_commands", lang))
+        image_bytes = _render_game_image(game, lang)
         await turn.view.show(image_bytes, t("card_drawn", lang), get_game_keyboard())
         return
 
@@ -730,84 +700,18 @@ def _render_game_result(
     Returns:
         Tuple[bytes, str, InlineKeyboardMarkup]: (이미지, 캡션, 키보드)
     """
-    dealer_value = calculate_hand_value(game.dealer_hand)
-    hand_values = [calculate_hand_value(hand) for hand in game.hands]
-    total_payout = sum(payout for _, payout in results)
-    payout_str = PayoutCalculator.format_payout(total_payout)
-
     if len(results) == 1:
-        # 단일 핸드
-        outcome, _ = results[0]
-        outcome_msg = _outcome_text(outcome, lang)
-        outcome_emoji = PayoutCalculator.get_result_emoji(outcome)
-        header_line = f"{outcome_emoji} {t('result_label', lang)}: {outcome_msg}"
-        player_lines = [f"{t('player_label', lang)}: {hand_values[0]}"]
-        caption_head = outcome_msg
-        image_hand = None  # 활성 핸드 (= 유일한 핸드)
-        image_value = None
+        caption_head = _outcome_text(results[0][0], lang)
     else:
-        # 스플릿: 핸드별 결과 표시
         hand_label = t("hand_label", lang)
-        header_line = f"🃏 {t('result_label', lang)}"
-        player_lines = []
-        caption_parts = []
-        for i, ((outcome, payout), value) in enumerate(zip(results, hand_values), 1):
-            outcome_msg = _outcome_text(outcome, lang)
-            emoji = PayoutCalculator.get_result_emoji(outcome)
-            player_lines.append(
-                f"{emoji} {hand_label}{i}: {value} — {outcome_msg} "
-                f"({PayoutCalculator.format_payout(payout)})"
-            )
-            caption_parts.append(f"{hand_label}{i} {outcome_msg}")
-        caption_head = " / ".join(caption_parts)
-        image_hand = [card for hand in game.hands for card in hand]
-        image_value = " / ".join(str(v) for v in hand_values)
+        caption_head = " / ".join(
+            f"{hand_label}{i} {_outcome_text(outcome, lang)}"
+            for i, (outcome, _) in enumerate(results, 1)
+        )
 
-    streak_lines = []
-    streak = settle_info.get("streak", 0)
-    bonus = settle_info.get("bonus", 0.0)
-    if bonus > 0:
-        streak_lines.append(t("streak_bonus_line", lang, n=streak, bonus=bonus))
-    elif streak >= 2:
-        streak_lines.append(t("streak_line", lang, n=streak))
-
-    insurance_lines = []
-    if settle_info.get("insurance_bet"):
-        insurance_net = settle_info.get("insurance_net", 0.0)
-        if insurance_net > 0:
-            insurance_lines.append(t("insurance_win_line", lang, amount=insurance_net))
-        else:
-            insurance_lines.append(
-                t("insurance_lost_line", lang, amount=settle_info["insurance_bet"])
-            )
-
-    result_message = "\n".join(
-        [
-            "--------------------",
-            header_line,
-            "--------------------",
-            "",
-            *player_lines,
-            f"{t('dealer_label', lang)}: {dealer_value}",
-            "",
-            f"{t('bet_label', lang)}: ${game.total_bet:,.2f}",
-            f"{t('payout_label', lang)}: {payout_str}",
-            *insurance_lines,
-            *streak_lines,
-            f"{t('balance_label', lang)}: ${settle_info['wallet']:,.2f}",
-            "--------------------",
-        ]
+    image_bytes = get_game_renderer().render(
+        result_scene(game, results, settle_info, lang)
     )
-
-    image_bytes = _render_game_image(
-        game,
-        lang,
-        result_message,
-        reveal_dealer=True,
-        player_hand=image_hand,
-        player_value=image_value,
-    )
-
     caption = f"{caption_head} {t('game_over_suffix', lang)}"
 
     reply_markup = InlineKeyboardMarkup(
