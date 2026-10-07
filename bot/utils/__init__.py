@@ -9,8 +9,6 @@ from bot.utils.deck import (
     calculate_hand_value,
     is_blackjack,
     is_bust,
-    format_hand,
-    get_hand_display,
 )
 from bot.utils.payouts import (
     PayoutCalculator,
@@ -19,7 +17,6 @@ from bot.utils.payouts import (
     update_streak,
 )
 from bot.utils.i18n import t, get_user_lang
-from bot.utils.themes import Theme, ThemeType, ThemeManager, ColorScheme
 from bot.utils.casino_card_renderer import CasinoCardRenderer, get_casino_renderer
 
 __all__ = [
@@ -28,16 +25,10 @@ __all__ = [
     "calculate_hand_value",
     "is_blackjack",
     "is_bust",
-    "format_hand",
-    "get_hand_display",
     "PayoutCalculator",
     "determine_outcome",
     "streak_bonus",
     "update_streak",
-    "Theme",
-    "ThemeType",
-    "ThemeManager",
-    "ColorScheme",
     "CasinoCardRenderer",
     "get_casino_renderer",
     "t",

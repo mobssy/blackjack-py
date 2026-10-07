@@ -61,11 +61,6 @@ class TestPayoutCalculator:
         formatted = PayoutCalculator.format_payout(0.0)
         assert formatted == "$0.00"
 
-    def test_outcome_message(self):
-        """결과 메시지 테스트"""
-        msg = PayoutCalculator.get_outcome_message(GameOutcome.BLACKJACK)
-        assert "블랙잭" in msg
-
 
 class TestDetermineOutcome:
     """게임 결과 판정 테스트"""

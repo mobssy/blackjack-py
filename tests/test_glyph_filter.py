@@ -3,23 +3,15 @@ JackPy - 이미지 텍스트 글리프 필터 테스트
 폰트에 없는 문자(이모지)가 네모로 그려지지 않도록 걸러지는지 확인
 """
 
-from pathlib import Path
-
 from PIL import ImageFont
 
+from bot.utils.fonts import pretendard
 from bot.utils.glyph_filter import drawable_text, has_glyph
-
-_POPPINS = (
-    Path(__file__).parent.parent
-    / "assets"
-    / "fonts"
-    / "Poppins"
-    / "Poppins-Regular.ttf"
-)
 
 
 def _font(size=40):
-    return ImageFont.truetype(str(_POPPINS), size)
+    # Pretendard: 라틴·한글은 있고 이모지는 없음
+    return pretendard(size)
 
 
 def test_has_glyph_for_latin_and_digits():

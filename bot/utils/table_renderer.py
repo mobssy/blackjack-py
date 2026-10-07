@@ -6,7 +6,7 @@ JackPy - 멀티 테이블 이미지 렌더러 (펠트 테이블)
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw
 
@@ -26,7 +26,6 @@ from bot.utils.felt import (
 from bot.utils.fonts import Weight, pretendard
 from bot.utils.glyph_filter import drawable_text
 from bot.utils.photo_encoding import encode_photo
-from bot.utils.themes import Theme
 
 __all__ = [
     "DENSE_LAYOUT",
@@ -413,12 +412,9 @@ class TableImageRenderer:
         return encode_photo(image)
 
 
-_table_renderers: Dict[str, TableImageRenderer] = {}
+_table_renderer = TableImageRenderer(get_casino_renderer())
 
 
-def get_table_renderer(theme: Optional[Theme] = None) -> TableImageRenderer:
-    """테마별 테이블 렌더러 (카드 캐시 유지를 위해 재사용)"""
-    theme_name = theme.name if theme else "Classic"
-    if theme_name not in _table_renderers:
-        _table_renderers[theme_name] = TableImageRenderer(get_casino_renderer(theme))
-    return _table_renderers[theme_name]
+def get_table_renderer() -> TableImageRenderer:
+    """공용 테이블 렌더러 (카드 축소 캐시는 카드 렌더러가 공유)"""
+    return _table_renderer

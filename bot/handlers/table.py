@@ -22,7 +22,7 @@ from telegram import (
     Update,
 )
 from telegram.constants import ParseMode
-from telegram.error import BadRequest, TelegramError
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
 from models import get_db, User
@@ -100,10 +100,6 @@ def _user_lang(user_tg_id: int) -> str:
     with get_db() as db:
         user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
         return get_user_lang(user)
-
-
-def _is_not_modified(error: BadRequest) -> bool:
-    return "not modified" in str(error).lower()
 
 
 async def _answer_quietly(

@@ -226,7 +226,7 @@ bot/
     game_scene.py, game_renderer.py   solo game image (felt table)
     table_view.py, table_renderer.py  multiplayer table captions and image
     felt.py            felt, chips and printed table text shared by the images
-    casino_card_renderer.py, themes.py   card faces and backs
+    casino_card_renderer.py   card faces and backs
     fonts.py           Pretendard font loading
     glyph_filter.py    drops characters the font can't draw (emoji) from image text
     photo_encoding.py  encodes rendered images as JPEG for Telegram
@@ -244,7 +244,6 @@ scripts/
 ## Credits
 
 - Card images: [hayeah/playing-cards-assets](https://github.com/hayeah/playing-cards-assets) (MIT), derived from Vector Playing Cards (public domain)
-- Font: [Poppins](assets/fonts/Poppins/OFL.txt) (SIL Open Font License 1.1)
 - Font: [Pretendard](assets/fonts/Pretendard/OFL.txt) by Kil Hyung-jin (SIL Open Font License 1.1)
 
 ## License

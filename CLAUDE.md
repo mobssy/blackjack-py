@@ -76,7 +76,7 @@
 - 문서는 README.md(한/영) 하나로 관리 — 명령어·규칙·보상 수치·파일 구조를 바꾸면
   README의 한국어/영어 섹션과 Project structure를 함께 갱신
 - 라이선스: 공개 저장소지만 열람만 허용(All rights reserved, LICENSE 파일).
-  서드파티 에셋(카드 이미지 MIT, Poppins OFL)은 LICENSE 하단에 명시
+  서드파티 에셋(카드 이미지 MIT, Pretendard OFL)은 LICENSE 하단에 명시
 
 ## 개발 명령어
 

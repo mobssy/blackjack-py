@@ -298,12 +298,3 @@ class BlackjackGame:
             )
             results.append((outcome, PayoutCalculator.calculate(outcome, bet)))
         return results
-
-    def get_result(self) -> Tuple[GameOutcome, float]:
-        """
-        단일 핸드 게임 결과 (하위 호환용)
-
-        Returns:
-            Tuple[GameOutcome, float]: (outcome, payout)
-        """
-        return self.get_results()[0]

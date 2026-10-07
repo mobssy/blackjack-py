@@ -67,3 +67,14 @@ def test_card_corners_stay_transparent():
         right, bottom = image.width - 1, image.height - 1
         for corner in ((0, 0), (right, 0), (0, bottom), (right, bottom)):
             assert image.getpixel(corner)[3] == 0, (card, corner)
+
+
+def test_face_down_cards_share_one_cached_back():
+    # 뒷면은 어떤 카드든 같은 그림 — 카드마다 따로 캐시하지 않는다
+    renderer = get_casino_renderer()
+    assert renderer.scaled_card("AS", True, 0.5) is renderer.scaled_card(
+        "KD", True, 0.5
+    )
+    assert renderer.scaled_card("AS", False, 0.5) is not renderer.scaled_card(
+        "AS", True, 0.5
+    )

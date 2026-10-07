@@ -9,8 +9,6 @@ from bot.utils.deck import (
     calculate_hand_value,
     is_blackjack,
     is_bust,
-    format_hand,
-    get_hand_display,
 )
 from bot.utils.payouts import PayoutCalculator, determine_outcome
 from models.round import GameOutcome
@@ -40,12 +38,6 @@ class TestCard:
         """에이스 값 (11)"""
         card = Card("AS")
         assert card.value == 11
-
-    def test_card_display(self):
-        """카드 표시"""
-        card = Card("AS")
-        assert "A" in card.display
-        assert "♠️" in card.display
 
 
 class TestDeck:
@@ -201,12 +193,6 @@ class TestPayoutCalculator:
         """0 정산 포맷"""
         assert PayoutCalculator.format_payout(0.0) == "$0.00"
 
-    def test_outcome_message(self):
-        """결과 메시지"""
-        assert "블랙잭" in PayoutCalculator.get_outcome_message(GameOutcome.BLACKJACK)
-        assert "승리" in PayoutCalculator.get_outcome_message(GameOutcome.WIN)
-        assert "무승부" in PayoutCalculator.get_outcome_message(GameOutcome.PUSH)
-
     def test_result_emoji(self):
         """결과 이모지"""
         assert PayoutCalculator.get_result_emoji(GameOutcome.BLACKJACK) == "🎉"
@@ -314,38 +300,6 @@ class TestDetermineOutcome:
         assert outcome == GameOutcome.PUSH
 
 
-class TestHandDisplay:
-    """핸드 표시 테스트"""
-
-    def test_format_hand_normal(self):
-        """일반 핸드 표시"""
-        hand = ["AS", "KH"]
-        formatted = format_hand(hand)
-        assert "A" in formatted
-        assert "K" in formatted
-
-    def test_format_hand_hide_first(self):
-        """첫 카드 숨김"""
-        hand = ["AS", "KH"]
-        formatted = format_hand(hand, hide_first=True)
-        assert "🂠" in formatted  # 숨겨진 카드
-
-    def test_get_hand_display_normal(self):
-        """핸드 표시와 값"""
-        hand = ["AS", "KH"]
-        display, value = get_hand_display(hand)
-        assert isinstance(display, str)
-        assert value == 21
-
-    def test_get_hand_display_hide_first(self):
-        """첫 카드 숨김 시 표시와 값"""
-        hand = ["AS", "KH"]
-        display, value = get_hand_display(hand, hide_first=True)
-        assert "🂠" in display
-        # 첫 카드만 계산 (AS = 11)
-        assert value == 11
-
-
 class TestBlackjackGame:
     """BlackjackGame 클래스 테스트 (더블 다운 / 서렌더 포함)"""
 
@@ -389,11 +343,11 @@ class TestBlackjackGame:
         game.dealer_play()
         assert calculate_hand_value(game.dealer_hand) >= 17
 
-    def test_get_result_returns_outcome_and_payout(self):
-        """결과 계산은 (outcome, payout) 튜플 반환"""
+    def test_get_results_returns_outcome_and_payout(self):
+        """결과 계산은 핸드별 (outcome, payout) 튜플 리스트"""
         game = self._make_game()
         game.dealer_play()
-        outcome, payout = game.get_result()
+        ((outcome, payout),) = game.get_results()
         assert isinstance(outcome, GameOutcome)
         assert isinstance(payout, float)
 

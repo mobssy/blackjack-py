@@ -69,27 +69,6 @@ class PayoutCalculator:
             return "$0.00"
 
     @staticmethod
-    def get_outcome_message(outcome: GameOutcome) -> str:
-        """
-        결과 메시지 반환
-
-        Args:
-            outcome: 게임 결과
-
-        Returns:
-            str: 결과 메시지
-        """
-        messages = {
-            GameOutcome.BLACKJACK: "블랙잭! 대박!",
-            GameOutcome.WIN: "승리했습니다!",
-            GameOutcome.PUSH: "무승부 (베팅금 반환)",
-            GameOutcome.LOSS: "패배했습니다",
-            GameOutcome.BUST: "버스트! (21 초과)",
-            GameOutcome.SURRENDER: "서렌더 (베팅액 절반 회수)",
-        }
-        return messages.get(outcome, "게임 종료")
-
-    @staticmethod
     def get_result_emoji(outcome: GameOutcome) -> str:
         """
         결과 이모지 반환

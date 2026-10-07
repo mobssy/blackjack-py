@@ -18,11 +18,6 @@ class Card:
     SUITS = ["S", "H", "D", "C"]  # Spades, Hearts, Diamonds, Clubs
     RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
-    # 한국어 표시용
-    SUIT_NAMES = {"S": "♠️", "H": "♥️", "D": "♦️", "C": "♣️"}
-
-    RANK_NAMES = {"A": "A", "J": "J", "Q": "Q", "K": "K"}
-
     def __init__(self, card_str: str):
         """
         카드 생성
@@ -38,13 +33,6 @@ class Card:
 
     def __repr__(self) -> str:
         return self.__str__()
-
-    @property
-    def display(self) -> str:
-        """표시용 카드 이름"""
-        rank_display = self.RANK_NAMES.get(self.rank, self.rank)
-        suit_display = self.SUIT_NAMES.get(self.suit, self.suit)
-        return f"{rank_display}{suit_display}"
 
     @property
     def value(self) -> int:
@@ -177,42 +165,3 @@ def is_bust(hand: List[str]) -> bool:
         bool: 버스트 여부
     """
     return calculate_hand_value(hand) > 21
-
-
-def format_hand(hand: List[str], hide_first: bool = False) -> str:
-    """
-    핸드 표시용 문자열 생성
-
-    Args:
-        hand: 카드 리스트
-        hide_first: 첫 카드 숨김 여부
-
-    Returns:
-        str: 표시용 문자열
-    """
-    if hide_first and len(hand) > 0:
-        cards = [Card(hand[0])]
-        return f"{cards[0].display} 🂠"
-    else:
-        cards = [Card(card) for card in hand]
-        return " ".join(card.display for card in cards)
-
-
-def get_hand_display(hand: List[str], hide_first: bool = False) -> Tuple[str, int]:
-    """
-    핸드 표시 문자열과 값 반환
-
-    Args:
-        hand: 카드 리스트
-        hide_first: 첫 카드 숨김 여부
-
-    Returns:
-        Tuple[str, int]: (표시 문자열, 핸드 값)
-    """
-    hand_str = format_hand(hand, hide_first)
-    value = (
-        calculate_hand_value(hand)
-        if not hide_first
-        else calculate_hand_value([hand[0]])
-    )
-    return hand_str, value

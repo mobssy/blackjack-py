@@ -149,7 +149,7 @@ class TestTableImageRenderer:
         seats = [SeatView(name="P1", hands=[["9S", "8S"]], bet=10)]
         assert _photo_size(self._render(seats, hide=False))[0] == "JPEG"
 
-    def test_renderer_cached_per_theme(self):
+    def test_renderer_is_shared(self):
         assert get_table_renderer() is get_table_renderer()
 
 

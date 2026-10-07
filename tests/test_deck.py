@@ -12,7 +12,6 @@ from bot.utils.deck import (
     is_blackjack,
     is_soft,
     is_bust,
-    format_hand,
 )
 
 
@@ -31,11 +30,6 @@ class TestCard:
         assert Card("KH").value == 10  # King
         assert Card("5D").value == 5  # Number
         assert Card("10C").value == 10  # 10
-
-    def test_card_display(self):
-        """카드 표시 테스트"""
-        card = Card("AS")
-        assert "♠" in card.display
 
 
 class TestDeck:
@@ -118,23 +112,6 @@ class TestDealerRule:
     )
     def test_dealer_should_hit(self, hand, hit):
         assert dealer_should_hit(hand) is hit
-
-
-class TestHandFormatting:
-    """핸드 포맷팅 테스트"""
-
-    def test_format_hand(self):
-        """핸드 포맷 테스트"""
-        hand = ["AS", "KH"]
-        formatted = format_hand(hand)
-        assert "♠" in formatted
-        assert "♥" in formatted
-
-    def test_format_hand_hide_first(self):
-        """첫 카드 숨김 테스트"""
-        hand = ["AS", "KH"]
-        formatted = format_hand(hand, hide_first=True)
-        assert "🂠" in formatted
 
 
 if __name__ == "__main__":
