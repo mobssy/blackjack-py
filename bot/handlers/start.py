@@ -4,7 +4,7 @@ JackPy - 시작 및 기본 명령어 핸들러
 """
 
 import logging
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -78,7 +78,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(user)
     await update.message.reply_text(t("help_text", lang))
 
@@ -90,10 +90,6 @@ def _back_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton(t("btn_back", lang), callback_data="back_to_start")]]
     )
-
-
-def _find_user(db, user_tg_id: int) -> Optional[User]:
-    return db.query(User).filter(User.tg_user_id == user_tg_id).first()
 
 
 def _profile_text(user: User, lang: str) -> str:
@@ -118,7 +114,7 @@ def _profile_text(user: User, lang: str) -> str:
 async def _select_language(query, tg_user, lang: str) -> None:
     """언어 선택 — 처음이면 가입, 기존 사용자는 언어와 이름 갱신"""
     with get_db() as db:
-        user = _find_user(db, tg_user.id)
+        user = User.find_by_tg_id(db, tg_user.id)
         if not user:
             user = User.create_new(
                 tg_user.id, tg_user.username, tg_user.first_name, language=lang
@@ -152,7 +148,7 @@ async def _menu_daily(query, user_tg_id: int, lang: str) -> None:
     from bot.handlers.blackjack import claim_daily_reward
 
     with get_db() as db:
-        user = _find_user(db, user_tg_id)
+        user = User.find_by_tg_id(db, user_tg_id)
         message = claim_daily_reward(db, user, lang) if user else None
 
     if message is None:
@@ -163,7 +159,7 @@ async def _menu_daily(query, user_tg_id: int, lang: str) -> None:
 
 async def _menu_profile(query, user_tg_id: int, lang: str) -> None:
     with get_db() as db:
-        user = _find_user(db, user_tg_id)
+        user = User.find_by_tg_id(db, user_tg_id)
         message = _profile_text(user, lang) if user else None
 
     if message is None:
@@ -174,7 +170,7 @@ async def _menu_profile(query, user_tg_id: int, lang: str) -> None:
 
 async def _menu_back(query, user_tg_id: int, lang: str) -> None:
     with get_db() as db:
-        user = _find_user(db, user_tg_id)
+        user = User.find_by_tg_id(db, user_tg_id)
         welcome = (
             t("welcome_back", lang, name=user.display_name) if user else "JackPy\n\n"
         )
@@ -222,5 +218,5 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_tg_id = update.effective_user.id
     with get_db() as db:
-        lang = get_user_lang(_find_user(db, user_tg_id))
+        lang = get_user_lang(User.find_by_tg_id(db, user_tg_id))
     await action(query, user_tg_id, lang)

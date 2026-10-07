@@ -37,7 +37,7 @@ async def cmd_my(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(user)
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))
@@ -93,7 +93,7 @@ async def cmd_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
 
     with get_db() as db:
-        current_user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        current_user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(current_user)
         if not current_user:
             await update.message.reply_text(t("deal_no_user", lang))
@@ -172,7 +172,7 @@ async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(user)
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))
@@ -222,7 +222,7 @@ async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(user)
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))

@@ -113,7 +113,7 @@ def settle_game(
         Dict: 렌더링에 필요한 정산 결과 정보
     """
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         settle_info = apply_settlement(db, user, game, results, chat_id)
         db.commit()
         return settle_info

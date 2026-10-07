@@ -138,7 +138,7 @@ def _find_target(db, identifier: str) -> Optional[User]:
     """
     if identifier.startswith("@"):
         return User.find_by_username(db, identifier[1:])
-    return db.query(User).filter(User.tg_user_id == int(identifier)).first()
+    return User.find_by_tg_id(db, int(identifier))
 
 
 async def _notify_recipient(bot, user: User, amount: float) -> None:

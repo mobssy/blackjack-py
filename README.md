@@ -211,6 +211,7 @@ bot/
     start.py           /start /help, language, menu buttons
     give.py            /give chip gifts
     admin.py           /admin stats, /add
+    common.py          shared lookups (user language)
   middleware/auth.py   auto-registers users, groups, and group members
   middleware/rate_limit.py  waits and retries on Telegram flood control (429)
   utils/               Telegram-independent logic

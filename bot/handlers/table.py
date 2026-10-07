@@ -27,12 +27,13 @@ from telegram.ext import ContextTypes
 
 from models import get_db, User
 from bot.handlers.blackjack import get_game_keyboard
+from bot.handlers.common import user_lang
 from bot.handlers.settlement import apply_settlement
 from bot.utils.game_scene import felt_rule_lines
 from bot.utils.table_renderer import get_table_renderer
 from bot.utils.betting import BetError, BetRequest, is_valid_amount, parse_bet
 from bot.utils.deck import is_bust
-from bot.utils.i18n import t, get_user_lang
+from bot.utils.i18n import t
 from bot.utils.session_store import load_tables, save_tables
 from bot.utils.table import (
     BETTING_SECONDS,
@@ -94,12 +95,6 @@ def _lock(chat_id: int) -> asyncio.Lock:
 
 def _is_group(update: Update) -> bool:
     return update.effective_chat.type in ("group", "supergroup")
-
-
-def _user_lang(user_tg_id: int) -> str:
-    with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-        return get_user_lang(user)
 
 
 async def _answer_quietly(
@@ -391,7 +386,7 @@ def _settle_table(table: BlackjackTable, seat_results: SeatResults) -> Dict[int,
     with get_db() as db:
         settle_infos = {}
         for seat, results in seat_results:
-            user = db.query(User).filter(User.tg_user_id == seat.user_id).first()
+            user = User.find_by_tg_id(db, seat.user_id)
             settle_infos[seat.user_id] = apply_settlement(
                 db, user, seat.game, results, table.chat_id
             )
@@ -466,7 +461,7 @@ def _pay_action_cost(
     if cost <= 0:
         return None
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         if not user or not user.deduct_wallet(cost):
             balance = float(user.wallet) if user else 0.0
             return t(_NO_BALANCE_KEYS[action], lang, balance=balance)
@@ -513,7 +508,7 @@ def _seat_player(
         return t(e.key, lang, **e.kwargs)
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         if not user:
             return t("deal_no_user", lang)
         bet_amount = bet_request.resolve(user.wallet)
@@ -569,7 +564,7 @@ async def cmd_table(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    lang = _user_lang(user_tg_id)
+    lang = user_lang(user_tg_id)
     if not _is_group(update):
         await update.message.reply_text(t("table_group_only", lang))
         return
@@ -588,7 +583,7 @@ async def cmd_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    lang = _user_lang(user_tg_id)
+    lang = user_lang(user_tg_id)
     if not _is_group(update):
         await update.message.reply_text(t("table_group_only", lang))
         return
@@ -627,7 +622,7 @@ async def cmd_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context: 컨텍스트 객체
     """
     user_tg_id = update.effective_user.id
-    lang = _user_lang(user_tg_id)
+    lang = user_lang(user_tg_id)
     if not _is_group(update):
         await update.message.reply_text(t("table_group_only", lang))
         return
@@ -649,7 +644,7 @@ async def cmd_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 환불 커밋 → 좌석 제거 (정산 순서 불변식과 동일)
         refund = seat.game.total_bet
         with get_db() as db:
-            user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+            user = User.find_by_tg_id(db, user_tg_id)
             user.add_wallet(refund)
             db.commit()
         table.leave(user_tg_id)
@@ -749,7 +744,7 @@ async def table_button_callback(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     user_tg_id = update.effective_user.id
     chat_id = update.effective_chat.id
-    lang = _user_lang(user_tg_id)
+    lang = user_lang(user_tg_id)
     command = query.data.removeprefix("tbl_")
 
     async with _lock(chat_id):

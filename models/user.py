@@ -104,6 +104,11 @@ class User(Base, TimestampMixin):
         )
 
     @classmethod
+    def find_by_tg_id(cls, db, tg_user_id: int) -> Optional["User"]:
+        """텔레그램 사용자 ID로 조회 (없으면 None)"""
+        return db.query(cls).filter(cls.tg_user_id == tg_user_id).first()
+
+    @classmethod
     def find_by_username(cls, db, username: str) -> Optional["User"]:
         """@ 없는 username으로 조회 (텔레그램 username은 대소문자를 구분하지 않음)"""
         return (

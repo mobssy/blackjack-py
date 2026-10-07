@@ -14,6 +14,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from bot.handlers import blackjack as bj
+from bot.handlers import common
 from bot.utils.blackjack_game import BlackjackGame
 from bot.utils.i18n import t
 from models.base import Base
@@ -41,6 +42,7 @@ def env(monkeypatch):
         return {"wallet": 0.0}
 
     monkeypatch.setattr(bj, "get_db", fake_get_db)
+    monkeypatch.setattr(common, "get_db", fake_get_db)  # user_lang
     monkeypatch.setattr(bj, "save_sessions", lambda sessions: None)
     monkeypatch.setattr(bj, "settle_game", fake_settle)
     monkeypatch.setattr(bj, "_render_game_image", lambda *a, **k: b"img")

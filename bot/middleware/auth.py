@@ -29,7 +29,7 @@ async def user_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         with get_db() as db:
-            user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+            user = User.find_by_tg_id(db, user_tg_id)
 
             if not user:
                 # 첫 접속 시 자동 등록 — 기본 언어는 텔레그램 앱 언어로
@@ -100,7 +100,7 @@ def _record_group_member(db, chat_id: int, update: Update) -> None:
     if not update.effective_user:
         return
 
-    user = db.query(User).filter(User.tg_user_id == update.effective_user.id).first()
+    user = User.find_by_tg_id(db, update.effective_user.id)
     if not user:
         # user_middleware가 아직 등록하지 못한 경우 다음 메시지에서 기록
         return

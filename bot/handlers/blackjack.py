@@ -26,6 +26,7 @@ from bot.utils import (
     get_user_lang,
 )
 from bot.utils.payouts import OUTCOME_I18N_KEYS
+from bot.handlers.common import user_lang
 from bot.handlers.settlement import settle_game
 from bot.utils.rewards import (
     RESCUE_AMOUNT,
@@ -63,13 +64,6 @@ _user_locks: Dict[int, asyncio.Lock] = {}
 def _user_lock(user_tg_id: int) -> asyncio.Lock:
     """사용자별 게임 액션 잠금 (없으면 생성)"""
     return _user_locks.setdefault(user_tg_id, asyncio.Lock())
-
-
-def _user_lang(user_tg_id: int) -> str:
-    """사용자 언어 조회 (미등록 사용자는 기본 언어)"""
-    with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
-        return get_user_lang(user)
 
 
 def get_game_keyboard(
@@ -201,7 +195,7 @@ async def cmd_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def _deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """/deal 본체 (사용자 잠금 안에서 실행)"""
     user_tg_id = update.effective_user.id
-    lang = _user_lang(user_tg_id)
+    lang = user_lang(user_tg_id)
 
     # 단체방에서 호출된 경우 DM으로 유도
     if update.effective_chat.type in ("group", "supergroup"):
@@ -233,7 +227,7 @@ async def _deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 사용자 조회
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))
             return
@@ -313,7 +307,7 @@ def _try_double(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[str
         return t("double_only_first", lang)
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         if not user or not user.deduct_wallet(game.bet):
             balance = float(user.wallet) if user else 0.0
             return t("double_no_balance", lang, balance=balance)
@@ -353,7 +347,7 @@ def _try_split(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[str]
         return t("split_not_allowed", lang)
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         if not user or not user.deduct_wallet(game.bet):
             balance = float(user.wallet) if user else 0.0
             return t("split_no_balance", lang, balance=balance)
@@ -380,7 +374,7 @@ def _try_insurance(user_tg_id: int, game: BlackjackGame, lang: str) -> Optional[
         return t("insurance_not_allowed", lang)
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         if not user or not user.deduct_wallet(game.insurance_cost):
             balance = float(user.wallet) if user else 0.0
             return t("insurance_no_balance", lang, balance=balance)
@@ -619,7 +613,7 @@ async def _run_action(action: str, update: Update, view: GameView) -> None:
         view: 응답 방식 (명령어/버튼)
     """
     user_tg_id = update.effective_user.id
-    lang = _user_lang(user_tg_id)
+    lang = user_lang(user_tg_id)
     async with _user_lock(user_tg_id):
         game = game_sessions.get(user_tg_id)
         if game is None:
@@ -738,7 +732,7 @@ async def cmd_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(user)
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))
@@ -804,7 +798,7 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg_id = update.effective_user.id
 
     with get_db() as db:
-        user = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        user = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(user)
         if not user:
             await update.message.reply_text(t("deal_no_user", lang))

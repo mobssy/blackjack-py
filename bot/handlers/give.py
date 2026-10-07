@@ -33,7 +33,7 @@ def _find_recipient(db, update: Update, request: GiveRequest) -> Optional[User]:
         raise GiveError("give_usage")
     if reply.from_user.is_bot:
         raise GiveError("give_bot")
-    return db.query(User).filter(User.tg_user_id == reply.from_user.id).first()
+    return User.find_by_tg_id(db, reply.from_user.id)
 
 
 async def cmd_give(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -46,7 +46,7 @@ async def cmd_give(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     user_tg_id = update.effective_user.id
     with get_db() as db:
-        sender = db.query(User).filter(User.tg_user_id == user_tg_id).first()
+        sender = User.find_by_tg_id(db, user_tg_id)
         lang = get_user_lang(sender)
         if sender is None:
             await update.message.reply_text(t("deal_no_user", lang))
