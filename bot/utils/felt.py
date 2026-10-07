@@ -7,11 +7,12 @@ JackPy - 펠트 테이블 그리기 요소
 import math
 from enum import Enum
 from functools import lru_cache
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
 
 from bot.utils.fonts import Weight, pretendard, text_width
+from bot.utils.glyph_filter import drawable_text
 
 Color = Tuple[int, int, int]
 
@@ -177,3 +178,51 @@ def pill(text: str, font, color: Color, padding: int = 45) -> Image.Image:
     )
     draw.text((width // 2, height // 2), text, font=font, fill=color, anchor="mm")
     return badge
+
+
+def fan_step(card_width: int, count: int, max_width: int, gap: int) -> int:
+    """카드 간격 — 여유가 있으면 gap만큼 띄우고, 넘치면 max_width 안으로 겹침"""
+    step = card_width + gap
+    if count > 1:
+        step = min(step, (max_width - card_width) // (count - 1))
+    return step
+
+
+def fan_width(card_width: int, count: int, max_width: int, gap: int) -> int:
+    """카드 count장을 fan_step 간격으로 펼쳤을 때 차지하는 너비"""
+    if count == 0:
+        return 0
+    return card_width + (count - 1) * fan_step(card_width, count, max_width, gap)
+
+
+def draw_fan(
+    image: Image.Image, cards: List[Image.Image], origin: Tuple[int, int], step: int
+) -> None:
+    """카드 이미지들을 step 간격으로 왼쪽부터 겹쳐 붙임 (카드마다 그림자)"""
+    x, y = origin
+    for i, card in enumerate(cards):
+        paste_card(image, card, x + i * step, y)
+
+
+def draw_rule_lines(
+    image: Image.Image,
+    lines: Tuple[str, ...],
+    center: Tuple[int, int],
+    radii: Tuple[int, int],
+    font_sizes: Tuple[int, int],
+) -> None:
+    """펠트에 인쇄된 규칙 문구 두 줄 (첫 줄은 크고 진하게, 둘째 줄은 작고 옅게)"""
+    weights = (Weight.MEDIUM, Weight.REGULAR)
+    alphas = (210, 150)
+    for line, radius, size, weight, alpha in zip(
+        lines, radii, font_sizes, weights, alphas
+    ):
+        font = pretendard(size, weight)
+        draw_arc_text(
+            image,
+            drawable_text(line, font),
+            center,
+            radius,
+            font,
+            FELT_INK + (alpha,),
+        )

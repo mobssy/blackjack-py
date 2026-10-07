@@ -20,9 +20,11 @@ from bot.utils.felt import (
     TONE_COLORS,
     Tone,
     chip,
-    draw_arc_text,
+    draw_fan,
+    draw_rule_lines,
+    fan_step,
+    fan_width,
     felt_background,
-    paste_card,
     pill,
 )
 from bot.utils.fonts import Weight, fitting_pretendard, pretendard, text_width
@@ -161,20 +163,13 @@ class FeltGameRenderer:
         if felt_lines not in self._base_cache:
             layout = self.layout
             image = felt_background(layout.width, layout.height)
-            big, small = layout.arc_font_sizes
-            styles = [(big, Weight.MEDIUM, 210), (small, Weight.REGULAR, 150)]
-            for line, radius, (size, weight, alpha) in zip(
-                felt_lines, layout.arc_radii, styles
-            ):
-                font = pretendard(size, weight)
-                draw_arc_text(
-                    image,
-                    drawable_text(line, font),
-                    layout.arc_center,
-                    radius,
-                    font,
-                    FELT_INK + (alpha,),
-                )
+            draw_rule_lines(
+                image,
+                felt_lines,
+                layout.arc_center,
+                layout.arc_radii,
+                layout.arc_font_sizes,
+            )
             self._base_cache[felt_lines] = image
         return self._base_cache[felt_lines].copy()
 
@@ -182,15 +177,11 @@ class FeltGameRenderer:
 
     def _fan_width(self, count: int, scale: float, max_width: int) -> int:
         card_w, _ = self.cards.scaled_card_size(scale)
-        return card_w + (count - 1) * self._fan_step(count, scale, max_width)
+        return fan_width(card_w, count, max_width, self.layout.card_gap)
 
     def _fan_step(self, count: int, scale: float, max_width: int) -> int:
-        """카드 간격 — 여유가 있으면 띄우고, 넘치면 max_width 안으로 겹침"""
         card_w, _ = self.cards.scaled_card_size(scale)
-        step = card_w + self.layout.card_gap
-        if count > 1:
-            step = min(step, (max_width - card_w) // (count - 1))
-        return step
+        return fan_step(card_w, count, max_width, self.layout.card_gap)
 
     def _draw_fan(
         self,
@@ -201,12 +192,13 @@ class FeltGameRenderer:
         max_width: int,
         hide_first: bool = False,
     ) -> None:
-        x, y = origin
-        step = self._fan_step(len(cards), scale, max_width)
-        for i, card_str in enumerate(cards):
-            face_down = card_str == FACE_DOWN or (hide_first and i == 0)
-            card = self.cards.scaled_card(card_str, face_down, scale)
-            paste_card(image, card, x + i * step, y)
+        images = [
+            self.cards.scaled_card(
+                card_str, card_str == FACE_DOWN or (hide_first and i == 0), scale
+            )
+            for i, card_str in enumerate(cards)
+        ]
+        draw_fan(image, images, origin, self._fan_step(len(cards), scale, max_width))
 
     # ── 딜러 ──────────────────────────────────────────────────
 

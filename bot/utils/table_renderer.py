@@ -6,7 +6,7 @@ JackPy - 멀티 테이블 이미지 렌더러 (펠트 테이블)
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw
 
@@ -19,9 +19,11 @@ from bot.utils.felt import (
     FELT_INK,
     Color,
     chip,
-    draw_arc_text,
+    draw_fan,
+    draw_rule_lines,
+    fan_step,
+    fan_width,
     felt_background,
-    paste_card,
 )
 from bot.utils.fonts import Weight, pretendard
 from bot.utils.glyph_filter import drawable_text
@@ -164,6 +166,9 @@ class TableImageRenderer:
         """layout을 주면 항상 그 레이아웃, 없으면 인원에 따라 table_layout_for로 고름"""
         self.cards = cards
         self.fixed_layout = layout
+        self._base_cache: Dict[
+            Tuple[TableLayout, int, Tuple[str, ...]], Image.Image
+        ] = {}
 
     def layout_for(self, seat_count: int) -> TableLayout:
         return self.fixed_layout or table_layout_for(seat_count)
@@ -184,27 +189,19 @@ class TableImageRenderer:
         hide_first: bool = False,
     ) -> None:
         """max_width 안에 들어가도록 카드를 겹쳐 펼쳐 그림 (카드마다 그림자)"""
-        if not hand:
-            return
-        step = self._fan_step(len(hand), max_width, scale)
-        for i, card_str in enumerate(hand):
-            card = self.cards.scaled_card(card_str, hide_first and i == 0, scale)
-            paste_card(image, card, x + i * step, y)
+        images = [
+            self.cards.scaled_card(card_str, hide_first and i == 0, scale)
+            for i, card_str in enumerate(hand)
+        ]
+        draw_fan(image, images, (x, y), self._fan_step(len(hand), max_width, scale))
 
     def _fan_step(self, count: int, max_width: int, scale: float) -> int:
-        """카드 간 간격 — 여유가 있으면 살짝 띄우고, 없으면 max_width 안으로 겹침"""
         card_w, _ = self._card_size(scale)
-        step = card_w + self.CARD_GAP
-        if count > 1:
-            step = min(step, (max_width - card_w) // (count - 1))
-        return step
+        return fan_step(card_w, count, max_width, self.CARD_GAP)
 
     def _fan_width(self, count: int, max_width: int, scale: float) -> int:
-        """_draw_fan이 실제로 차지하는 너비"""
-        if count == 0:
-            return 0
         card_w, _ = self._card_size(scale)
-        return card_w + (count - 1) * self._fan_step(count, max_width, scale)
+        return fan_width(card_w, count, max_width, self.CARD_GAP)
 
     # ── 텍스트 ────────────────────────────────────────────────
 
@@ -231,31 +228,39 @@ class TableImageRenderer:
         highlight: Optional[Color] = None,
     ) -> None:
         """펠트에 인쇄된 좌석 상자 (highlight 색이 있으면 그 색의 굵은 테두리로 강조)"""
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(overlay)
+        left, top, right, bottom = box
+        layer = Image.new("RGBA", (right - left + 1, bottom - top + 1), (0, 0, 0, 0))
         if highlight is None:
             fill, outline, width = (0, 0, 0, 38), FELT_INK + (140,), 2
         else:
             fill, outline, width = (0, 0, 0, 70), highlight + (255,), 6
-        draw.rounded_rectangle(box, radius=24, fill=fill, outline=outline, width=width)
-        image.alpha_composite(overlay)
+        ImageDraw.Draw(layer).rounded_rectangle(
+            (0, 0, right - left, bottom - top),
+            radius=24,
+            fill=fill,
+            outline=outline,
+            width=width,
+        )
+        # 이미지 전체 크기 레이어 대신 상자 크기만 합성 (좌석 7개면 차이가 큼)
+        image.alpha_composite(layer, (left, top))
 
-    def _draw_felt_lines(
-        self, image: Image.Image, layout: TableLayout, lines: Tuple[str, ...]
-    ) -> None:
-        """딜러 카드 아래 아치형 규칙 문구 (진행 중에만)"""
-        big, small = layout.arc_font_sizes
-        styles = [(big, Weight.MEDIUM, 210), (small, Weight.REGULAR, 150)]
-        for line, radius, (size, weight, alpha) in zip(lines, layout.arc_radii, styles):
-            font = pretendard(size, weight)
-            draw_arc_text(
-                image,
-                drawable_text(line, font),
-                layout.arc_center,
-                radius,
-                font,
-                FELT_INK + (alpha,),
-            )
+    def _base(
+        self, layout: TableLayout, seat_count: int, felt_lines: Tuple[str, ...]
+    ) -> Image.Image:
+        """펠트 + 아치형 규칙 문구 (레이아웃·높이·문구별 캐시, 매번 사본 반환)"""
+        key = (layout, layout.height(seat_count), felt_lines)
+        if key not in self._base_cache:
+            image = felt_background(layout.width, layout.height(seat_count))
+            if felt_lines:
+                draw_rule_lines(
+                    image,
+                    felt_lines,
+                    layout.arc_center,
+                    layout.arc_radii,
+                    layout.arc_font_sizes,
+                )
+            self._base_cache[key] = image
+        return self._base_cache[key].copy()
 
     def _draw_dealer(
         self,
@@ -399,11 +404,8 @@ class TableImageRenderer:
             bytes: JPEG 이미지
         """
         layout = self.layout_for(len(seats))
-        image = felt_background(layout.width, layout.height(len(seats)))
-
-        if felt_lines:
-            self._draw_felt_lines(image, layout, felt_lines)
-        elif caption:
+        image = self._base(layout, len(seats), felt_lines)
+        if caption and not felt_lines:
             self._draw_caption(image, layout, caption)
         self._draw_dealer(image, layout, dealer_hand, hide_dealer_first, dealer_label)
         for index, seat in enumerate(seats):
