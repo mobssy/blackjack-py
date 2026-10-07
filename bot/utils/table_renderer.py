@@ -28,7 +28,16 @@ from bot.utils.glyph_filter import drawable_text
 from bot.utils.photo_encoding import encode_photo
 from bot.utils.themes import Theme
 
-__all__ = ["Color", "SeatView", "TableLayout", "TableImageRenderer"]
+__all__ = [
+    "DENSE_LAYOUT",
+    "ROOMY_LAYOUT",
+    "ROOMY_MAX_SEATS",
+    "Color",
+    "SeatView",
+    "TableLayout",
+    "TableImageRenderer",
+    "table_layout_for",
+]
 
 
 @dataclass(frozen=True)
@@ -53,27 +62,62 @@ class SeatView:
     status_color: Color = CREAM
 
 
-@dataclass
+@dataclass(frozen=True)
 class TableLayout:
-    """레이아웃 수치 (좌석 수에 따라 높이 계산)"""
+    """
+    레이아웃 수치 (좌석 수에 따라 높이 계산)
 
-    width: int = 1600
-    margin: int = 40
-    columns: int = 4
-    seat_width: int = 360
-    seat_height: int = 350
-    gap: int = 24
-    dealer_height: int = 420
-    dealer_scale: float = 0.62
-    seat_scale: float = 0.42
-    card_gap: int = 10
-    dealer_chip_size: int = 96
-    seat_chip_size: int = 56
+    텔레그램은 사진을 말풍선 폭에 맞춰 줄이므로, 폰에서 보이는 크기는 요소가
+    이미지 폭에서 차지하는 비율로 정해진다. 그래서 한 줄 좌석 수(columns)를 줄여
+    카드·글자를 키운다 — 인원에 따라 table_layout_for가 프리셋을 고른다.
+    """
+
+    width: int = 1200
+    margin: int = 30
+    columns: int = 2
+    gap: int = 20
+    seat_scale: float = 0.62
+    seat_chip_size: int = 72
+    name_font_size: int = 40
+    small_font_size: int = 32
+    dealer_height: int = 430
+    dealer_scale: float = 0.75
+    dealer_chip_size: int = 110
+    dealer_font_size: int = 34
+    caption_font_size: int = 44
     # 딜러 카드 아래 아치형 규칙 문구 (원 중심이 이미지 위쪽 밖에 있어 완만한 곡선)
-    arc_center: Tuple[int, int] = (800, -1000)
-    arc_radii: Tuple[int, int] = (1400, 1440)
+    arc_center: Tuple[int, int] = (600, -900)
+    arc_radii: Tuple[int, int] = (1290, 1330)
+    arc_font_sizes: Tuple[int, int] = (36, 24)
     # 결과 화면에서 규칙 문구 대신 쓰는 펠트 문구의 세로 중심 (딜러 카드와 좌석 사이)
     caption_y: int = 410
+
+    @property
+    def seat_width(self) -> int:
+        usable = self.width - 2 * self.margin - (self.columns - 1) * self.gap
+        return usable // self.columns
+
+    @property
+    def header_height(self) -> int:
+        """좌석 상자 위쪽 이름/베팅 줄"""
+        return self.name_font_size + 34
+
+    @property
+    def seat_card_height(self) -> int:
+        return int(CasinoCardRenderer.CARD_HEIGHT * self.seat_scale)
+
+    @property
+    def seat_height(self) -> int:
+        """이름 줄 + 카드 + 합계 칩 + 상태 문구"""
+        return (
+            self.header_height
+            + self.seat_card_height
+            + 14
+            + self.seat_chip_size
+            + 12
+            + self.small_font_size
+            + 22
+        )
 
     def rows(self, seat_count: int) -> int:
         return max(1, math.ceil(seat_count / self.columns))
@@ -95,16 +139,35 @@ class TableLayout:
         )
 
 
+# 4명까지는 한 줄 2석으로 크게, 5~7명은 한 줄 3석
+ROOMY_LAYOUT = TableLayout()
+DENSE_LAYOUT = TableLayout(
+    columns=3,
+    seat_scale=0.46,
+    seat_chip_size=60,
+    name_font_size=34,
+    small_font_size=28,
+)
+ROOMY_MAX_SEATS = 4
+
+
+def table_layout_for(seat_count: int) -> TableLayout:
+    """인원에 맞는 레이아웃 프리셋"""
+    return ROOMY_LAYOUT if seat_count <= ROOMY_MAX_SEATS else DENSE_LAYOUT
+
+
 class TableImageRenderer:
     """딜러 + 좌석 그리드 이미지 렌더러"""
 
+    CARD_GAP = 10  # 카드 사이 간격 (여유가 있을 때)
+
     def __init__(self, cards: CasinoCardRenderer, layout: Optional[TableLayout] = None):
+        """layout을 주면 항상 그 레이아웃, 없으면 인원에 따라 table_layout_for로 고름"""
         self.cards = cards
-        self.layout = layout or TableLayout()
-        self.font_name = pretendard(34, Weight.SEMIBOLD)
-        self.font_small = pretendard(28, Weight.MEDIUM)
-        self.font_dealer = pretendard(32, Weight.SEMIBOLD)
-        self.font_caption = pretendard(40, Weight.SEMIBOLD)
+        self.fixed_layout = layout
+
+    def layout_for(self, seat_count: int) -> TableLayout:
+        return self.fixed_layout or table_layout_for(seat_count)
 
     # ── 카드 ──────────────────────────────────────────────────
 
@@ -132,7 +195,7 @@ class TableImageRenderer:
     def _fan_step(self, count: int, max_width: int, scale: float) -> int:
         """카드 간 간격 — 여유가 있으면 살짝 띄우고, 없으면 max_width 안으로 겹침"""
         card_w, _ = self._card_size(scale)
-        step = card_w + self.layout.card_gap
+        step = card_w + self.CARD_GAP
         if count > 1:
             step = min(step, (max_width - card_w) // (count - 1))
         return step
@@ -178,10 +241,12 @@ class TableImageRenderer:
         draw.rounded_rectangle(box, radius=24, fill=fill, outline=outline, width=width)
         image.alpha_composite(overlay)
 
-    def _draw_felt_lines(self, image: Image.Image, lines: Tuple[str, ...]) -> None:
+    def _draw_felt_lines(
+        self, image: Image.Image, layout: TableLayout, lines: Tuple[str, ...]
+    ) -> None:
         """딜러 카드 아래 아치형 규칙 문구 (진행 중에만)"""
-        layout = self.layout
-        styles = [(30, Weight.MEDIUM, 210), (20, Weight.REGULAR, 150)]
+        big, small = layout.arc_font_sizes
+        styles = [(big, Weight.MEDIUM, 210), (small, Weight.REGULAR, 150)]
         for line, radius, (size, weight, alpha) in zip(lines, layout.arc_radii, styles):
             font = pretendard(size, weight)
             draw_arc_text(
@@ -196,22 +261,22 @@ class TableImageRenderer:
     def _draw_dealer(
         self,
         image: Image.Image,
+        layout: TableLayout,
         dealer_hand: List[str],
         hide_first: bool,
         label: str,
     ) -> None:
-        layout = self.layout
         draw = ImageDraw.Draw(image)
         center_x = layout.width // 2
         chip_space = layout.dealer_chip_size + 24
         max_width = layout.width - 2 * (layout.margin + chip_space)
 
-        title = self._fit(draw, label, self.font_dealer, max_width)
+        font = pretendard(layout.dealer_font_size, Weight.SEMIBOLD)
         draw.text(
             (center_x, layout.margin + 18),
-            title,
+            self._fit(draw, label, font, max_width),
             fill=FELT_INK,
-            font=self.font_dealer,
+            font=font,
             anchor="mm",
         )
 
@@ -240,36 +305,46 @@ class TableImageRenderer:
             )
 
     def _draw_seat(
-        self, image: Image.Image, index: int, seat_count: int, seat: SeatView
+        self,
+        image: Image.Image,
+        layout: TableLayout,
+        index: int,
+        seat_count: int,
+        seat: SeatView,
     ) -> None:
-        layout = self.layout
         x, y = layout.seat_origin(index, seat_count)
         box = (x, y, x + layout.seat_width, y + layout.seat_height)
         # 현재 차례 좌석은 상태 문구(▶ 차례)와 같은 색으로 테두리 강조
         self._seat_box(image, box, seat.status_color if seat.active else None)
         draw = ImageDraw.Draw(image)
         inner = layout.seat_width - 40
+        font_name = pretendard(layout.name_font_size, Weight.SEMIBOLD)
+        font_small = pretendard(layout.small_font_size, Weight.MEDIUM)
 
-        # 이름 (왼쪽) / 베팅 (오른쪽, 펠트 인쇄색)
+        # 이름 (왼쪽) / 베팅 (오른쪽, 펠트 인쇄색) — 같은 줄 가운데 맞춤
+        name_center_y = y + layout.header_height // 2
         bet_text = f"${seat.bet:,.0f}"
-        bet_width = self._text_width(draw, bet_text, self.font_small)
-        name = self._fit(draw, seat.name, self.font_name, inner - bet_width - 16)
-        draw.text((x + 20, y + 16), name, fill=CREAM, font=self.font_name)
+        bet_width = self._text_width(draw, bet_text, font_small)
+        name = self._fit(draw, seat.name, font_name, inner - bet_width - 16)
         draw.text(
-            (x + layout.seat_width - 20 - bet_width, y + 22),
+            (x + 20, name_center_y), name, fill=CREAM, font=font_name, anchor="lm"
+        )
+        draw.text(
+            (x + layout.seat_width - 20, name_center_y),
             bet_text,
             fill=FELT_INK,
-            font=self.font_small,
+            font=font_small,
+            anchor="rm",
         )
 
         # 카드 + 핸드별 합계 칩 (스플릿이면 가로로 나눠서)
-        _, card_h = self._card_size(layout.seat_scale)
+        cards_top = y + layout.header_height
         hand_width = inner // max(1, len(seat.hands))
-        chip_top = y + 70 + card_h + 14
+        chip_top = cards_top + layout.seat_card_height + 14
         for i, hand in enumerate(seat.hands):
             hand_x = x + 20 + i * hand_width
             self._draw_fan(
-                image, hand, hand_x, y + 70, hand_width - 10, layout.seat_scale
+                image, hand, hand_x, cards_top, hand_width - 10, layout.seat_scale
             )
             if hand:
                 total = chip(
@@ -278,26 +353,24 @@ class TableImageRenderer:
                 image.alpha_composite(total, (hand_x, chip_top))
 
         if seat.status:
-            status = self._fit(draw, seat.status, self.font_small, inner)
+            status = self._fit(draw, seat.status, font_small, inner)
             draw.text(
-                (x + 20, y + layout.seat_height - 46),
+                (x + 20, y + layout.seat_height - 22),
                 status,
                 fill=seat.status_color,
-                font=self.font_small,
+                font=font_small,
+                anchor="ls",
             )
 
-    def _draw_caption(self, image: Image.Image, text: str) -> None:
+    def _draw_caption(self, image: Image.Image, layout: TableLayout, text: str) -> None:
         """딜러 카드와 좌석 사이 펠트에 인쇄된 문구 (예: 라운드 결과)"""
-        layout = self.layout
         draw = ImageDraw.Draw(image)
-        text = self._fit(
-            draw, text, self.font_caption, layout.width - 2 * layout.margin
-        )
+        font = pretendard(layout.caption_font_size, Weight.SEMIBOLD)
         draw.text(
             (layout.width // 2, layout.caption_y),
-            text,
+            self._fit(draw, text, font, layout.width - 2 * layout.margin),
             fill=FELT_INK,
-            font=self.font_caption,
+            font=font,
             anchor="mm",
         )
 
@@ -326,16 +399,16 @@ class TableImageRenderer:
         Returns:
             bytes: JPEG 이미지
         """
-        layout = self.layout
+        layout = self.layout_for(len(seats))
         image = felt_background(layout.width, layout.height(len(seats)))
 
         if felt_lines:
-            self._draw_felt_lines(image, felt_lines)
+            self._draw_felt_lines(image, layout, felt_lines)
         elif caption:
-            self._draw_caption(image, caption)
-        self._draw_dealer(image, dealer_hand, hide_dealer_first, dealer_label)
+            self._draw_caption(image, layout, caption)
+        self._draw_dealer(image, layout, dealer_hand, hide_dealer_first, dealer_label)
         for index, seat in enumerate(seats):
-            self._draw_seat(image, index, len(seats), seat)
+            self._draw_seat(image, layout, index, len(seats), seat)
 
         return encode_photo(image)
 

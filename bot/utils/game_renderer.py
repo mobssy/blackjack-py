@@ -93,29 +93,37 @@ class GameScene:
 
 @dataclass(frozen=True)
 class GameLayout:
-    """레이아웃 수치 (가로형 고정 크기 — 텔레그램에서 덜 축소되도록)"""
+    """
+    레이아웃 수치 (정사각 고정 크기)
 
-    width: int = 1200
-    height: int = 900
-    margin: int = 40
-    gap: int = 28
-    card_gap: int = 18
-    dealer_top: int = 50
-    player_center_y: int = 703
-    card_scale: float = 0.74
-    split_card_scale: float = 0.62
-    chip_size: int = 118
-    split_chip_size: int = 96
-    bet_diameter: int = 124
-    split_bet_diameter: int = 88
-    split_slot_gap: int = 60
-    arc_center: Tuple[int, int] = (600, -620)
-    arc_radii: Tuple[int, int] = (1040, 1090)
-    badge_top: int = 336
-    badge_font_size: int = 60
-    details_top: int = 470
-    details_line_height: int = 42
+    텔레그램은 사진을 말풍선 폭에 맞춰 줄이므로, 폰에서 보이는 크기는 요소가
+    이미지 폭에서 차지하는 비율로 정해진다 — 빈 펠트를 줄이고 카드·글자를 키운다.
+    """
+
+    width: int = 1080
+    height: int = 1080
+    margin: int = 30
+    gap: int = 24
+    card_gap: int = 16
+    dealer_top: int = 40
+    player_center_y: int = 830
+    card_scale: float = 0.9
+    split_card_scale: float = 0.7
+    chip_size: int = 140
+    split_chip_size: int = 100
+    bet_diameter: int = 140
+    split_bet_diameter: int = 96
+    split_slot_gap: int = 40
+    arc_center: Tuple[int, int] = (540, -700)
+    arc_radii: Tuple[int, int] = (1190, 1240)
+    arc_font_sizes: Tuple[int, int] = (40, 28)
+    badge_top: int = 396
+    badge_font_size: int = 76
+    details_top: int = 572
+    details_line_height: int = 52
+    details_font_size: int = 40
     details_max_lines: int = 2
+    outcome_font_size: int = 36
 
 
 def format_bet(amount: float) -> str:
@@ -153,7 +161,8 @@ class FeltGameRenderer:
         if felt_lines not in self._base_cache:
             layout = self.layout
             image = felt_background(layout.width, layout.height)
-            styles = [(30, Weight.MEDIUM, 210), (20, Weight.REGULAR, 150)]
+            big, small = layout.arc_font_sizes
+            styles = [(big, Weight.MEDIUM, 210), (small, Weight.REGULAR, 150)]
             for line, radius, (size, weight, alpha) in zip(
                 felt_lines, layout.arc_radii, styles
             ):
@@ -279,10 +288,12 @@ class FeltGameRenderer:
                 fill=ACTIVE_COLOR,
             )
         if hand.outcome:
-            font = fitting_pretendard(hand.outcome, Weight.SEMIBOLD, 28, slot_width)
+            font = fitting_pretendard(
+                hand.outcome, Weight.SEMIBOLD, layout.outcome_font_size, slot_width
+            )
             color = TONE_COLORS[hand.tone] if hand.tone else CREAM
             draw.text(
-                (cards_x + fan_width // 2, below + 34),
+                (cards_x + fan_width // 2, below + 42),
                 drawable_text(hand.outcome, font),
                 font=font,
                 fill=color,
@@ -337,7 +348,7 @@ class FeltGameRenderer:
             badge, ((layout.width - badge.width) // 2, layout.badge_top)
         )
 
-        details_font = pretendard(30, Weight.MEDIUM)
+        details_font = pretendard(layout.details_font_size, Weight.MEDIUM)
         draw = ImageDraw.Draw(image)
         for i, line in enumerate(self._detail_lines(result.details, details_font)):
             draw.text(

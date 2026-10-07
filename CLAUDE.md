@@ -33,11 +33,13 @@
     공유 `dealer_hand`는 재할당 금지·제자리 변경만), `table_view.py` — 테이블 HTML 캡션
     및 이미지용 SeatView 변환, `table_renderer.py` — 딜러+좌석 그리드 펠트 이미지
     (진행 중엔 딜러 아래 규칙 문구, 결과엔 "라운드 결과" 문구. 색은 felt.py 팔레트 공용)
+    인원별 프리셋(table_layout_for: 4명까지 한 줄 2석, 5~7명 3석). 텔레그램은 사진을
+    말풍선 폭에 맞춰 줄이므로 크기 조정은 이미지 폭 대비 요소 비율로 판단할 것
   - `glyph_filter.py` — 이미지에 그리는 텍스트에서 폰트에 없는 문자(이모지) 제거.
     Pillow는 이모지를 네모로 그리므로 렌더러의 텍스트는 `drawable_text`를 거칠 것
   - `deck.py` — 카드/덱/핸드 계산, `payouts.py` — 배당 계산 및 결과 판정
   - `i18n.py` — ko/en 문자열, `t(key, lang, **kwargs)`. 키는 반드시 양쪽 언어에 추가
-  - `game_renderer.py` — 1인 게임 펠트 이미지 (GameScene만 받음, 1200x900 고정),
+  - `game_renderer.py` — 1인 게임 펠트 이미지 (GameScene만 받음, 1080x1080 고정),
     `game_scene.py` — BlackjackGame/정산 결과 → GameScene 변환 (table_view.py와 같은 역할).
     펠트 문구의 블랙잭 배당은 PayoutCalculator.BLACKJACK_MULTIPLIER에서 계산 (현재 6:5)
   - `felt.py` — 펠트 배경·아치 문구·칩·카드 그림자·결과 색(Tone) (두 이미지 공용),

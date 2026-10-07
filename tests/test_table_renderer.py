@@ -9,9 +9,12 @@ from PIL import Image
 
 from bot.utils.table import BlackjackTable, TableAction
 from bot.utils.table_renderer import (
+    DENSE_LAYOUT,
+    ROOMY_LAYOUT,
+    ROOMY_MAX_SEATS,
     SeatView,
-    TableLayout,
     get_table_renderer,
+    table_layout_for,
 )
 from bot.utils.table_view import (
     COLOR_BLACKJACK,
@@ -41,54 +44,66 @@ def _photo_size(photo: bytes):
 
 
 class TestTableLayout:
-    """좌석 그리드 좌표"""
+    """좌석 그리드 좌표 (인원별 프리셋)"""
+
+    def test_preset_by_seat_count(self):
+        for seat_count in range(1, ROOMY_MAX_SEATS + 1):
+            assert table_layout_for(seat_count) is ROOMY_LAYOUT
+        for seat_count in range(ROOMY_MAX_SEATS + 1, 8):
+            assert table_layout_for(seat_count) is DENSE_LAYOUT
+
+    def test_roomy_layout_has_bigger_cards_and_text(self):
+        assert ROOMY_LAYOUT.columns < DENSE_LAYOUT.columns
+        assert ROOMY_LAYOUT.seat_scale > DENSE_LAYOUT.seat_scale
+        assert ROOMY_LAYOUT.name_font_size > DENSE_LAYOUT.name_font_size
 
     def test_rows(self):
-        layout = TableLayout()
-        assert layout.rows(1) == 1
-        assert layout.rows(4) == 1
-        assert layout.rows(5) == 2
-        assert layout.rows(7) == 2
+        assert ROOMY_LAYOUT.rows(1) == 1
+        assert ROOMY_LAYOUT.rows(2) == 1
+        assert ROOMY_LAYOUT.rows(3) == 2
+        assert DENSE_LAYOUT.rows(7) == 3
 
     def test_height_grows_with_rows(self):
-        layout = TableLayout()
-        one_row = layout.height(4)
-        two_rows = layout.height(5)
-        assert two_rows - one_row == layout.seat_height + layout.gap
+        for layout in (ROOMY_LAYOUT, DENSE_LAYOUT):
+            one_row = layout.height(layout.columns)
+            two_rows = layout.height(layout.columns + 1)
+            assert two_rows - one_row == layout.seat_height + layout.gap
+
+    def test_seat_contents_fit_in_seat_height(self):
+        for layout in (ROOMY_LAYOUT, DENSE_LAYOUT):
+            assert layout.seat_height > (
+                layout.header_height + layout.seat_card_height + layout.seat_chip_size
+            )
 
     def test_seat_origin_wraps_to_next_row(self):
-        layout = TableLayout()
-        x0, y0 = layout.seat_origin(0, 8)
-        x1, y1 = layout.seat_origin(1, 8)
-        x4, y4 = layout.seat_origin(4, 8)
-        assert y1 == y0 and x1 == x0 + layout.seat_width + layout.gap
-        assert x4 == x0 and y4 == y0 + layout.seat_height + layout.gap
+        for layout in (ROOMY_LAYOUT, DENSE_LAYOUT):
+            count = layout.columns * 2
+            x0, y0 = layout.seat_origin(0, count)
+            x1, y1 = layout.seat_origin(1, count)
+            x_next, y_next = layout.seat_origin(layout.columns, count)
+            assert y1 == y0 and x1 == x0 + layout.seat_width + layout.gap
+            assert x_next == x0 and y_next == y0 + layout.seat_height + layout.gap
 
     def test_grid_fits_inside_width(self):
-        layout = TableLayout()
-        seat_count = layout.columns
-        x_last, _ = layout.seat_origin(layout.columns - 1, seat_count)
-        x_first, _ = layout.seat_origin(0, seat_count)
-        assert x_first >= 0
-        assert x_last + layout.seat_width <= layout.width
+        for layout in (ROOMY_LAYOUT, DENSE_LAYOUT):
+            count = layout.columns
+            x_first, _ = layout.seat_origin(0, count)
+            x_last, _ = layout.seat_origin(count - 1, count)
+            assert x_first >= layout.margin
+            assert x_last + layout.seat_width <= layout.width - layout.margin
 
     def test_partial_row_is_centered(self):
-        layout = TableLayout()
-        for seat_count in (1, 2, 3):
-            x_first, _ = layout.seat_origin(0, seat_count)
-            x_last, _ = layout.seat_origin(seat_count - 1, seat_count)
+        for layout, seat_count in (
+            (ROOMY_LAYOUT, 1),
+            (ROOMY_LAYOUT, 3),
+            (DENSE_LAYOUT, 7),
+        ):
+            last = seat_count - 1
+            x_last, _ = layout.seat_origin(last, seat_count)
+            row_start = last - last % layout.columns
+            x_row, _ = layout.seat_origin(row_start, seat_count)
             right_gap = layout.width - (x_last + layout.seat_width)
-            assert abs(x_first - right_gap) <= 1, seat_count
-
-    def test_partial_second_row_is_centered_under_full_row(self):
-        layout = TableLayout()
-        # 7석: 첫 줄 4석은 그대로, 둘째 줄 3석은 가운데
-        x0, _ = layout.seat_origin(0, 7)
-        x4, y4 = layout.seat_origin(4, 7)
-        x6, y6 = layout.seat_origin(6, 7)
-        assert x4 == x0 + (layout.seat_width + layout.gap) // 2
-        assert y6 == y4
-        assert abs(x4 - (layout.width - (x6 + layout.seat_width))) <= 1
+            assert abs(x_row - right_gap) <= 1, (layout.columns, seat_count)
 
 
 class TestTableImageRenderer:
@@ -107,14 +122,15 @@ class TestTableImageRenderer:
     def test_renders_jpeg_with_layout_size(self):
         seats = [SeatView(name=f"P{i}", hands=[["9S", "8S"]], bet=10) for i in range(7)]
         photo = self._render(seats, caption="Round results", hide=False)
-        layout = TableLayout()
+        layout = table_layout_for(7)
         assert _photo_size(photo) == ("JPEG", (layout.width, layout.height(7)))
 
     def test_play_mode_with_felt_rule_lines(self):
         seats = [SeatView(name="P1", hands=[["9S", "8S"]], bet=10, active=True)]
         felt = ("BLACKJACK PAYS 6 TO 5", "DEALER MUST HIT SOFT 17")
         photo = self._render(seats, felt_lines=felt)
-        assert _photo_size(photo) == ("JPEG", (1600, TableLayout().height(1)))
+        layout = table_layout_for(1)
+        assert _photo_size(photo) == ("JPEG", (layout.width, layout.height(1)))
 
     def test_split_hands_and_long_name(self):
         seats = [
