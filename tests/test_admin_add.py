@@ -1,5 +1,6 @@
 """
-관리자 /add 테스트 — 금액 검증(nan/inf/센트 미만 거부)과 username 대소문자 무시 조회
+관리자 /add 테스트 — 금액 검증(nan/inf/센트 미만 거부)과 username 대소문자 무시 조회,
+ADMIN_IDS 파싱
 """
 
 import asyncio
@@ -110,3 +111,23 @@ class TestAddBalance:
     def test_unknown_user(self, db_session):
         replies = _run(["@nobody", "10"])
         assert "찾을 수 없습니다" in replies[0]
+
+
+class TestParseAdminIds:
+    """ADMIN_IDS 파싱 — is_admin과 관리자 메뉴가 같은 목록을 써야 함"""
+
+    def test_spaces_after_commas(self):
+        assert admin_handlers.parse_admin_ids("111, 222") == {111, 222}
+
+    def test_ignores_blank_and_non_numeric(self):
+        assert admin_handlers.parse_admin_ids(" 111 ,,abc, ") == {111}
+
+    def test_empty(self):
+        assert admin_handlers.parse_admin_ids("") == frozenset()
+
+    def test_is_admin_matches_admin_ids(self, monkeypatch):
+        ids = admin_handlers.parse_admin_ids("111, 222")
+        monkeypatch.setattr(admin_handlers, "_ADMIN_IDS", ids)
+        assert admin_handlers.admin_ids() == [111, 222]
+        assert all(admin_handlers.is_admin(uid) for uid in admin_handlers.admin_ids())
+        assert not admin_handlers.is_admin(333)

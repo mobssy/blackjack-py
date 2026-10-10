@@ -5,7 +5,7 @@ JackPy - 관리자 핸들러
 
 import logging
 import os
-from typing import List, Optional
+from typing import FrozenSet, List, Optional
 from telegram import Update
 from telegram.ext import ContextTypes
 from models import get_db, User, Group, Round
@@ -14,8 +14,19 @@ from bot.utils.i18n import get_user_lang, t
 
 logger = logging.getLogger(__name__)
 
+
+def parse_admin_ids(raw: str) -> FrozenSet[int]:
+    """
+    ADMIN_IDS 환경변수 파싱 — 쉼표 구분, 항목 앞뒤 공백 허용, 숫자가 아닌 항목은 무시
+
+    is_admin과 admin_ids(관리자 메뉴)가 같은 결과를 쓰도록 한 곳에서 파싱한다.
+    """
+    items = (item.strip() for item in raw.split(","))
+    return frozenset(int(item) for item in items if item.isdigit())
+
+
 # 모듈 로드 시 한 번만 파싱
-_ADMIN_IDS: set = set(filter(None, os.getenv("ADMIN_IDS", "").split(",")))
+_ADMIN_IDS: FrozenSet[int] = parse_admin_ids(os.getenv("ADMIN_IDS", ""))
 
 
 def is_admin(user_id: int) -> bool:
@@ -28,17 +39,17 @@ def is_admin(user_id: int) -> bool:
     Returns:
         bool: 관리자 여부
     """
-    return str(user_id) in _ADMIN_IDS
+    return user_id in _ADMIN_IDS
 
 
 def admin_ids() -> List[int]:
     """
-    설정된 관리자 텔레그램 ID 목록 (숫자가 아닌 항목은 무시)
+    설정된 관리자 텔레그램 ID 목록
 
     Returns:
         List[int]: 관리자 ID (정렬됨)
     """
-    return sorted(int(uid) for uid in _ADMIN_IDS if uid.strip().isdigit())
+    return sorted(_ADMIN_IDS)
 
 
 async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
