@@ -6,7 +6,7 @@ User, Group, GroupMember, Round 모델 테스트
 import pytest
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from sqlalchemy import create_engine
+from sqlalchemy import BigInteger, create_engine
 from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from models.user import STARTING_WALLET, User
@@ -231,6 +231,29 @@ class TestRoundModel:
         assert round_obj.id is not None
         assert round_obj.bet == Decimal("100.0")
         assert round_obj.outcome == GameOutcome.BLACKJACK
+
+    @pytest.mark.parametrize("model", [Round, Group, GroupMember])
+    def test_chat_id_is_bigint(self, model):
+        """슈퍼그룹 ID(-100…)는 32비트를 넘으므로 PostgreSQL에서도 담기도록 BIGINT"""
+        assert isinstance(model.__table__.c.chat_id.type, BigInteger)
+
+    def test_supergroup_chat_id_roundtrip(self, db_session):
+        user = User(tg_user_id=123)
+        db_session.add(user)
+        db_session.commit()
+        round_obj = Round(
+            user_id=user.id,
+            chat_id=-1001234567890,
+            bet=10.0,
+            player_hand=["9S", "8H"],
+            dealer_hand=["7D", "9C"],
+            outcome=GameOutcome.WIN,
+            payout=10.0,
+        )
+        db_session.add(round_obj)
+        db_session.commit()
+        db_session.expire_all()
+        assert db_session.get(Round, round_obj.id).chat_id == -1001234567890
 
     def test_player_hand_str(self, db_session):
         """플레이어 패 문자열"""

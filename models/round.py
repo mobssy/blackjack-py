@@ -3,7 +3,7 @@ JackPy - Round 모델
 블랙잭 게임 라운드 기록
 """
 
-from sqlalchemy import Column, Integer, ForeignKey, Numeric, JSON, Enum
+from sqlalchemy import BigInteger, Column, Integer, ForeignKey, Numeric, JSON, Enum
 from sqlalchemy.orm import relationship
 import enum
 from models.base import Base, TimestampMixin
@@ -39,7 +39,8 @@ class Round(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    chat_id = Column(Integer, nullable=True)  # 그룹 채팅 ID (선택)
+    # 그룹 채팅 ID (선택) — 슈퍼그룹 ID(-100…)는 32비트를 넘는다
+    chat_id = Column(BigInteger, nullable=True)
 
     # 게임 정보
     bet = Column(Numeric(precision=15, scale=2), nullable=False)
