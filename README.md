@@ -212,6 +212,7 @@ bot/
     give.py            /give chip gifts
     admin.py           /admin stats, /add
     common.py          shared lookups (user language)
+    errors.py          global error handler (logs, short reply to the user)
   middleware/auth.py   auto-registers users, groups, and group members
   middleware/rate_limit.py  waits and retries on Telegram flood control (429)
   utils/               Telegram-independent logic

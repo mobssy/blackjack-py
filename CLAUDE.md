@@ -22,6 +22,7 @@
   - `menu.py` — 봇 시작 시 `/` 명령어 메뉴를 스코프(개인/그룹/그룹관리자/봇관리자 DM)·
     언어(ko/en)별로 동기화. 옛 목록이 남지 않도록 넓은 스코프까지 모두 덮어씀
   - `common.py` — 핸들러 공용 조회 (`user_lang`). 사용자 조회는 `User.find_by_tg_id(db, id)`
+  - `errors.py` — 전역 에러 핸들러 (예외 기록 + 사용자에게 짧은 안내, 텔레그램 API 오류는 기록만)
   - `give.py` — /give 칩 선물 (@username 또는 답장으로 받는 사람 지정, 이체 규칙은
     `bot/utils/gifting.py`)
   - `profile.py` — /my /rank(그룹에서는 그룹별 랭킹) /stats /history

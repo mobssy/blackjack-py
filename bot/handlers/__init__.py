@@ -29,6 +29,7 @@ from bot.handlers.admin import (
     cmd_add_balance,
 )
 from bot.handlers.profile import cmd_my, cmd_rank, cmd_stats, cmd_history
+from bot.handlers.errors import error_handler
 
 __all__ = [
     # Start & Help
@@ -62,4 +63,6 @@ __all__ = [
     "cmd_rank",
     "cmd_stats",
     "cmd_history",
+    # Errors
+    "error_handler",
 ]

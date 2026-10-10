@@ -56,6 +56,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "insurance_not_allowed": "[오류] 인슈어런스는 딜러 업카드가 A인 첫 턴에 한 번만 가능합니다.",
         "insurance_no_balance": "[오류] 인슈어런스에 필요한 잔액이 부족합니다. 현재 잔액: ${balance:,.2f}",
         "insurance_no_bj": "딜러는 블랙잭이 아닙니다. 보험금 ${amount:,.2f} 소멸.\n게임을 계속하세요!",
+        "error_generic": "[오류] 처리 중 문제가 생겼습니다. 잠시 후 다시 시도해주세요.",
         "insurance_win_line": "🛡 보험 적중 (2:1): +${amount:,.2f}",
         "insurance_lost_line": "🛡 보험 소멸: -${amount:,.2f}",
         # 연승 스트릭
@@ -332,6 +333,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "insurance_not_allowed": "[Error] Insurance is only available once, on the first turn when the dealer shows an Ace.",
         "insurance_no_balance": "[Error] Insufficient balance for insurance. Current balance: ${balance:,.2f}",
         "insurance_no_bj": "Dealer does not have blackjack. Insurance ${amount:,.2f} lost.\nKeep playing!",
+        "error_generic": "[Error] Something went wrong. Please try again in a moment.",
         "insurance_win_line": "🛡 Insurance paid (2:1): +${amount:,.2f}",
         "insurance_lost_line": "🛡 Insurance lost: -${amount:,.2f}",
         # 연승 스트릭

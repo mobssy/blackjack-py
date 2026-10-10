@@ -68,6 +68,7 @@ from bot.handlers import (
     cmd_rank,
     cmd_stats,
     cmd_history,
+    error_handler,
 )
 
 from bot.handlers.menu import sync_command_menu
@@ -137,6 +138,9 @@ def setup_handlers(app: Application):
         CallbackQueryHandler(game_button_callback, pattern=r"^game_", block=False)
     )
     app.add_handler(CallbackQueryHandler(button_callback))
+
+    # 처리되지 않은 예외 기록 + 사용자에게 짧은 안내
+    app.add_error_handler(error_handler)
 
     logger.info("✅ 핸들러 등록 완료")
 
