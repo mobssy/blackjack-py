@@ -543,3 +543,92 @@ class TestInsurance:
         del data["insurance_bet"]
         restored = BlackjackGame.from_dict(data)
         assert restored.insurance_bet is None
+
+
+class TestDealerPeek:
+    """
+    딜러 피크 — 딜러 블랙잭이면 처음 건 베팅만 잃는다
+    (업카드 10점 카드는 딜 직후, 업카드 A는 인슈어런스 결정 후 공개)
+    """
+
+    def _make_game(self, player_hand, dealer_hand, bet: float = 100.0):
+        from bot.utils.blackjack_game import BlackjackGame
+
+        deck = Deck(num_decks=1)
+        deck.cards = ["9C"] * 20  # 히트/더블/스플릿용 카드
+        game = BlackjackGame(user_id=1, bet=bet, deck=deck)
+        game.hands[0] = list(player_hand)
+        game.dealer_hand[:] = list(dealer_hand)
+        return game
+
+    def test_ten_upcard_reveals_immediately(self):
+        game = self._make_game(["8S", "7H"], ["AS", "KH"])  # 업카드 K, 홀 A
+        assert game.must_reveal_blackjack() is True
+
+    def test_ace_upcard_waits_for_insurance_decision(self):
+        game = self._make_game(["8S", "7H"], ["KS", "AH"])  # 업카드 A
+        assert game.must_reveal_blackjack() is False
+        assert game.must_reveal_blackjack(declined_insurance=True) is True
+
+    def test_ace_upcard_reveals_after_insurance_taken(self):
+        game = self._make_game(["8S", "7H"], ["KS", "AH"])
+        game.take_insurance()
+        assert game.must_reveal_blackjack() is True
+
+    def test_no_reveal_without_dealer_blackjack(self):
+        game = self._make_game(["8S", "7H"], ["9S", "AH"])
+        assert game.must_reveal_blackjack(declined_insurance=True) is False
+
+    def test_no_reveal_after_first_turn(self):
+        """첫 턴이 지난 뒤에는 피크 대상이 아님 (결과 계산에서 처리)"""
+        game = self._make_game(["2S", "3H"], ["AS", "KH"])
+        game.player_hit()
+        assert game.must_reveal_blackjack(declined_insurance=True) is False
+
+    def test_original_bet_lost(self):
+        game = self._make_game(["8S", "7H"], ["AS", "KH"], bet=100.0)
+        assert game.get_results() == [(GameOutcome.LOSS, -100.0)]
+
+    def test_player_blackjack_pushes(self):
+        game = self._make_game(["AD", "QH"], ["AS", "KH"])
+        assert game.get_results() == [(GameOutcome.PUSH, 0.0)]
+
+    def test_double_loses_only_original_bet(self):
+        """멀티 테이블처럼 피크 전에 더블이 진행돼도 추가분은 잃지 않음"""
+        game = self._make_game(["5S", "6H"], ["AS", "KH"], bet=100.0)
+        game.player_double()
+        assert game.total_bet == 200.0
+        assert game.get_results() == [(GameOutcome.LOSS, -100.0)]
+
+    def test_split_loses_only_original_bet(self):
+        game = self._make_game(["8S", "8H"], ["AS", "KH"], bet=100.0)
+        game.split()
+        assert game.get_results() == [
+            (GameOutcome.LOSS, -100.0),
+            (GameOutcome.LOSS, 0.0),
+        ]
+
+    def test_surrender_against_blackjack_loses_full_bet(self):
+        """피크 후 서렌더 — 딜러 블랙잭에는 서렌더할 수 없음"""
+        game = self._make_game(["9S", "7H"], ["AS", "KH"], bet=100.0)
+        assert game.surrender_result() == (GameOutcome.LOSS, -100.0)
+
+    def test_surrender_without_blackjack_unchanged(self):
+        game = self._make_game(["9S", "7H"], ["9D", "KH"], bet=100.0)
+        assert game.surrender_result() == (GameOutcome.SURRENDER, -50.0)
+
+    def test_initial_bet_roundtrip(self):
+        from bot.utils.blackjack_game import BlackjackGame
+
+        game = self._make_game(["5S", "6H"], ["9D", "KH"], bet=40.0)
+        game.player_double()
+        restored = BlackjackGame.from_dict(game.to_dict())
+        assert restored.initial_bet == 40.0
+        assert restored.total_bet == 80.0
+
+    def test_legacy_session_initial_bet_falls_back_to_first_bet(self):
+        from bot.utils.blackjack_game import BlackjackGame
+
+        data = self._make_game(["5S", "6H"], ["9D", "KH"], bet=40.0).to_dict()
+        del data["initial_bet"]
+        assert BlackjackGame.from_dict(data).initial_bet == 40.0

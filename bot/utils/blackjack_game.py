@@ -45,6 +45,8 @@ class BlackjackGame:
         self.deck = deck if deck is not None else Deck(num_decks=6)
         self.hands: List[List[str]] = [[]]
         self.bets: List[float] = [bet]
+        # 처음 건 베팅액 (더블/스플릿 추가분 제외) — 딜러 블랙잭 시 이 금액만 잃는다
+        self.initial_bet = bet
         self.active_index = 0
         self.is_split = False
         self.split_rank: Optional[str] = None
@@ -66,6 +68,7 @@ class BlackjackGame:
             "user_id": self.user_id,
             "hands": self.hands,
             "bets": self.bets,
+            "initial_bet": self.initial_bet,
             "active_index": self.active_index,
             "is_split": self.is_split,
             "split_rank": self.split_rank,
@@ -91,6 +94,8 @@ class BlackjackGame:
         game = cls(user_id=data["user_id"], bet=0.0, deck=deck, dealer_hand=dealer_hand)
         game.hands = [list(hand) for hand in data["hands"]]
         game.bets = [float(bet) for bet in data["bets"]]
+        # 이 필드 추가 전에 저장된 세션은 첫 핸드 베팅액으로 대체
+        game.initial_bet = float(data.get("initial_bet", game.bets[0]))
         game.active_index = int(data["active_index"])
         game.is_split = bool(data["is_split"])
         game.split_rank = data.get("split_rank")
@@ -191,6 +196,20 @@ class BlackjackGame:
         """딜러 블랙잭 여부"""
         return is_blackjack(self.dealer_hand)
 
+    def must_reveal_blackjack(self, declined_insurance: bool = False) -> bool:
+        """
+        딜러 피크 — 플레이 없이 딜러 블랙잭을 공개하고 라운드를 끝내야 하는지
+
+        업카드가 10점 카드면 딜 직후 바로, 업카드가 A면 인슈어런스 결정
+        (가입하거나, 다른 액션을 골라 거절) 이후 공개한다.
+
+        Args:
+            declined_insurance: 플레이어가 인슈어런스 대신 다른 액션을 골랐는지
+        """
+        if not (self.is_first_turn and self.dealer_has_blackjack):
+            return False
+        return declined_insurance or not self.can_insure
+
     @property
     def insurance_net(self) -> float:
         """
@@ -258,9 +277,13 @@ class BlackjackGame:
         """
         서렌더 결과 계산 (베팅액 절반 손실)
 
+        딜러 블랙잭에는 서렌더할 수 없으므로(피크 후 서렌더) 베팅액 전부를 잃는다.
+
         Returns:
             Tuple[GameOutcome, float]: (SURRENDER, 정산 금액)
         """
+        if self.dealer_has_blackjack:
+            return GameOutcome.LOSS, -self.initial_bet
         payout = PayoutCalculator.calculate(GameOutcome.SURRENDER, self.bet)
         return GameOutcome.SURRENDER, payout
 
@@ -281,8 +304,10 @@ class BlackjackGame:
         Returns:
             List[Tuple[GameOutcome, float]]: 핸드별 (outcome, payout)
         """
+        if self.dealer_has_blackjack:
+            return self._dealer_blackjack_results()
+
         dealer_value = calculate_hand_value(self.dealer_hand)
-        dealer_blackjack = is_blackjack(self.dealer_hand)
         dealer_bust = is_bust(self.dealer_hand)
 
         results = []
@@ -292,9 +317,28 @@ class BlackjackGame:
                 calculate_hand_value(hand),
                 dealer_value,
                 player_blackjack,
-                dealer_blackjack,
+                False,  # 딜러 블랙잭은 위에서 처리
                 is_bust(hand),
                 dealer_bust,
             )
             results.append((outcome, PayoutCalculator.calculate(outcome, bet)))
+        return results
+
+    def _dealer_blackjack_results(self) -> List[Tuple[GameOutcome, float]]:
+        """
+        딜러 블랙잭 결과 — 피크 규칙과 같게 처음 건 베팅액만 잃는다
+
+        피크가 있으면 더블/스플릿 전에 라운드가 끝나므로, 그 추가 베팅은
+        (멀티 테이블처럼 플레이가 진행된 경우에도) 잃지 않는다.
+        손실은 앞 핸드부터 처음 건 베팅액만큼 배정한다.
+        """
+        if not self.is_split and is_blackjack(self.hands[0]):
+            return [(GameOutcome.PUSH, 0.0)]
+
+        remaining = self.initial_bet
+        results = []
+        for bet in self.bets:
+            loss = min(bet, remaining)
+            remaining -= loss
+            results.append((GameOutcome.LOSS, -loss))
         return results

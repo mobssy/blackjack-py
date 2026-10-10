@@ -333,8 +333,19 @@ class TestBaseBet:
         table = BlackjackTable(chat_id=-100, host_id=1)
         table.join(user_id=1, name="P1", bet=30.0)
         data = table.to_dict()
-        del data["seats"][0]["base_bet"]
+        del data["seats"][0]["game"]["initial_bet"]
         assert BlackjackTable.from_dict(data).base_bets() == {1: 30.0}
+
+    def test_legacy_seat_base_bet_restores_initial_bet(self):
+        """좌석에 base_bet을 저장하던 세션 — 더블 후에도 처음 건 금액으로 복원"""
+        table = _table_with(1, ["5S", "KD", "6S", "7C", "KH"], bet=40.0)
+        table.apply(1, TableAction.DOUBLE)
+        data = table.to_dict()
+        del data["seats"][0]["game"]["initial_bet"]
+        data["seats"][0]["base_bet"] = 40.0
+        restored = BlackjackTable.from_dict(data)
+        assert restored.base_bets() == {1: 40.0}
+        assert restored.seats[0].game.initial_bet == 40.0
 
 
 class TestSharedGameInjection:
@@ -437,3 +448,43 @@ class TestTableView:
         assert "$900.00" in text
         assert "+$100.00" in text
         assert "-$100.00" in text
+
+
+class TestDealerPeek:
+    """
+    딜러 피크 — 업카드 10점 카드 + 블랙잭이면 딜 직후 라운드 종료,
+    업카드 A면 각자 인슈어런스를 결정하도록 진행하고 처음 건 베팅만 잃는다
+    """
+
+    def test_ten_upcard_blackjack_ends_round_at_deal(self):
+        # 딜 순서: P1, P2, 딜러(홀 A), P1, P2, 딜러(업 K)
+        table = _table_with(2, ["8S", "KS", "AS", "7H", "AD", "KH"])
+        assert table.dealer_has_blackjack
+        assert table.is_round_over
+        results = dict((seat.user_id, r) for seat, r in table.results())
+        assert results[1] == [(GameOutcome.LOSS, -100.0)]
+        assert results[2] == [(GameOutcome.PUSH, 0.0)]  # P2 KS+AD 블랙잭
+
+    def test_ace_upcard_blackjack_lets_players_insure(self):
+        table = _table_with(2, ["8S", "9S", "KS", "7H", "8H", "AH"])
+        assert table.dealer_has_blackjack
+        assert not table.is_round_over
+        assert table.current_seat.user_id == 1
+        assert table.action_cost(1, TableAction.INSURANCE) == 50.0
+
+    def test_ace_upcard_double_loses_only_original_bet(self):
+        table = _table_with(1, ["5S", "KS", "6H", "AH", "9C"])
+        table.apply(1, TableAction.DOUBLE)
+        table.play_dealer()
+        assert table.results()[0][1] == [(GameOutcome.LOSS, -100.0)]
+
+    def test_ace_upcard_surrender_loses_full_bet(self):
+        table = _table_with(1, ["9S", "KS", "7H", "AH"])
+        table.apply(1, TableAction.SURRENDER)
+        table.play_dealer()
+        assert table.results()[0][1] == [(GameOutcome.LOSS, -100.0)]
+
+    def test_no_blackjack_plays_normally(self):
+        table = _table_with(1, ["8S", "9D", "7H", "KH"])
+        assert not table.dealer_has_blackjack
+        assert table.current_seat.user_id == 1

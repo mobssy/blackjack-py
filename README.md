@@ -58,6 +58,7 @@
 - 서렌더: 첫 두 장에서 베팅 절반 회수
 - 스플릿: 같은 랭크 2장, 1회만 가능. 에이스 스플릿은 카드 1장씩만. 스플릿 후 21은 블랙잭이 아닌 일반 21
 - 인슈어런스: 딜러 업카드가 A일 때 베팅 절반, 딜러 블랙잭이면 2:1 (멀티 테이블에서는 라운드 종료 시 공개)
+- 딜러 피크: 딜러가 블랙잭이면 처음 건 베팅만 잃습니다 (더블·스플릿 추가분은 잃지 않음, 내 블랙잭이면 무승부). 업카드가 10점 카드면 딜 직후 바로, A면 인슈어런스를 고른 뒤(다른 액션을 누르면 거절) 공개됩니다. 멀티 테이블에서 업카드가 A일 때는 모두 인슈어런스를 고를 수 있도록 라운드가 끝날 때 공개되고, 서렌더는 딜러 블랙잭에 적용되지 않습니다
 
 ### 칩
 
@@ -151,6 +152,7 @@ The Telegram `/` menu is registered automatically on startup for each chat type 
 - Surrender: on the first two cards, get half the bet back
 - Split: a same-rank pair, once only. Split aces get one card each. A two-card 21 after a split is a regular 21, not blackjack
 - Insurance: half the bet when the dealer shows an Ace, pays 2:1 on dealer blackjack (revealed at the end of the round at a multiplayer table)
+- Dealer peek: against a dealer blackjack you lose only your original bet (double/split extras are kept; your own blackjack pushes). With a ten-value upcard it is revealed right after the deal; with an Ace, after your insurance decision (any other action declines it). At a multiplayer table with an Ace up, it is revealed at the end of the round so everyone can decide on insurance, and surrender does not apply against a dealer blackjack
 
 ### Chips
 

@@ -16,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 from bot.handlers import blackjack as bj
 from bot.handlers import common
 from bot.utils.blackjack_game import BlackjackGame
+from bot.utils.deck import Deck
 from bot.utils.i18n import t
 from models.base import Base
 from models.user import User
@@ -52,7 +53,11 @@ def env(monkeypatch):
     monkeypatch.setattr(bj, "HIT_REVEAL_DELAY", 0.05)
     monkeypatch.setattr(bj, "game_sessions", {})
     monkeypatch.setattr(bj, "_user_locks", {})
-    return SimpleNamespace(settled=settled)
+    return SimpleNamespace(settled=settled, session=session)
+
+
+def _wallet(env, user_id: int) -> float:
+    return float(User.find_by_tg_id(env.session, user_id).wallet)
 
 
 def _start_game(user_id: int) -> BlackjackGame:
@@ -198,3 +203,80 @@ class TestConcurrency:
         assert log.index((2, "media", "result")) < log.index(
             (1, "media", t("card_drawn", "ko"))
         )
+
+
+class TestDealerPeek:
+    """딜러 피크 — 업카드 10점 카드는 딜 직후, A는 인슈어런스 결정 후 공개"""
+
+    @staticmethod
+    def _rig_deck(monkeypatch, draw_order):
+        """/deal이 만드는 게임의 덱을 draw_order 순서로 고정 (플레이어 2장 → 딜러 2장)"""
+
+        def factory(user_id, bet):
+            deck = Deck(num_decks=1)
+            deck.cards = ["9C"] * 20 + list(reversed(draw_order))
+            return BlackjackGame(user_id, bet, deck=deck)
+
+        monkeypatch.setattr(bj, "BlackjackGame", factory)
+
+    @staticmethod
+    def _deal(user_id: int, log: list):
+        update = _command(user_id, log)
+        update.effective_chat.type = "private"
+        asyncio.run(bj.cmd_deal(update, SimpleNamespace(args=["10"], bot=None)))
+
+    @staticmethod
+    def _peek_caption(lang: str = "ko") -> str:
+        return f"{t('dealer_peek_blackjack', lang)}\nresult"
+
+    def test_ten_upcard_blackjack_ends_at_deal(self, env, monkeypatch):
+        self._rig_deck(monkeypatch, ["8S", "7H", "AS", "KH"])  # 딜러 홀 A, 업 K
+        log = []
+        self._deal(1, log)
+        assert log == [(1, "photo", self._peek_caption())]
+        assert env.settled == [1]
+        assert 1 not in bj.game_sessions
+
+    def test_ace_upcard_waits_for_insurance_decision(self, env, monkeypatch):
+        self._rig_deck(monkeypatch, ["8S", "7H", "KS", "AH"])  # 딜러 홀 K, 업 A
+        log = []
+        self._deal(1, log)
+        assert log == [(1, "photo", t("deal_caption", "ko", bet=10.0))]
+        assert env.settled == []
+
+    def test_declining_insurance_reveals_blackjack(self, env):
+        game = _start_game(1)
+        game.dealer_hand[:] = ["KS", "AH"]
+        log = []
+        asyncio.run(_press(_callback(1, "game_hit", log)))
+        assert log == [(1, "media", self._peek_caption())]
+        assert len(game.player_hand) == 2  # 히트 카드를 받기 전에 끝남
+        assert env.settled == [1]
+
+    def test_double_not_charged_against_blackjack(self, env):
+        game = _start_game(1)
+        game.dealer_hand[:] = ["KS", "AH"]
+        wallet_before = _wallet(env, 1)
+        log = []
+        asyncio.run(_press(_callback(1, "game_double", log)))
+        assert log == [(1, "media", self._peek_caption())]
+        assert game.total_bet == 10.0
+        assert _wallet(env, 1) == wallet_before  # 더블 추가 베팅 차감 없음
+
+    def test_insurance_then_blackjack_ends_round(self, env):
+        game = _start_game(1)
+        game.dealer_hand[:] = ["KS", "AH"]
+        log = []
+        asyncio.run(_press(_callback(1, "game_insurance", log)))
+        assert log == [(1, "media", self._peek_caption())]
+        assert game.insurance_bet == 5.0
+        assert env.settled == [1]
+
+    def test_ace_upcard_without_blackjack_plays_on(self, env):
+        game = _start_game(1)
+        game.dealer_hand[:] = ["9S", "AH"]
+        log = []
+        asyncio.run(_press(_callback(1, "game_hit", log)))
+        assert log[-1] == (1, "media", t("card_drawn", "ko"))
+        assert len(game.player_hand) == 3
+        assert env.settled == []

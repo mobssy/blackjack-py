@@ -197,3 +197,26 @@ class TestSameBetAgain:
 
         assert query.answers == [("잔액 부족", True)]
         assert bot.calls == []
+
+
+class TestDealerPeekNotice:
+    def _start(self, monkeypatch, draw_order):
+        finished = []
+
+        async def fake_finish(bot, table, notice=None):
+            finished.append(notice)
+
+        monkeypatch.setattr(table_handlers, "_finish_round", fake_finish)
+        table = _table()
+        table.join(user_id=1, name="P1", bet=10.0)
+        table.deck.cards = ["2C"] * 20 + list(reversed(draw_order))
+        asyncio.run(table_handlers._start_round(_FakeBot(), table))
+        return finished
+
+    def test_ten_upcard_blackjack_announced(self, monkeypatch):
+        finished = self._start(monkeypatch, ["8S", "AS", "7H", "KH"])
+        assert finished == [t("dealer_peek_blackjack", "ko")]
+
+    def test_natural_blackjack_round_has_no_peek_notice(self, monkeypatch):
+        finished = self._start(monkeypatch, ["AS", "8S", "KH", "9H"])
+        assert finished == [None]

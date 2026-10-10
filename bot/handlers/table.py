@@ -357,7 +357,11 @@ async def _start_round(bot: Bot, table: BlackjackTable) -> None:
 
     table.deal()
     _persist_tables()
-    await _advance(bot, table, new_message=True)
+    # 딜러 피크로 플레이 없이 끝난 라운드는 이유를 함께 알린다
+    notice = None
+    if table.is_round_over and table.dealer_has_blackjack:
+        notice = t("dealer_peek_blackjack", table.lang)
+    await _advance(bot, table, notice=notice, new_message=True)
 
 
 async def _advance(

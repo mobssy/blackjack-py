@@ -21,7 +21,6 @@ from models import get_db, User, GameOutcome
 from bot.utils import (
     is_blackjack,
     is_bust,
-    PayoutCalculator,
     t,
     get_user_lang,
 )
@@ -257,17 +256,8 @@ async def _deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game_sessions[user_tg_id] = game
     _persist_sessions()
 
-    # 블랙잭 체크
-    if is_blackjack(game.player_hand):
-        # 딜러도 블랙잭인지 확인
-        if is_blackjack(game.dealer_hand):
-            outcome = GameOutcome.PUSH
-            payout = 0
-        else:
-            outcome = GameOutcome.BLACKJACK
-            payout = PayoutCalculator.calculate(outcome, bet_amount)
-
-        # 게임 종료
+    # 내추럴 블랙잭, 또는 딜러 피크(업카드 10점 카드 + 블랙잭)면 플레이 없이 종료
+    if is_blackjack(game.player_hand) or game.must_reveal_blackjack():
         turn = _Turn(
             CommandView(update.message),
             user_tg_id,
@@ -275,7 +265,7 @@ async def _deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
             game,
             lang,
         )
-        await _finish(turn, [(outcome, payout)])
+        await _finish(turn, game.get_results(), _peek_notice(game, lang))
         return
 
     # 사용자 테마 가져오기 및 럭셔리 카드 이미지 생성
@@ -471,11 +461,18 @@ class _Turn:
 # ── 게임 액션 (명령어/버튼 공용) ───────────────────────────────
 
 
-async def _finish(turn: _Turn, results: List[Tuple[GameOutcome, float]]) -> None:
+async def _finish(
+    turn: _Turn,
+    results: List[Tuple[GameOutcome, float]],
+    notice: Optional[str] = None,
+) -> None:
     """
     게임 종료 처리 — 정산 커밋 → 세션 제거 → 결과 전송
 
     정산이 커밋된 직후 세션을 제거해, 전송이 실패해도 이중 정산이 없도록 한다.
+
+    Args:
+        notice: 결과 캡션 위에 붙일 안내 (딜러 피크 등)
     """
     settle_info = settle_game(turn.user_tg_id, turn.game, results, turn.chat_id)
     game_sessions.pop(turn.user_tg_id, None)
@@ -484,7 +481,14 @@ async def _finish(turn: _Turn, results: List[Tuple[GameOutcome, float]]) -> None
     image_bytes, caption, reply_markup = _render_game_result(
         turn.game, results, settle_info, turn.lang
     )
+    if notice:
+        caption = f"{notice}\n{caption}"
     await turn.view.show(image_bytes, caption, reply_markup)
+
+
+def _peek_notice(game: BlackjackGame, lang: str) -> Optional[str]:
+    """딜러 블랙잭으로 끝났으면 피크 안내 문구"""
+    return t("dealer_peek_blackjack", lang) if game.dealer_has_blackjack else None
 
 
 async def _show_progress(turn: _Turn, caption: str, header: str = "") -> None:
@@ -561,7 +565,7 @@ async def _act_insurance(turn: _Turn) -> None:
 
     # 딜러 블랙잭이면 즉시 게임 종료 (보험 2:1 지급은 정산에서 처리)
     if game.dealer_has_blackjack:
-        await _finish(turn, game.get_results())
+        await _finish(turn, game.get_results(), _peek_notice(game, lang))
         return
 
     # 보험금 소멸, 게임 계속 (인슈어런스 버튼만 제거)
@@ -620,6 +624,12 @@ async def _run_action(action: str, update: Update, view: GameView) -> None:
             await view.show_text(t("no_game", lang))
             return
         turn = _Turn(view, user_tg_id, update.effective_chat.id, game, lang)
+        # 업카드 A: 인슈어런스 대신 다른 액션을 고르면(거절) 딜러가 피크한다
+        if action != "insurance" and game.must_reveal_blackjack(
+            declined_insurance=True
+        ):
+            await _finish(turn, game.get_results(), _peek_notice(game, lang))
+            return
         await _ACTIONS[action](turn)
 
 

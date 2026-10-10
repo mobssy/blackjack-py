@@ -30,7 +30,8 @@
     main.py에서 blackjack.game_button_callback으로 직접 등록)
 - `bot/utils/` — 텔레그램 의존성 없는 로직
   - `blackjack_game.py` — BlackjackGame (멀티 핸드: hands/bets 리스트,
-    player_hand/bet은 활성 핸드 프로퍼티)
+    player_hand/bet은 활성 핸드 프로퍼티). 딜러 피크: `must_reveal_blackjack`,
+    딜러 블랙잭 결과는 처음 건 베팅(`initial_bet`)만 잃음
   - `table.py` — BlackjackTable (좌석마다 덱/딜러 핸드를 공유하는 BlackjackGame 주입,
     공유 `dealer_hand`는 재할당 금지·제자리 변경만), `table_view.py` — 테이블 HTML 캡션
     및 이미지용 SeatView 변환, `table_renderer.py` — 딜러+좌석 그리드 펠트 이미지

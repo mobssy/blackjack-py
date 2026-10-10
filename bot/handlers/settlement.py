@@ -34,13 +34,11 @@ def apply_settlement(
     """
     wins = losses = 0
     for (outcome, payout), hand, bet in zip(results, game.hands, game.bets):
-        if outcome == GameOutcome.PUSH:
-            user.add_wallet(bet)
-        elif outcome == GameOutcome.SURRENDER:
-            # 베팅액 절반 회수 (payout = -bet/2)
-            user.add_wallet(bet + payout)
-        elif payout > 0:
-            user.add_wallet(bet + payout)
+        # 베팅은 이미 차감됨 — 원금 + 정산액을 돌려준다 (푸시는 원금, 서렌더는 절반,
+        # 딜러 블랙잭에 더블한 경우는 처음 건 금액을 뺀 추가분)
+        returned = bet + payout
+        if returned > 0:
+            user.add_wallet(returned)
 
         if outcome in (GameOutcome.WIN, GameOutcome.BLACKJACK):
             wins += 1

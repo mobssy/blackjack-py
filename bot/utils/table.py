@@ -59,8 +59,11 @@ class Seat:
     game: BlackjackGame
     done: bool = False
     surrendered: bool = False
-    # 착석 시 베팅액 (더블/스플릿 추가분 제외) — 다음 판 "같은 금액으로 계속"에 사용
-    base_bet: float = 0.0
+
+    @property
+    def base_bet(self) -> float:
+        """착석 시 베팅액 (더블/스플릿 추가분 제외) — 다음 판 "같은 금액으로 계속"에 사용"""
+        return self.game.initial_bet
 
     @property
     def is_live(self) -> bool:
@@ -79,7 +82,6 @@ class Seat:
             "name": self.name,
             "done": self.done,
             "surrendered": self.surrendered,
-            "base_bet": self.base_bet,
             "game": self.game.to_dict(include_shared=False),
         }
 
@@ -146,7 +148,7 @@ class BlackjackTable:
         """착석 및 베팅 (잔액은 호출 전에 차감되어 있어야 함)"""
         self.check_can_join(user_id)
         game = BlackjackGame(user_id, bet, deck=self.deck, dealer_hand=self.dealer_hand)
-        seat = Seat(user_id=user_id, name=name, game=game, base_bet=bet)
+        seat = Seat(user_id=user_id, name=name, game=game)
         self.seats.append(seat)
         self.version += 1
         return seat
@@ -178,6 +180,9 @@ class BlackjackTable:
         카지노 순서대로 좌석 → 딜러 순으로 2바퀴 딜, 첫 차례 결정
 
         내추럴 블랙잭 좌석은 플레이할 필요가 없으므로 바로 완료 처리한다.
+        딜러 업카드가 10점 카드이고 블랙잭이면(피크) 플레이 없이 라운드가 끝난다.
+        업카드가 A면 각자 인슈어런스를 결정하도록 플레이를 진행하고,
+        정산에서 처음 건 베팅액만 잃는다 (BlackjackGame.get_results).
         """
         if self.phase is not TablePhase.BETTING:
             raise TableError("table_not_betting")
@@ -190,7 +195,8 @@ class BlackjackTable:
             self.dealer_hand.append(self.deck.draw())
 
         for seat in self.seats:
-            if is_blackjack(seat.game.hands[0]):
+            # 내추럴 블랙잭, 또는 딜러 피크로 블랙잭이 확인된 경우(업카드 10점 카드)
+            if is_blackjack(seat.game.hands[0]) or seat.game.must_reveal_blackjack():
                 seat.done = True
 
         self.phase = TablePhase.PLAYING
@@ -208,6 +214,11 @@ class BlackjackTable:
         if 0 <= self.turn_index < len(self.seats):
             return self.seats[self.turn_index]
         return None
+
+    @property
+    def dealer_has_blackjack(self) -> bool:
+        """딜러 블랙잭 여부"""
+        return is_blackjack(self.dealer_hand)
 
     @property
     def is_round_over(self) -> bool:
@@ -366,20 +377,22 @@ class BlackjackTable:
         table.phase = TablePhase(data["phase"])
         table.turn_index = int(data["turn_index"])
         table.message_id = data.get("message_id")
-        table.seats = [
-            Seat(
-                user_id=int(seat_data["user_id"]),
-                name=seat_data["name"],
-                game=BlackjackGame.from_dict(
-                    seat_data["game"],
-                    deck=table.deck,
-                    dealer_hand=table.dealer_hand,
-                ),
-                done=bool(seat_data["done"]),
-                surrendered=bool(seat_data["surrendered"]),
-                # 이 필드 추가 전에 저장된 세션은 첫 핸드 베팅액으로 대체
-                base_bet=float(seat_data.get("base_bet", seat_data["game"]["bets"][0])),
-            )
-            for seat_data in data["seats"]
-        ]
+        table.seats = [_seat_from_dict(seat_data, table) for seat_data in data["seats"]]
         return table
+
+
+def _seat_from_dict(data: dict, table: BlackjackTable) -> Seat:
+    """저장된 좌석 복원 (게임은 테이블의 덱/딜러 핸드를 공유)"""
+    game_data = dict(data["game"])
+    # 처음 건 베팅액이 게임에 저장되기 전의 세션은 좌석의 base_bet으로 대체
+    if "initial_bet" not in game_data and "base_bet" in data:
+        game_data["initial_bet"] = data["base_bet"]
+    return Seat(
+        user_id=int(data["user_id"]),
+        name=data["name"],
+        game=BlackjackGame.from_dict(
+            game_data, deck=table.deck, dealer_hand=table.dealer_hand
+        ),
+        done=bool(data["done"]),
+        surrendered=bool(data["surrendered"]),
+    )
