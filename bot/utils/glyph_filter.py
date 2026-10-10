@@ -30,13 +30,21 @@ def _font_key(font: ImageFont.FreeTypeFont) -> Tuple[str, int]:
 
 
 def has_glyph(font: ImageFont.FreeTypeFont, char: str) -> bool:
-    """font가 char를 네모가 아닌 실제 글리프로 그릴 수 있는지"""
+    """
+    font가 char를 네모가 아닌 실제 글리프로 그릴 수 있는지
+
+    아무것도 그리지 않는 폭 0 문자(ZWJ, 변형 선택자 등)도 그릴 수 없는 문자로
+    본다 — 이모지를 지운 자리에 남으면 strip()으로도 지워지지 않는다.
+    (Linux FreeType은 U+FE0F를 네모 대신 빈 그림으로 그려 플랫폼마다 달랐다)
+    공백 문자는 호출자(drawable_text)가 따로 유지한다.
+    """
     font_key = _font_key(font)
     key = font_key + (char,)
     if key not in _glyph_cache:
         if font_key not in _notdef_cache:
             _notdef_cache[font_key] = _render(font, _NOTDEF_PROBE)
-        _glyph_cache[key] = _render(font, char) != _notdef_cache[font_key]
+        bitmap = _render(font, char)
+        _glyph_cache[key] = any(bitmap) and bitmap != _notdef_cache[font_key]
     return _glyph_cache[key]
 
 

@@ -46,6 +46,19 @@ def test_drawable_text_drops_variation_selector():
     assert drawable_text("🛡️ Insurance", _font()) == "Insurance"
 
 
+def test_drawable_text_drops_zero_width_joiner():
+    """ZWJ 이모지 시퀀스 — 이모지를 지운 뒤 폭 0 문자가 남지 않아야 함"""
+    assert drawable_text("👨\u200d👩\u200d👧 Family", _font()) == "Family"
+
+
+def test_zero_width_chars_are_not_drawable():
+    """아무것도 그리지 않는 문자는 글리프가 있어도 그릴 수 없는 문자로 취급
+    (Linux FreeType은 U+FE0F를 네모 대신 빈 그림으로 그린다)"""
+    font = _font()
+    for char in ("\u200d", "\u200b", "\u2060", "\ufe0f"):
+        assert not has_glyph(font, char)
+
+
 def test_drawable_text_emoji_only_becomes_empty():
     assert drawable_text("🤖", _font()) == ""
 
